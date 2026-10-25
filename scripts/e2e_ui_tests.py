@@ -63,7 +63,7 @@ CHAT_AGENT = "chatbot"
 # The resume scenario needs full multi-turn history to survive a checkpoint round
 # trip. The @entrypoint-style chatbot only exposes its last reply via /history, so
 # use a StateGraph agent (whose messages channel accumulates every turn) instead.
-HISTORY_AGENT = "research-assistant"
+HISTORY_AGENT = ""
 
 WAKE_TIMEOUT_S = 180
 RESPONSE_TIMEOUT_S = 120
