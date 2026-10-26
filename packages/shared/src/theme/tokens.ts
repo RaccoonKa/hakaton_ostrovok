@@ -1,11 +1,11 @@
 export const DESIGN_TOKENS = {
   colors: {
     primary: {
-      DEFAULT: "#B286D0",
-      hover: "#9C68C1",
-      active: "#8D57B4",
-      light: "#F8F2FC",
-      tint: "#F4EBF9",
+      DEFAULT: "#7E22CE",
+      hover: "#6B21A8",
+      active: "#581C87",
+      light: "#FAF5FF",
+      tint: "#F3E8FF",
     },
     secondary: {
       DEFAULT: "#FF7A30",

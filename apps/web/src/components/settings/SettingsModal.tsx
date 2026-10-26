@@ -133,7 +133,7 @@ export const SettingsModal: React.FC = () => {
               onClick={() => setActiveTab("search")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "search"
-                  ? "bg-white text-primary shadow-xs border border-slate-200/80 font-bold"
+                  ? "bg-white text-primary shadow-xs border border-primary/25 font-bold"
                   : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
               }`}
             >
@@ -146,7 +146,7 @@ export const SettingsModal: React.FC = () => {
               onClick={() => setActiveTab("account")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "account"
-                  ? "bg-white text-primary shadow-xs border border-slate-200/80 font-bold"
+                  ? "bg-white text-primary shadow-xs border border-primary/25 font-bold"
                   : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
               }`}
             >
