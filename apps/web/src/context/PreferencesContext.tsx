@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState } from "react";
 
 export type CurrencyCode = "RUB" | "USD" | "EUR" | "AED";
 export type LanguageCode = "ru" | "en";
+export type SettingsTab = "search" | "account";
 
 export interface TravelPreferences {
   currency: CurrencyCode;
@@ -12,6 +13,16 @@ export interface TravelPreferences {
   directFlightsOnly: boolean;
   withLuggage: boolean;
   minHotelRating: number;
+}
+
+export interface UserProfile {
+  fullName: string;
+  email: string;
+  phone: string;
+  tier: string;
+  domesticPassport: string;
+  intlPassport: string;
+  telegramNotifications: boolean;
 }
 
 const DEFAULT_PREFERENCES: TravelPreferences = {
@@ -25,13 +36,28 @@ const DEFAULT_PREFERENCES: TravelPreferences = {
   minHotelRating: 4,
 };
 
-const STORAGE_KEY = "odin_travel_preferences_v1";
+const DEFAULT_PROFILE: UserProfile = {
+  fullName: "Алексей Смирнов",
+  email: "alexey.smirnov@example.com",
+  phone: "+7 (999) 123-45-67",
+  tier: "Премиум",
+  domesticPassport: "4512 789123",
+  intlPassport: "75 1234567",
+  telegramNotifications: true,
+};
+
+const STORAGE_PREFS_KEY = "odin_travel_preferences_v1";
+const STORAGE_PROFILE_KEY = "odin_user_profile_v1";
 
 interface PreferencesContextType {
   preferences: TravelPreferences;
   updatePreferences: (newPrefs: Partial<TravelPreferences>) => void;
+  profile: UserProfile;
+  updateProfile: (newProfile: Partial<UserProfile>) => void;
   isSettingsModalOpen: boolean;
-  openSettingsModal: () => void;
+  activeTab: SettingsTab;
+  setActiveTab: (tab: SettingsTab) => void;
+  openSettingsModal: (tab?: SettingsTab) => void;
   closeSettingsModal: () => void;
   currencyLabel: string;
 }
@@ -41,7 +67,7 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [preferences, setPreferences] = useState<TravelPreferences>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_PREFS_KEY);
       if (saved) {
         return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) };
       }
@@ -51,13 +77,26 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return DEFAULT_PREFERENCES;
   });
 
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
+      if (saved) {
+        return { ...DEFAULT_PROFILE, ...JSON.parse(saved) };
+      }
+    } catch {
+      // fallback
+    }
+    return DEFAULT_PROFILE;
+  });
+
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>("search");
 
   const updatePreferences = (newPrefs: Partial<TravelPreferences>) => {
     setPreferences((prev) => {
       const updated = { ...prev, ...newPrefs };
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(STORAGE_PREFS_KEY, JSON.stringify(updated));
       } catch {
         // ignore storage errors
       }
@@ -65,7 +104,23 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
-  const openSettingsModal = () => setIsSettingsModalOpen(true);
+  const updateProfile = (newProfile: Partial<UserProfile>) => {
+    setProfile((prev) => {
+      const updated = { ...prev, ...newProfile };
+      try {
+        localStorage.setItem(STORAGE_PROFILE_KEY, JSON.stringify(updated));
+      } catch {
+        // ignore storage errors
+      }
+      return updated;
+    });
+  };
+
+  const openSettingsModal = (tab: SettingsTab = "search") => {
+    setActiveTab(tab);
+    setIsSettingsModalOpen(true);
+  };
+
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
   const langLabel = preferences.language === "ru" ? "Русский" : "English";
@@ -76,7 +131,11 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       value={{
         preferences,
         updatePreferences,
+        profile,
+        updateProfile,
         isSettingsModalOpen,
+        activeTab,
+        setActiveTab,
         openSettingsModal,
         closeSettingsModal,
         currencyLabel,

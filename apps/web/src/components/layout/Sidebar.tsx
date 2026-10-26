@@ -228,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Currency & Language selector button */}
             <button
               type="button"
-              onClick={openSettingsModal}
+              onClick={() => openSettingsModal("search")}
               className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-black/[0.05] shadow-2xs text-xs text-content-primary transition-all group cursor-pointer"
               title="Настройки региона, валюты и параметров поиска"
             >
@@ -237,7 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             {/* User Profile bar with enlarged typography */}
-            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 transition-colors">
+            <div onClick={() => openSettingsModal("account")} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 transition-colors cursor-pointer group" title="Открыть профиль путешественника">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-10 h-10 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
                   <User className="w-5 h-5" />
@@ -255,8 +255,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors shrink-0"
-                onClick={openSettingsModal}
-                title="Настройки профиля и поиска"
+                onClick={(e) => { e.stopPropagation(); openSettingsModal("account"); }}
+                title="Настройки профиля и аккаунта"
               >
                 <Settings className="w-4.5 h-4.5" />
               </button>
