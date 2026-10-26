@@ -74,7 +74,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSelect = (query: string) => {
     onSelectHistoryItem(query);
-    // On small screens, close sidebar when an item is clicked
     if (window.innerWidth < 768) {
       closeSidebar();
     }
@@ -98,18 +97,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Top Brand, Search & Close button */}
-          <div className="p-4 pb-2">
-            <div className="flex items-center justify-between mb-4">
+          {/* Top Brand & Actions with Purple Gradient & Backdrop Blur Effect */}
+          <div className="relative pt-3.5 px-4 pb-6 bg-gradient-to-b from-[#581c87] via-[#581c87]/95 via-65% to-transparent backdrop-blur-md text-white shadow-xs">
+            {/* Ambient blur glow layer extending slightly lower */}
+            <div
+              className="absolute inset-x-0 bottom-0 h-8 pointer-events-none -mb-3 bg-gradient-to-b from-[#581c87]/30 via-[#581c87]/10 to-transparent blur-xs"
+              aria-hidden="true"
+            />
+
+            <div className="flex items-center justify-between mb-3.5 relative z-10">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-header flex items-center justify-center text-white font-bold text-sm shadow-xs">
+                <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
                   О!
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-content-primary leading-tight">
+                  <span className="text-sm font-bold text-white tracking-tight leading-tight">
                     О!дин запрос
                   </span>
-                  <span className="text-[10px] text-content-muted leading-tight">
+                  <span className="text-[11px] text-white/80 font-medium leading-tight">
                     travel AI-assistant
                   </span>
                 </div>
@@ -117,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 type="button"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:bg-surface-container-high hover:text-content-primary transition-colors"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white/85 hover:bg-white/15 hover:text-white transition-colors"
                 title="Поиск по диалогам"
               >
                 <Search className="w-4 h-4" />
@@ -131,10 +136,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onNewChat();
                 if (window.innerWidth < 768) closeSidebar();
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-surface-container-lowest text-content-primary hover:bg-surface-container-high border border-surface-container-highest/60 transition-all shadow-xs group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white text-content-primary hover:bg-white/95 border border-white/30 transition-all shadow-sm group relative z-10"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
-                <Plus className="w-4 h-4 text-header group-hover:rotate-90 transition-transform" />
+                <Plus className="w-4 h-4 text-[#581c87] group-hover:rotate-90 transition-transform" />
                 <span>Новый маршрут</span>
               </span>
               <kbd className="font-mono text-[10px] text-content-muted bg-surface-container px-1.5 py-0.5 rounded border border-surface-container-highest/60">
@@ -162,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         : "text-content-secondary hover:bg-surface-container hover:text-content-primary"
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-header" />
+                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-primary" />
                     <span className="truncate">{item.title}</span>
                   </button>
                 ))}
@@ -227,17 +232,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </button>
             </div>
 
-            {/* User Profile bar */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg hover:bg-surface-container-high transition-colors">
-              <div className="flex items-center gap-2.5 overflow-hidden">
-                <div className="w-7 h-7 rounded-full bg-header flex items-center justify-center text-white shrink-0">
-                  <User className="w-4 h-4" />
+            {/* User Profile bar with enlarged typography */}
+            <div className="flex items-center justify-between p-2 rounded-xl hover:bg-surface-container-high transition-colors">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <User className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col truncate">
-                  <span className="text-xs font-semibold text-content-primary truncate leading-tight">
+                  <span className="text-base font-bold text-content-primary truncate leading-tight">
                     Алексей С.
                   </span>
-                  <span className="text-[10px] text-content-muted truncate leading-tight">
+                  <span className="text-[13px] font-medium text-content-secondary truncate leading-tight mt-0.5">
                     Путешественник • Премиум
                   </span>
                 </div>
@@ -245,10 +250,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 type="button"
-                className="text-content-muted hover:text-content-primary transition-colors"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors shrink-0"
                 title="Настройки профиля"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-4.5 h-4.5" />
               </button>
             </div>
           </div>
