@@ -7,11 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TripOption, formatPrice, formatDateRange } from "@corvax/shared";
 import { theme } from "../../theme";
+import { TravelerEditModal, TravelerData } from "./TravelerEditModal";
 
 export interface DemoCheckoutModalProps {
   visible: boolean;
@@ -31,6 +31,12 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [traveler, setTraveler] = useState<TravelerData>({
+    name: "Алексей Смирнов",
+    phone: "+7 (999) 456-78-90",
+    email: "alex.smirnov@example.com",
+  });
+  const [editTravelerVisible, setEditTravelerVisible] = useState(false);
 
   if (!option) return null;
 
@@ -96,7 +102,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Trust and Safety Banner (Stitch Screen 5) */}
+            {/* Trust and Safety Banner */}
             <View style={styles.trustBanner}>
               <Text style={styles.trustBannerIcon}>🛡️</Text>
               <View style={styles.trustBannerContent}>
@@ -138,26 +144,30 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               </View>
             </View>
 
-            {/* Traveler Information (Stitch Screen 5) */}
+            {/* Traveler Information with Edit Action */}
             <View style={styles.card}>
               <View style={styles.travelerHeader}>
                 <Text style={styles.cardCaption}>Данные путешественника</Text>
-                <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={styles.editActionText}>Изменить</Text>
+                <TouchableOpacity
+                  onPress={() => setEditTravelerVisible(true)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.editActionText}>Изменить ✎</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Основной турист</Text>
-                <Text style={styles.infoValue}>Алексей Смирнов</Text>
+                <Text style={styles.infoValue}>{traveler.name}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Телефон (СМС-статус)</Text>
-                <Text style={styles.infoValue}>+7 (999) 456-78-90</Text>
+                <Text style={styles.infoValue}>{traveler.phone}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Text style={styles.infoLabel}>Электронная почта</Text>
-                <Text style={styles.infoValue}>alex.smirnov@example.com</Text>
+                <Text style={styles.infoValue}>{traveler.email}</Text>
               </View>
             </View>
 
@@ -218,7 +228,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
                 <View style={styles.successTextCol}>
                   <Text style={styles.successTitle}>Бронирование подтверждено!</Text>
                   <Text style={styles.successSub}>
-                    Заказ {bookingId}. Маршрутная квитанция и отельный ваучер высланы на alex.smirnov@example.com.
+                    Заказ {bookingId}. Маршрутная квитанция и отельный ваучер высланы на {traveler.email}.
                   </Text>
                 </View>
               </View>
@@ -251,6 +261,14 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               <Text style={styles.encryptionText}>256-битное защищённое шифрование</Text>
             </View>
           </ScrollView>
+
+          {/* Traveler Edit Dialog */}
+          <TravelerEditModal
+            visible={editTravelerVisible}
+            initialData={traveler}
+            onClose={() => setEditTravelerVisible(false)}
+            onSave={setTraveler}
+          />
         </View>
       </View>
     </Modal>
@@ -372,7 +390,7 @@ const styles = StyleSheet.create({
   },
   editActionText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
     color: theme.colors.primary,
   },
   cardCaption: {

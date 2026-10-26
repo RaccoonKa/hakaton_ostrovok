@@ -18,10 +18,16 @@ import { QuickReplyChips } from "./src/components/chat/QuickReplyChips";
 import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
+import { HistoryModal, HistoryTripItem } from "./src/components/modals/HistoryModal";
+import { ProfileModal } from "./src/components/modals/ProfileModal";
+import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 function MainApp() {
   const [inputText, setInputText] = useState("");
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
   const scrollViewRef = useRef<any>(null);
 
   const {
@@ -54,6 +60,27 @@ function MainApp() {
     sendMessage(chipText);
   };
 
+  const handleToggleVoiceInput = () => {
+    if (!isListening) {
+      toggleListening();
+      // Simulate real-time speech-to-text recognition
+      setTimeout(() => {
+        setInputText("Хочу к тёплому морю в ноябре с ребёнком 5 лет, бюджет до 200 000 рублей");
+        toggleListening();
+      }, 1800);
+    } else {
+      toggleListening();
+    }
+  };
+
+  const handleSelectHistorySession = (session: HistoryTripItem) => {
+    sendMessage(session.previewPrompt);
+  };
+
+  const handleApplyFilters = (filterPrompt: string) => {
+    sendMessage(filterPrompt);
+  };
+
   // Scroll to bottom when new messages arrive or options appear
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -66,14 +93,15 @@ function MainApp() {
 
   return (
     <View style={styles.rootContainer}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
 
       {/* Top Header with Edge-to-Edge Safe Inset Handling */}
       <Header
         title="О!дин запрос"
         subtitle="ИИ-помощник в путешествиях"
+        onMenuPress={() => setHistoryVisible(true)}
         onNewChatPress={resetChat}
-        onMenuPress={resetChat}
+        onSettingsPress={() => setProfileVisible(true)}
       />
 
       <KeyboardAvoidingView
@@ -154,7 +182,7 @@ function MainApp() {
               {/* History Dialogs Action */}
               <TouchableOpacity
                 style={styles.historyLink}
-                onPress={resetChat}
+                onPress={() => setHistoryVisible(true)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.historyLinkIcon}>🕒</Text>
@@ -241,7 +269,8 @@ function MainApp() {
           onSend={handleSend}
           disabled={isThinking || isStreaming}
           isListening={isListening}
-          onToggleMic={toggleListening}
+          onToggleMic={handleToggleVoiceInput}
+          onFilterPress={() => setFiltersVisible(true)}
           placeholder="Например: Хочу к теплому морю в ноябре..."
         />
 
@@ -251,6 +280,27 @@ function MainApp() {
           option={checkoutOption}
           onClose={closeCheckout}
           onConfirmSuccess={handleBookingConfirmed}
+        />
+
+        {/* History Dialogs Modal */}
+        <HistoryModal
+          visible={historyVisible}
+          onClose={() => setHistoryVisible(false)}
+          onSelectSession={handleSelectHistorySession}
+          onStartNewChat={resetChat}
+        />
+
+        {/* Profile & Settings Modal */}
+        <ProfileModal
+          visible={profileVisible}
+          onClose={() => setProfileVisible(false)}
+        />
+
+        {/* Travel Filters Modal */}
+        <TravelFiltersModal
+          visible={filtersVisible}
+          onClose={() => setFiltersVisible(false)}
+          onApplyFilters={handleApplyFilters}
         />
       </KeyboardAvoidingView>
     </View>

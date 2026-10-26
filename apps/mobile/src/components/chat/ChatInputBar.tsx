@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Text,
   Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
@@ -33,7 +34,32 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [inputHeight, setInputHeight] = useState(40);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const hasText = value.trim().length > 0;
+
+  // Pulse animation when listening
+  useEffect(() => {
+    if (isListening) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.25,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isListening, pulseAnim]);
 
   const handleKeyPress = (e: any) => {
     if (Platform.OS === "web" && e.nativeEvent?.key === "Enter" && !e.nativeEvent?.shiftKey) {
@@ -51,19 +77,31 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         { paddingBottom: Math.max(insets.bottom, 10) },
       ]}
     >
+      {/* Listening Toast Banner */}
+      {isListening && (
+        <View style={styles.listeningBanner}>
+          <Animated.View
+            style={[styles.recordingDot, { transform: [{ scale: pulseAnim }] }]}
+          />
+          <Text style={styles.listeningText}>
+            Слушаю вас... Говорите пожелания к поездке
+          </Text>
+        </View>
+      )}
+
       <View style={styles.inputCard}>
         <TextInput
           style={[styles.input, { height: Math.min(Math.max(40, inputHeight), 120) }]}
           value={value}
           onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={theme.colors.textMuted}
+          placeholder={isListening ? "Идёт запись голоса..." : placeholder}
+          placeholderTextColor={isListening ? "#EF4444" : theme.colors.textMuted}
           multiline
           onContentSizeChange={(e) => {
             setInputHeight(e.nativeEvent.contentSize.height);
           }}
           onKeyPress={handleKeyPress}
-          editable={!disabled}
+          editable={!disabled && !isListening}
           accessibilityLabel="Поле ввода запроса"
         />
 
@@ -74,10 +112,17 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               onPress={onToggleMic}
               accessibilityLabel="Голосовой ввод"
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.iconText, isListening && styles.micActiveText]}>
+              <Animated.Text
+                style={[
+                  styles.iconText,
+                  isListening && styles.micActiveText,
+                  isListening && { transform: [{ scale: pulseAnim }] },
+                ]}
+              >
                 🎤
-              </Text>
+              </Animated.Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -85,6 +130,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               onPress={onFilterPress}
               accessibilityLabel="Фильтры и пожелания"
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              activeOpacity={0.7}
             >
               <Text style={styles.iconText}>⚙️</Text>
             </TouchableOpacity>
@@ -123,6 +169,29 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     ...theme.shadows.sm,
+  },
+  listeningBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  recordingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+  },
+  listeningText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#B91C1C",
   },
   inputCard: {
     backgroundColor: theme.colors.surfaceContainerLow,
