@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar aside — frosted glass surface elevated over the main screen */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-white/75 backdrop-blur-2xl z-40 flex flex-col justify-between select-none shadow-[4px_0_30px_rgba(0,0,0,0.07)] transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 h-full w-64 bg-white/75 dark:bg-[#151221]/90 backdrop-blur-2xl z-40 flex flex-col justify-between select-none shadow-[4px_0_30px_rgba(0,0,0,0.07)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.4)] transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -143,13 +143,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onNewChat();
                 if (window.innerWidth < 768) closeSidebar();
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 hover:bg-white/95 backdrop-blur-md text-content-primary border border-black/[0.06] transition-all shadow-xs group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white/95 dark:hover:bg-white/15 backdrop-blur-md text-content-primary border border-black/[0.06] dark:border-white/[0.08] transition-all shadow-xs group"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
                 <Plus className="w-4 h-4 text-primary group-hover:rotate-90 transition-transform" />
                 <span>Новый маршрут</span>
               </span>
-              <kbd className="font-mono text-[10px] text-content-muted bg-black/[0.04] px-1.5 py-0.5 rounded border border-black/[0.06]">
+              <kbd className="font-mono text-[10px] text-content-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-black/[0.06] dark:border-white/[0.08]">
                 ⌘K
               </kbd>
             </button>
@@ -170,8 +170,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onClick={() => handleSelect(item.query)}
                     className={`w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 ${
                       activeHistoryId === item.id
-                        ? "bg-white/90 text-content-primary font-medium shadow-2xs border border-black/[0.04]"
-                        : "text-content-secondary hover:bg-white/60 hover:text-content-primary"
+                        ? "bg-white/90 dark:bg-white/15 text-content-primary font-medium shadow-2xs border border-black/[0.04] dark:border-white/[0.08]"
+                        : "text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary"
                     }`}
                   >
                     <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-primary" />
@@ -192,7 +192,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleSelect(item.query)}
-                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 hover:text-content-primary transition-colors flex items-center gap-2"
+                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary transition-colors flex items-center gap-2"
                   >
                     <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
                     <span className="truncate">{item.title}</span>
@@ -212,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     key={item.id}
                     type="button"
                     onClick={() => handleSelect(item.query)}
-                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 hover:text-content-primary transition-colors flex items-center gap-2"
+                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary transition-colors flex items-center gap-2"
                   >
                     <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
                     <span className="truncate">{item.title}</span>
@@ -223,9 +223,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Footer User & Settings — frosted glass footer */}
-          <div className="p-3 bg-white/60 backdrop-blur-xl border-t border-black/[0.06]">
+          <div className="p-3 bg-white/60 dark:bg-[#151221]/80 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/[0.08]">
             {/* User Profile bar with enlarged typography */}
-            <div onClick={() => openSettingsModal("account")} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 transition-colors cursor-pointer group" title="Открыть профиль путешественника">
+            <div onClick={() => openSettingsModal("account")} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 dark:hover:bg-white/10 transition-colors cursor-pointer group" title="Открыть профиль путешественника">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-10 h-10 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
                   <User className="w-5 h-5" />
@@ -242,7 +242,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               <button
                 type="button"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors shrink-0"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0"
                 onClick={(e) => { e.stopPropagation(); openSettingsModal("account"); }}
                 title="Настройки профиля и аккаунта"
               >

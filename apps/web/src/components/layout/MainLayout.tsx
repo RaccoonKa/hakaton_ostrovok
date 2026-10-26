@@ -1,4 +1,5 @@
 import React from "react";
+import { ThemeProvider } from "../../context/ThemeContext";
 import { SidebarProvider, useSidebar } from "../../context/SidebarContext";
 import { PreferencesProvider } from "../../context/PreferencesContext";
 import { SettingsModal } from "../settings/SettingsModal";
@@ -52,10 +53,12 @@ const MainLayoutContent: React.FC<MainLayoutContentProps> = ({
 
 export const MainLayout: React.FC<MainLayoutContentProps> = (props) => {
   return (
-    <PreferencesProvider>
-      <SidebarProvider>
-        <MainLayoutContent {...props} />
-      </SidebarProvider>
-    </PreferencesProvider>
+    <ThemeProvider>
+      <PreferencesProvider>
+        <SidebarProvider>
+          <MainLayoutContent {...props} />
+        </SidebarProvider>
+      </PreferencesProvider>
+    </ThemeProvider>
   );
 };

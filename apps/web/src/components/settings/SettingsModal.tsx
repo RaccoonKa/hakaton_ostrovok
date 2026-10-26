@@ -116,19 +116,19 @@ export const SettingsModal: React.FC = () => {
       role="dialog"
     >
       <div
-        className="bg-white border border-slate-200/80 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden text-content-primary"
+        className="bg-surface border border-surface-border rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden text-content-primary transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Tabs */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/70">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-surface-border bg-surface-muted/70">
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setActiveTab("search")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "search"
-                  ? "bg-white text-primary shadow-xs border border-primary/30 font-bold"
-                  : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
+                  ? "bg-surface text-primary shadow-xs border border-primary/30 font-bold"
+                  : "text-content-secondary hover:text-content-primary hover:bg-surface-subtle"
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -140,8 +140,8 @@ export const SettingsModal: React.FC = () => {
               onClick={() => setActiveTab("account")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "account"
-                  ? "bg-white text-primary shadow-xs border border-primary/30 font-bold"
-                  : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
+                  ? "bg-surface text-primary shadow-xs border border-primary/30 font-bold"
+                  : "text-content-secondary hover:text-content-primary hover:bg-surface-subtle"
               }`}
             >
               <User className="w-3.5 h-3.5" />
@@ -152,7 +152,7 @@ export const SettingsModal: React.FC = () => {
           <button
             type="button"
             onClick={closeSettingsModal}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-slate-200/60 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-subtle transition-colors"
             title="Закрыть"
           >
             <X className="w-4.5 h-4.5" />
@@ -182,7 +182,7 @@ export const SettingsModal: React.FC = () => {
                         className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
                           isSelected
                             ? "border-primary bg-primary-light text-primary font-bold shadow-xs"
-                            : "border-slate-200 hover:border-slate-300 bg-white text-content-secondary"
+                            : "border-surface-border hover:border-slate-400 bg-surface text-content-secondary"
                         }`}
                       >
                         <span className="text-lg font-bold leading-tight">{cur.symbol}</span>
@@ -214,7 +214,7 @@ export const SettingsModal: React.FC = () => {
                         className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
                           isSelected
                             ? "bg-primary text-white font-semibold shadow-xs"
-                            : "bg-slate-100 hover:bg-slate-200 text-content-secondary"
+                            : "bg-surface-subtle hover:bg-surface-muted text-content-secondary"
                         }`}
                       >
                         {city}
@@ -228,7 +228,7 @@ export const SettingsModal: React.FC = () => {
                   value={draftPrefs.homeCity}
                   onChange={(e) => setDraftPrefs((p) => ({ ...p, homeCity: e.target.value }))}
                   placeholder="Или укажите свой город вылета..."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                 />
               </div>
 
@@ -241,7 +241,7 @@ export const SettingsModal: React.FC = () => {
 
                 <div className="space-y-2.5">
                   {/* Direct Flights Only */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50/70 transition-colors cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-surface-border hover:bg-surface-muted/60 transition-colors cursor-pointer">
                     <div className="flex items-center gap-2.5">
                       <Plane className="w-4 h-4 text-primary shrink-0" />
                       <div className="flex flex-col">
@@ -264,7 +264,7 @@ export const SettingsModal: React.FC = () => {
                   </label>
 
                   {/* Luggage included */}
-                  <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50/70 transition-colors cursor-pointer">
+                  <label className="flex items-center justify-between p-3 rounded-xl border border-surface-border hover:bg-surface-muted/60 transition-colors cursor-pointer">
                     <div className="flex items-center gap-2.5">
                       <Luggage className="w-4 h-4 text-primary shrink-0" />
                       <div className="flex flex-col">
@@ -287,7 +287,7 @@ export const SettingsModal: React.FC = () => {
                   </label>
 
                   {/* Min Hotel Rating */}
-                  <div className="p-3 rounded-xl border border-slate-200 flex flex-col gap-2">
+                  <div className="p-3 rounded-xl border border-surface-border flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-content-primary flex items-center gap-2">
                         <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
@@ -317,7 +317,7 @@ export const SettingsModal: React.FC = () => {
                           className={`py-1 text-xs rounded-lg font-medium transition-all ${
                             draftPrefs.minHotelRating === opt.rating
                               ? "bg-primary text-white shadow-xs font-bold"
-                              : "bg-slate-100 text-content-secondary hover:bg-slate-200"
+                              : "bg-surface-subtle text-content-secondary hover:bg-surface-muted"
                           }`}
                         >
                           {opt.label}
@@ -374,7 +374,7 @@ export const SettingsModal: React.FC = () => {
                         onChange={(e) =>
                           setDraftProfile((p) => ({ ...p, fullName: e.target.value }))
                         }
-                        className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                        className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                       />
                     </div>
                   </div>
@@ -392,7 +392,7 @@ export const SettingsModal: React.FC = () => {
                           onChange={(e) =>
                             setDraftProfile((p) => ({ ...p, email: e.target.value }))
                           }
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                         />
                       </div>
                     </div>
@@ -409,7 +409,7 @@ export const SettingsModal: React.FC = () => {
                           onChange={(e) =>
                             setDraftProfile((p) => ({ ...p, phone: e.target.value }))
                           }
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                         />
                       </div>
                     </div>
@@ -436,7 +436,7 @@ export const SettingsModal: React.FC = () => {
                         setDraftProfile((p) => ({ ...p, domesticPassport: e.target.value }))
                       }
                       placeholder="Серия и номер"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                     />
                   </div>
 
@@ -451,7 +451,7 @@ export const SettingsModal: React.FC = () => {
                         setDraftProfile((p) => ({ ...p, intlPassport: e.target.value }))
                       }
                       placeholder="Серия и номер"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-primary focus:outline-none bg-slate-50/50"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
                     />
                   </div>
                 </div>
@@ -469,7 +469,7 @@ export const SettingsModal: React.FC = () => {
                   <span>Уведомления и интеграции</span>
                 </div>
 
-                <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:bg-slate-50/70 transition-colors cursor-pointer">
+                <label className="flex items-center justify-between p-3 rounded-xl border border-surface-border hover:bg-surface-muted/60 transition-colors cursor-pointer">
                   <div className="flex items-center gap-2.5">
                     <Send className="w-4 h-4 text-sky-500 shrink-0" />
                     <div>
@@ -496,11 +496,11 @@ export const SettingsModal: React.FC = () => {
               </div>
 
               {/* Logout button */}
-              <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <div className="pt-2 border-t border-surface-border flex justify-end">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Выйти из аккаунта</span>
@@ -511,7 +511,7 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-t border-surface-border bg-surface-muted/60 flex items-center justify-between">
           {activeTab === "search" ? (
             <button
               type="button"
@@ -529,7 +529,7 @@ export const SettingsModal: React.FC = () => {
             <button
               type="button"
               onClick={closeSettingsModal}
-              className="px-3.5 py-2 text-xs font-semibold text-content-secondary hover:bg-slate-200/60 rounded-xl transition-colors"
+              className="px-3.5 py-2 text-xs font-semibold text-content-secondary hover:bg-surface-subtle rounded-xl transition-colors"
             >
               Отмена
             </button>

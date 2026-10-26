@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import { DESIGN_TOKENS } from "@corvax/shared";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -17,22 +18,36 @@ const config: Config = {
           dark: "#3b0764",
         },
 
-        // Centralized tokens from @corvax/shared
-        primary: DESIGN_TOKENS.colors.primary,
+        // Centralized tokens from @corvax/shared / CSS variables for theme switching
+        primary: {
+          ...DESIGN_TOKENS.colors.primary,
+          light: "var(--color-primary-light, #FAF5FF)",
+        },
         secondary: DESIGN_TOKENS.colors.secondary,
         tertiary: DESIGN_TOKENS.colors.tertiary,
-        canvas: DESIGN_TOKENS.colors.canvas,
-        surface: DESIGN_TOKENS.colors.surface,
-        content: DESIGN_TOKENS.colors.content,
+        canvas: "var(--color-canvas, #FBFBFD)",
+        surface: {
+          DEFAULT: "var(--color-surface, #FFFFFF)",
+          muted: "var(--color-surface-muted, #F4F4F6)",
+          subtle: "var(--color-surface-subtle, #EEEEF2)",
+          border: "var(--color-surface-border, #E5E5EB)",
+          borderSubtle: "var(--color-surface-border-subtle, #F3F4F6)",
+        },
+        content: {
+          primary: "var(--color-content-primary, #18181B)",
+          secondary: "var(--color-content-secondary, #3F3F46)",
+          muted: "var(--color-content-muted, #71717A)",
+          tertiary: "var(--color-content-tertiary, #9CA3AF)",
+        },
 
         // Stitch / Warm Tech Travel Workspace tokens
-        "surface-container-low": "#f6f2f7",
-        "surface-container": "#f0edf1",
-        "surface-container-high": "#eae7eb",
-        "surface-container-highest": "#e4e1e6",
-        "surface-container-lowest": "#ffffff",
-        "on-surface": "#1b1b1e",
-        "on-surface-variant": "#4a4453",
+        "surface-container-low": "var(--color-surface-container-low, #f6f2f7)",
+        "surface-container": "var(--color-surface-container, #f0edf1)",
+        "surface-container-high": "var(--color-surface-container-high, #eae7eb)",
+        "surface-container-highest": "var(--color-surface-container-highest, #e4e1e6)",
+        "surface-container-lowest": "var(--color-surface-container-lowest, #ffffff)",
+        "on-surface": "var(--color-on-surface, #1b1b1e)",
+        "on-surface-variant": "var(--color-on-surface-variant, #4a4453)",
         "primary-container": "#581c87",
         "on-primary-container": "#c7aaff",
         "primary-fixed": "#ebddff",
@@ -41,7 +56,7 @@ const config: Config = {
         "on-secondary-fixed": "#0d1c2e",
         "tertiary-container": "#00534c",
         "tertiary-fixed": "#89f5e7",
-        "outline-variant": "#ccc3d6",
+        "outline-variant": "var(--color-outline-variant, #ccc3d6)",
       },
       borderRadius: DESIGN_TOKENS.borderRadius,
       fontFamily: {
