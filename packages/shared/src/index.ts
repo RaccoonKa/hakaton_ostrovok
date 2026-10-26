@@ -2,6 +2,7 @@
 export * from "./domain/constants";
 export * from "./domain/types";
 export * from "./domain/schemas";
+export * from "./domain/cities";
 
 // Formatting utilities
 export * from "./formatters/travel";

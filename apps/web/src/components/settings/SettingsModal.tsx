@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   X,
   Sliders,
@@ -17,7 +17,10 @@ import {
   Send,
   LogOut,
   Sparkles,
+  Search,
+  Plus,
 } from "lucide-react";
+import { CITIES_DATABASE, CityOption } from "@corvax/shared";
 import {
   usePreferences,
   CurrencyCode,
@@ -58,14 +61,76 @@ export const SettingsModal: React.FC = () => {
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Dynamic list of city chips: starts with POPULAR_CITIES + includes any selected city
+  const [availableCities, setAvailableCities] = useState<string[]>(() => {
+    if (preferences.homeCity && !POPULAR_CITIES.includes(preferences.homeCity)) {
+      return [...POPULAR_CITIES, preferences.homeCity];
+    }
+    return POPULAR_CITIES;
+  });
+
+  const [cityQuery, setCityQuery] = useState("");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
   // Sync draft whenever modal opens or tab changes
   useEffect(() => {
     if (isSettingsModalOpen) {
       setDraftPrefs(preferences);
       setDraftProfile(profile);
       setIsSaved(false);
+      setCityQuery("");
+      setIsCityDropdownOpen(false);
+      if (preferences.homeCity && !POPULAR_CITIES.includes(preferences.homeCity)) {
+        setAvailableCities((prev) =>
+          prev.includes(preferences.homeCity) ? prev : [...prev, preferences.homeCity]
+        );
+      }
     }
   }, [isSettingsModalOpen, preferences, profile]);
+
+  // Click outside to close city dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        cityDropdownRef.current &&
+        !cityDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter cities by query (searches city name, IATA code, and airport name)
+  const filteredCities = useMemo(() => {
+    const q = cityQuery.trim().toLowerCase();
+    if (!q) return [];
+    return CITIES_DATABASE.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        (c.airportName && c.airportName.toLowerCase().includes(q))
+    ).slice(0, 7);
+  }, [cityQuery]);
+
+  const handleSelectCityOption = (city: CityOption) => {
+    const formatted = `${city.name} (${city.code})`;
+    setDraftPrefs((p) => ({ ...p, homeCity: formatted }));
+    setAvailableCities((prev) => (prev.includes(formatted) ? prev : [...prev, formatted]));
+    setCityQuery("");
+    setIsCityDropdownOpen(false);
+  };
+
+  const handleSelectCustomCity = (cityName: string) => {
+    const formatted = cityName.trim();
+    if (!formatted) return;
+    setDraftPrefs((p) => ({ ...p, homeCity: formatted }));
+    setAvailableCities((prev) => (prev.includes(formatted) ? prev : [...prev, formatted]));
+    setCityQuery("");
+    setIsCityDropdownOpen(false);
+  };
 
   // Handle escape key
   useEffect(() => {
@@ -198,38 +263,155 @@ export const SettingsModal: React.FC = () => {
 
               {/* Section 2: Home Departure City */}
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-2.5">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <span>Город вылета по умолчанию</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span>Город вылета по умолчанию</span>
+                  </div>
+                  {draftPrefs.homeCity && (
+                    <span className="text-[11px] font-semibold text-primary">
+                      Выбран: {draftPrefs.homeCity}
+                    </span>
+                  )}
                 </div>
 
+                {/* Popular & Added City Chips */}
                 <div className="flex flex-wrap gap-1.5 mb-2.5">
-                  {POPULAR_CITIES.map((city) => {
+                  {availableCities.map((city) => {
                     const isSelected = draftPrefs.homeCity === city;
                     return (
                       <button
                         key={city}
                         type="button"
-                        onClick={() => setDraftPrefs((p) => ({ ...p, homeCity: city }))}
-                        className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
+                        onClick={() => {
+                          setDraftPrefs((p) => ({ ...p, homeCity: city }));
+                          setIsCityDropdownOpen(false);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs transition-all flex items-center gap-1.5 ${
                           isSelected
-                            ? "bg-primary text-white font-semibold shadow-xs"
-                            : "bg-surface-subtle hover:bg-surface-muted text-content-secondary"
+                            ? "bg-primary text-white font-semibold shadow-xs ring-2 ring-primary/20"
+                            : "bg-surface-subtle hover:bg-surface-muted text-content-secondary border border-surface-border"
                         }`}
                       >
-                        {city}
+                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                        <span>{city}</span>
                       </button>
                     );
                   })}
                 </div>
 
-                <input
-                  type="text"
-                  value={draftPrefs.homeCity}
-                  onChange={(e) => setDraftPrefs((p) => ({ ...p, homeCity: e.target.value }))}
-                  placeholder="Или укажите свой город вылета..."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                />
+                {/* Autocomplete Input Container */}
+                <div ref={cityDropdownRef} className="relative">
+                  <div className="relative flex items-center">
+                    <Search className="w-4 h-4 text-content-muted absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={cityQuery}
+                      onChange={(e) => {
+                        setCityQuery(e.target.value);
+                        setIsCityDropdownOpen(true);
+                      }}
+                      onFocus={() => {
+                        if (cityQuery.trim()) {
+                          setIsCityDropdownOpen(true);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (filteredCities.length > 0) {
+                            handleSelectCityOption(filteredCities[0]);
+                          } else if (cityQuery.trim()) {
+                            handleSelectCustomCity(cityQuery);
+                          }
+                        } else if (e.key === "Escape") {
+                          setIsCityDropdownOpen(false);
+                        }
+                      }}
+                      placeholder="Начните вводить: Калининград, Уфа, Сочи..."
+                      className="w-full pl-9 pr-8 py-2.5 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary placeholder:text-content-muted transition-colors"
+                    />
+                    {cityQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCityQuery("");
+                          setIsCityDropdownOpen(false);
+                        }}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-content-muted hover:text-content-primary absolute right-2.5 hover:bg-surface-subtle"
+                        title="Очистить"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Autocomplete Dropdown List */}
+                  {isCityDropdownOpen && cityQuery.trim().length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-surface-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-surface-border max-h-60 overflow-y-auto animate-fade-in">
+                      {filteredCities.length > 0 ? (
+                        <>
+                          <div className="px-3 py-1.5 bg-surface-muted text-[10px] font-bold text-content-muted uppercase tracking-wider">
+                            Подходящие города и аэропорты ({filteredCities.length})
+                          </div>
+                          {filteredCities.map((city) => {
+                            const formatted = `${city.name} (${city.code})`;
+                            const isCurrentSelected = draftPrefs.homeCity === formatted;
+                            return (
+                              <button
+                                key={city.code}
+                                type="button"
+                                onClick={() => handleSelectCityOption(city)}
+                                className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs transition-colors group cursor-pointer ${
+                                  isCurrentSelected
+                                    ? "bg-primary-light text-primary font-semibold"
+                                    : "hover:bg-surface-subtle text-content-primary"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-7 h-7 rounded-lg bg-primary-light flex items-center justify-center text-primary shrink-0 group-hover:scale-105 transition-transform">
+                                    <Plane className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0 truncate">
+                                    <div className="flex items-center gap-1.5 leading-tight">
+                                      <span className="font-semibold text-content-primary truncate">
+                                        {city.name}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.2 rounded bg-surface-muted">
+                                        {city.code}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-content-muted truncate mt-0.5">
+                                      {city.country}
+                                      {city.airportName ? ` • ${city.airportName}` : ""}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                                  Выбрать →
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </>
+                      ) : (
+                        <div className="p-3 text-center">
+                          <p className="text-xs text-content-muted mb-2">
+                            Город «{cityQuery}» не найден в базе основных хабов
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectCustomCity(cityQuery)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary-light hover:bg-primary hover:text-white rounded-lg transition-all"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Использовать «{cityQuery}»</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Section 3: Flight & Hotel Preferences */}
