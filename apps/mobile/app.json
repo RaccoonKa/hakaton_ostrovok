@@ -4,7 +4,6 @@
     "slug": "corvax-plan-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -20,9 +19,6 @@
         "backgroundColor": "#FBFBFD"
       },
       "package": "com.ostrovok.corvaxplan"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }

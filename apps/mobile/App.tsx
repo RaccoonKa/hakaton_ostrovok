@@ -22,7 +22,7 @@ import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 export default function App() {
   const [inputText, setInputText] = useState("");
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
 
   const {
     messages,
@@ -67,7 +67,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-      <StatusBar style="dark" backgroundColor={theme.colors.surface} />
+      <StatusBar style="dark" />
 
       <KeyboardAvoidingView
         style={styles.container}
