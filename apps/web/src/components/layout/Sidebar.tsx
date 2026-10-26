@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { HistorySessionItem } from "../../types/travel";
 import { useSidebar } from "../../context/SidebarContext";
+import { usePreferences } from "../../context/PreferencesContext";
 
 interface SidebarProps {
   onNewChat: () => void;
@@ -67,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeHistoryId = "hist-1",
 }) => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
+  const { currencyLabel, openSettingsModal } = usePreferences();
 
   const todayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "today");
   const yesterdayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "yesterday");
@@ -223,19 +225,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Footer User & Settings — frosted glass footer */}
           <div className="p-3 bg-white/60 backdrop-blur-xl border-t border-black/[0.06] flex flex-col gap-2">
-            {/* Currency & Language selector */}
-            <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 border border-black/[0.05] shadow-2xs text-xs text-content-primary">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">RUB • Русский</span>
-              </div>
-              <button
-                type="button"
-                className="text-content-muted hover:text-content-primary transition-colors"
-                title="Настройки валюты"
-              >
-                <Sliders className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            {/* Currency & Language selector button */}
+            <button
+              type="button"
+              onClick={openSettingsModal}
+              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-black/[0.05] shadow-2xs text-xs text-content-primary transition-all group cursor-pointer"
+              title="Настройки региона, валюты и параметров поиска"
+            >
+              <span className="font-medium">{currencyLabel}</span>
+              <Sliders className="w-3.5 h-3.5 text-content-muted group-hover:text-primary transition-colors" />
+            </button>
 
             {/* User Profile bar with enlarged typography */}
             <div className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 transition-colors">
@@ -256,7 +255,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 type="button"
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors shrink-0"
-                title="Настройки профиля"
+                onClick={openSettingsModal}
+                title="Настройки профиля и поиска"
               >
                 <Settings className="w-4.5 h-4.5" />
               </button>

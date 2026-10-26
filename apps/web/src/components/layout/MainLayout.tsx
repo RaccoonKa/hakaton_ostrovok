@@ -1,5 +1,7 @@
 import React from "react";
 import { SidebarProvider, useSidebar } from "../../context/SidebarContext";
+import { PreferencesProvider } from "../../context/PreferencesContext";
+import { SettingsModal } from "../settings/SettingsModal";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 
@@ -41,14 +43,19 @@ const MainLayoutContent: React.FC<MainLayoutContentProps> = ({
           {children}
         </main>
       </div>
+
+      {/* Global travel settings & preferences modal */}
+      <SettingsModal />
     </div>
   );
 };
 
 export const MainLayout: React.FC<MainLayoutContentProps> = (props) => {
   return (
-    <SidebarProvider>
-      <MainLayoutContent {...props} />
-    </SidebarProvider>
+    <PreferencesProvider>
+      <SidebarProvider>
+        <MainLayoutContent {...props} />
+      </SidebarProvider>
+    </PreferencesProvider>
   );
 };
