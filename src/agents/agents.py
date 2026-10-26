@@ -3,6 +3,7 @@ from typing import Any
 
 from langgraph.graph.state import CompiledStateGraph
 
+from agents.travel.graph import travel_agent_graph
 from .chatbot import chatbot
 from schema import AgentInfo
 
@@ -19,6 +20,10 @@ agents: dict[str, Agent] = {
     "chatbot": Agent(
         description="A simple chatbot that responds directly.",
         graph=chatbot,
+    ),
+    "travel_agent": Agent(
+        description="AI-агент для планирования путешествий (агрегация билетов и отелей).",
+        graph=travel_agent_graph,
     ),
 }
 

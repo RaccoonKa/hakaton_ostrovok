@@ -1,10 +1,6 @@
-"""
-Pydantic-модели состояния графа Travel Agent.
-
-Состояние хранит информацию, необходимую агенту для продолжения диалога
-и планирования поездки.
-"""
-
+from typing import Annotated
+from langchain_core.messages import AnyMessage
+from langgraph.graph.message import add_messages
 from pydantic import BaseModel, ConfigDict, Field
 
 from domain.itinerary import Itinerary
@@ -13,13 +9,7 @@ from domain.trip import TripOption
 
 
 class TravelState(BaseModel):
-    """Состояние графа Travel Agent.
-
-    Может быть создано в начале диалога, когда большая часть информации
-    о поездке ещё неизвестна.
-    """
-
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
     user_request: UserRequest | None = Field(
         description="Текущие пожелания и ограничения пользователя.",
@@ -28,7 +18,6 @@ class TravelState(BaseModel):
     candidate_destinations: list[str] = Field(
         description="Рассматриваемые направления.",
         default=[],
-        examples=[["Antalya", "Bali"]],
     )
     trip_options: list[TripOption] = Field(
         description="Найденные варианты поездки.",
@@ -45,9 +34,8 @@ class TravelState(BaseModel):
     unresolved_questions: list[str] = Field(
         description="Вопросы, требующие уточнения у пользователя.",
         default=[],
-        examples=[["Какие даты поездки предпочтительны?"]],
     )
-    messages: list[str] = Field(
-        description="История сообщений диалога, если она нужна для используемого графа.",
-        default=[],
+    messages: Annotated[list[AnyMessage], add_messages] = Field(
+        description="История сообщений диалога с поддержкой тулов.",
+        default_factory=list,
     )

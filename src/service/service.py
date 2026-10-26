@@ -297,7 +297,7 @@ def _sse_response_example() -> dict[int | str, Any]:
         status.HTTP_200_OK: {
             "description": "Server Sent Event Response",
             "content": {
-                "text/event-stream": {
+                "text.txt/event-stream": {
                     "example": "data: {'type': 'token', 'content': 'Hello'}\n\ndata: {'type': 'token', 'content': ' World'}\n\ndata: [DONE]\n\n",
                     "schema": {"type": "string"},
                 }
@@ -316,7 +316,7 @@ def _sse_response_example() -> dict[int | str, Any]:
 async def stream(user_input: StreamInput, agent_id: str = DEFAULT_AGENT) -> StreamingResponse:
     return StreamingResponse(
         message_generator(user_input, agent_id),
-        media_type="text/event-stream",
+        media_type="text.txt/event-stream",
     )
 
 
