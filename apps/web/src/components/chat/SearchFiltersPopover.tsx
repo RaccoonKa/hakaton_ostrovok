@@ -81,12 +81,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   // Custom position if dragged by user
   const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Synchronous position calculation: perfectly centered between the open sidebar and the input box
+  // Synchronous position calculation: perfectly centered between open sidebar and input, raised high up
   const calculateDefaultPosition = () => {
-    const panelWidth = 345;
-    const panelHeight = 650;
+    const panelWidth = 290;
+    const panelHeight = 420;
     const headerHeight = 56;
-    const margin = 12;
+    const margin = 10;
 
     // 1. Determine the right boundary of the open sidebar
     let sidebarRight = 0;
@@ -118,17 +118,10 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       // Clamp within screen boundaries
       x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
 
-      // Calculate vertical position (y):
-      let y = rect.top;
-      const maxY = window.innerHeight - panelHeight - margin;
-      const minY = headerHeight + margin;
-
-      if (y > maxY) {
-        y = maxY;
-      }
-      if (y < minY) {
-        y = minY;
-      }
+      // 2. Vertical position (y): raised high up near the top of the viewport
+      const targetY = headerHeight + 10; // ~66px from top of screen (just below header)
+      const maxY = Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin);
+      const y = Math.min(targetY, maxY);
 
       return { x, y };
     }
@@ -137,7 +130,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       sidebarRight > 0
         ? sidebarRight + margin
         : Math.max(margin, (window.innerWidth - panelWidth) / 2);
-    return { x: fallbackX, y: headerHeight + margin + 10 };
+    return { x: fallbackX, y: headerHeight + 10 };
   };
 
   const isDraggingRef = useRef(false);
@@ -234,8 +227,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const panelWidth = 345;
-      const panelHeight = 650;
+      const panelWidth = 290;
+      const panelHeight = 420;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
       const deltaY = moveEvent.clientY - dragStartRef.current.startY;
@@ -396,7 +389,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className="fixed z-[100] w-[340px] sm:w-[350px] max-h-[calc(100vh-76px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-4 text-content-primary select-none cursor-default flex flex-col gap-3.5 animate-fade-in"
+      className="fixed z-[100] w-[285px] sm:w-[290px] max-h-[calc(100vh-76px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-2 animate-fade-in"
       style={{
         left: `${currentPos.x}px`,
         top: `${currentPos.y}px`,
@@ -404,68 +397,66 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       }}
     >
       {/* 1. Header (Drag handle) */}
-      <div className="flex items-center justify-between px-1 cursor-grab active:cursor-grabbing border-b border-surface-border dark:border-[#2d2744] pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-content-primary">
+      <div className="flex items-center justify-between px-0.5 cursor-grab active:cursor-grabbing border-b border-surface-border dark:border-[#2d2744] pb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-content-primary">
             Параметры поездки
           </span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
+          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
           title="Закрыть"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
       {/* 2. Top: Mini-Calendar */}
-      <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-3 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-sm font-bold text-content-primary flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-primary" />
+      <div className="flex flex-col gap-1.5 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-xs sm:text-sm font-bold text-content-primary flex items-center gap-1.5">
+            <CalendarIcon className="w-3.5 h-3.5 text-primary" />
             <span>
               {MONTH_NAMES[currentMonth]} {currentYear}
             </span>
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
               title="Предыдущий месяц"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
               title="Следующий месяц"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
         {/* Days of week */}
-        <div className="grid grid-cols-7 text-center text-xs font-semibold text-content-muted">
+        <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-content-muted py-0.5">
           {WEEKDAYS.map((wd) => (
-            <div key={wd} className="py-1">
-              {wd}
-            </div>
+            <div key={wd}>{wd}</div>
           ))}
         </div>
 
         {/* Calendar days grid */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm">
+        <div className="grid grid-cols-7 gap-0.5 text-center text-xs">
           {calendarCells.map((cell, idx) => {
             if (!cell.isCurrentMonth || !cell.date) {
               return (
                 <div
                   key={`empty-${idx}`}
-                  className="h-8 flex items-center justify-center text-content-muted/30"
+                  className="h-7 flex items-center justify-center text-content-muted/30 text-xs"
                 >
                   {cell.day}
                 </div>
@@ -488,7 +479,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 onClick={() => handleDateClick(dayDate)}
                 onMouseEnter={() => !endDate && setHoverDate(dayDate)}
                 onMouseLeave={() => setHoverDate(null)}
-                className={`relative h-8 w-full flex items-center justify-center rounded-lg transition-colors text-xs sm:text-sm font-semibold ${
+                className={`relative h-7 w-full flex items-center justify-center rounded-md transition-colors text-xs font-semibold ${
                   cell.isPast
                     ? "text-content-muted/30 cursor-not-allowed"
                     : isStart || isEnd
@@ -496,16 +487,16 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                     : inRange
                     ? "bg-primary/15 dark:bg-primary/25 text-primary dark:text-purple-300 rounded-none font-bold"
                     : "text-content-primary hover:bg-surface-muted dark:hover:bg-[#2f2748] cursor-pointer"
-                } ${isToday && !isStart && !isEnd ? "ring-2 ring-primary/40 rounded-lg" : ""}`}
+                } ${isToday && !isStart && !isEnd ? "ring-2 ring-primary/40 rounded-md" : ""}`}
               >
                 <span>{cell.day}</span>
                 {isStart && (
-                  <span className="absolute -top-1 -right-0.5 text-[9px] leading-tight bg-purple-950 text-white px-1 rounded-full font-bold shadow-xs">
+                  <span className="absolute -top-1 -right-0.5 text-[8px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
                     от
                   </span>
                 )}
                 {isEnd && (
-                  <span className="absolute -top-1 -right-0.5 text-[9px] leading-tight bg-purple-950 text-white px-1 rounded-full font-bold shadow-xs">
+                  <span className="absolute -top-1 -right-0.5 text-[8px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
                     до
                   </span>
                 )}
@@ -515,12 +506,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         </div>
 
         {/* Date summary row */}
-        <div className="text-xs text-content-secondary px-1 flex items-center justify-between pt-1 font-medium">
-          <span>
+        <div className="text-[11px] text-content-secondary px-0.5 flex items-center justify-between pt-0.5 font-medium">
+          <span className="truncate mr-1">
             {startDate && endDate
               ? `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} — ${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`
               : startDate
-              ? `с ${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} (выберите дату «до»)`
+              ? `с ${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`
               : "Даты не выбраны"}
           </span>
           {startDate && (
@@ -530,7 +521,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 setStartDate(null);
                 setEndDate(null);
               }}
-              className="text-primary hover:underline text-xs font-semibold cursor-pointer"
+              className="text-primary hover:underline text-[11px] font-semibold shrink-0 cursor-pointer"
             >
               Очистить
             </button>
@@ -539,21 +530,21 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 3. Middle: Budget (Range Slider) */}
-      <div className="flex flex-col gap-2.5 bg-surface-muted/50 dark:bg-[#231e38] p-3 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+      <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-bold text-content-primary flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-primary" />
-            <span>Бюджет поездки</span>
+          <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
+            <DollarSign className="w-3.5 h-3.5 text-primary" />
+            <span>Бюджет</span>
           </span>
-          <span className="text-sm font-extrabold text-primary dark:text-purple-300">
+          <span className="text-xs sm:text-[13px] font-extrabold text-primary dark:text-purple-300">
             {formatRubles(minBudget)} — {formatRubles(maxBudget)}
           </span>
         </div>
 
         {/* Dual range slider */}
-        <div className="relative w-full h-6 flex items-center px-1">
+        <div className="relative w-full h-5 flex items-center px-0.5">
           {/* Background Track */}
-          <div className="absolute left-1 right-1 h-2 bg-surface-border dark:bg-[#342b52] rounded-full overflow-hidden">
+          <div className="absolute left-0.5 right-0.5 h-1.5 bg-surface-border dark:bg-[#342b52] rounded-full overflow-hidden">
             <div
               className="h-full bg-primary"
               style={{
@@ -574,7 +565,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
               const val = Math.min(Number(e.target.value), maxBudget - BUDGET_STEP);
               setMinBudget(val);
             }}
-            className="absolute left-1 right-1 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
           />
 
           {/* Max thumb input */}
@@ -588,12 +579,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
               const val = Math.max(Number(e.target.value), minBudget + BUDGET_STEP);
               setMaxBudget(val);
             }}
-            className="absolute left-1 right-1 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
           />
         </div>
 
         {/* Quick budget chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
           {[
             { label: "до 100 тыс.", min: 20000, max: 100000 },
             { label: "до 150 тыс.", min: 40000, max: 150000 },
@@ -607,7 +598,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 setMinBudget(chip.min);
                 setMaxBudget(chip.max);
               }}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface dark:bg-[#2b2542] hover:bg-surface-border text-content-secondary hover:text-content-primary shrink-0 transition-colors border border-surface-border/50 dark:border-transparent cursor-pointer"
+              className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-surface dark:bg-[#2b2542] hover:bg-surface-border text-content-secondary hover:text-content-primary shrink-0 transition-colors border border-surface-border/50 dark:border-transparent cursor-pointer"
             >
               {chip.label}
             </button>
@@ -616,75 +607,75 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 4. Bottom: Adults and Children Counters */}
-      <div className="flex flex-col gap-2.5 bg-surface-muted/50 dark:bg-[#231e38] p-3 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
-        <span className="text-sm font-bold text-content-primary flex items-center gap-2">
-          <Users className="w-4 h-4 text-primary" />
-          <span>Количество гостей</span>
+      <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+        <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5 text-primary" />
+          <span>Гости</span>
         </span>
 
         {/* Adults row */}
-        <div className="flex items-center justify-between py-1">
+        <div className="flex items-center justify-between py-0.5">
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-content-primary">Взрослые</span>
-            <span className="text-xs font-medium text-content-muted">от 12 лет</span>
+            <span className="text-xs sm:text-sm font-bold text-content-primary">Взрослые</span>
+            <span className="text-[11px] font-medium text-content-muted">от 12 лет</span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={adults <= 1}
               onClick={() => setAdults((prev) => Math.max(1, prev - 1))}
-              className="w-7 h-7 rounded-lg bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Minus className="w-3 h-3 stroke-[2.5]" />
             </button>
-            <span className="w-6 text-center font-extrabold text-base text-content-primary">{adults}</span>
+            <span className="w-5 text-center font-extrabold text-sm text-content-primary">{adults}</span>
             <button
               type="button"
               disabled={adults >= 8}
               onClick={() => setAdults((prev) => Math.min(8, prev + 1))}
-              className="w-7 h-7 rounded-lg bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Plus className="w-3 h-3 stroke-[2.5]" />
             </button>
           </div>
         </div>
 
         {/* Children row */}
-        <div className="flex items-center justify-between py-1 border-t border-surface-border/50 dark:border-[#2d2744] pt-2">
+        <div className="flex items-center justify-between py-0.5 border-t border-surface-border/50 dark:border-[#2d2744] pt-1.5">
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-content-primary">Дети</span>
-            <span className="text-xs font-medium text-content-muted">до 11 лет</span>
+            <span className="text-xs sm:text-sm font-bold text-content-primary">Дети</span>
+            <span className="text-[11px] font-medium text-content-muted">до 11 лет</span>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               disabled={children <= 0}
               onClick={() => setChildren((prev) => Math.max(0, prev - 1))}
-              className="w-7 h-7 rounded-lg bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Minus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Minus className="w-3 h-3 stroke-[2.5]" />
             </button>
-            <span className="w-6 text-center font-extrabold text-base text-content-primary">{children}</span>
+            <span className="w-5 text-center font-extrabold text-sm text-content-primary">{children}</span>
             <button
               type="button"
               disabled={children >= 6}
               onClick={() => setChildren((prev) => Math.min(6, prev + 1))}
-              className="w-7 h-7 rounded-lg bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <Plus className="w-3 h-3 stroke-[2.5]" />
             </button>
           </div>
         </div>
       </div>
 
       {/* 5. Footer action */}
-      <div className="pt-2 border-t border-surface-border dark:border-[#2d2744]">
+      <div className="pt-1.5 border-t border-surface-border dark:border-[#2d2744]">
         <button
           type="button"
           onClick={handleApply}
-          className="w-full py-2.5 text-sm font-bold rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] cursor-pointer"
+          className="w-full py-2 text-xs sm:text-sm font-bold rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
-          <Check className="w-4 h-4 stroke-[2.5]" />
+          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>Применить параметры</span>
         </button>
       </div>
