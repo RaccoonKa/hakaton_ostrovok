@@ -10,8 +10,8 @@ export interface DemoBadgeProps {
 }
 
 export const DemoBadge: React.FC<DemoBadgeProps> = ({
-  label = "Демо-режим",
-  variant = "warning",
+  label = "Рекомендовано",
+  variant = "tint",
   style,
   textStyle,
 }) => {
@@ -24,6 +24,8 @@ export const DemoBadge: React.FC<DemoBadgeProps> = ({
     </View>
   );
 };
+
+export const TagBadge = DemoBadge;
 
 const styles = StyleSheet.create({
   badge: {
