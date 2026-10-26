@@ -118,8 +118,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       // Clamp within screen boundaries
       x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
 
-      // 2. Vertical position (y): raised high up near the top of the viewport
-      const targetY = headerHeight + 10; // ~66px from top of screen (just below header)
+      // 2. Vertical position (y): positioned just below header (~78px from top, lowered ~3mm)
+      const targetY = headerHeight + 22;
       const maxY = Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin);
       const y = Math.min(targetY, maxY);
 
@@ -130,7 +130,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       sidebarRight > 0
         ? sidebarRight + margin
         : Math.max(margin, (window.innerWidth - panelWidth) / 2);
-    return { x: fallbackX, y: headerHeight + 10 };
+    return { x: fallbackX, y: headerHeight + 22 };
   };
 
   const isDraggingRef = useRef(false);
@@ -531,12 +531,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
       {/* 3. Middle: Budget (Range Slider) */}
       <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
           <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-primary" />
             <span>Бюджет</span>
           </span>
-          <span className="text-xs sm:text-[13px] font-extrabold text-primary dark:text-purple-300">
+          <span className="text-xs sm:text-[13px] font-extrabold text-primary dark:text-purple-300 pl-5">
             {formatRubles(minBudget)} — {formatRubles(maxBudget)}
           </span>
         </div>
@@ -586,7 +586,6 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         {/* Quick budget chips */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
           {[
-            { label: "до 100 тыс.", min: 20000, max: 100000 },
             { label: "до 150 тыс.", min: 40000, max: 150000 },
             { label: "до 250 тыс.", min: 60000, max: 250000 },
             { label: "до 400 тыс.", min: 100000, max: 400000 },
