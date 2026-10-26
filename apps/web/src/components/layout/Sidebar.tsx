@@ -96,16 +96,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Right edge border: gradient purple at top matching the header, subtle glass border below */}
-        <div
-          className="absolute right-0 top-0 bottom-0 w-[1px] pointer-events-none z-30"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(88, 28, 135, 0.85) 0%, rgba(92, 30, 134, 0.80) 30%, rgba(92, 30, 134, 0.55) 52%, rgba(92, 30, 134, 0.28) 70%, rgba(92, 30, 134, 0.10) 85%, rgba(0, 0, 0, 0.08) 94%, rgba(0, 0, 0, 0.06) 100%)",
-          }}
-          aria-hidden="true"
-        />
-
         <div className="flex flex-col h-full overflow-hidden relative">
           {/* SINGLE continuous frosted purple gradient background (no separate rectangle, no seam, identical shade throughout!) */}
           <div
