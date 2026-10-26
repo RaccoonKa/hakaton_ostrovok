@@ -102,7 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="absolute top-0 left-0 right-0 h-24 pointer-events-none z-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(122, 76, 160, 0.90) 0%, rgba(122, 76, 160, 0.85) 30%, rgba(122, 76, 160, 0.60) 52%, rgba(122, 76, 160, 0.32) 70%, rgba(122, 76, 160, 0.12) 85%, rgba(122, 76, 160, 0.03) 94%, rgba(122, 76, 160, 0) 100%)",
+                "linear-gradient(180deg, rgba(92, 30, 134, 0.96) 0%, rgba(92, 30, 134, 0.93) 30%, rgba(92, 30, 134, 0.70) 52%, rgba(92, 30, 134, 0.38) 70%, rgba(92, 30, 134, 0.15) 85%, rgba(92, 30, 134, 0.04) 94%, rgba(92, 30, 134, 0) 100%)",
             }}
             aria-hidden="true"
           />
