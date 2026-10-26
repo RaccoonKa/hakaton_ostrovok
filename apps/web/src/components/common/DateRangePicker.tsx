@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, X, Check, GripHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 
 interface DateRangePickerProps {
   isOpen: boolean;
@@ -273,6 +273,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return createPortal(
     <div
       ref={containerRef}
+      onPointerDown={handleDragStart}
       className="fixed z-[100] w-[300px] sm:w-[315px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default"
       style={{
         left: pos ? `${pos.x}px` : "16px",
@@ -280,48 +281,39 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0,0,0,0.1)",
       }}
     >
-      {/* Draggable Top Frame Bar */}
-      <div
-        onPointerDown={handleDragStart}
-        className="w-full flex items-center justify-between pb-1.5 mb-1.5 border-b border-surface-border/60 dark:border-white/10 cursor-grab active:cursor-grabbing group select-none"
-        title="Зажмите и перетащите в любое место"
-      >
-        <div className="flex items-center gap-1.5 text-[10px] font-medium text-content-muted group-hover:text-primary transition-colors">
-          <GripHorizontal className="w-3.5 h-3.5" />
-          <span>Перетащить</span>
+      {/* Month Navigation & Drag Header */}
+      <div className="flex items-center justify-between mb-2 px-0.5 cursor-grab active:cursor-grabbing">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors cursor-pointer"
+            title="Предыдущий месяц"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+
+          <span className="text-xs sm:text-sm font-bold text-content-primary px-1">
+            {MONTH_NAMES[currentMonth]} {currentYear}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors cursor-pointer"
+            title="Следующий месяц"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
+
         <button
           type="button"
           onClick={onClose}
-          className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors cursor-pointer"
           title="Закрыть"
         >
           <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-1.5 px-0.5">
-        <button
-          type="button"
-          onClick={handlePrevMonth}
-          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-          title="Предыдущий месяц"
-        >
-          <ChevronLeft className="w-3.5 h-3.5" />
-        </button>
-
-        <span className="text-xs sm:text-sm font-bold text-content-primary">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-
-        <button
-          type="button"
-          onClick={handleNextMonth}
-          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-          title="Следующий месяц"
-        >
-          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
 
