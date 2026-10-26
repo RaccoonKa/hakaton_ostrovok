@@ -138,19 +138,19 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     alignItems: "center",
     justifyContent: "center",
   },
   iconText: {
     fontSize: 17,
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontWeight: "700",
   },
   backArrow: {
     fontSize: 20,
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontWeight: "700",
   },
   title: {
     fontSize: 17,
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 11,
-    fontWeight: "500",
-    color: "rgba(255, 255, 255, 0.82)",
+    fontWeight: "600",
+    color: "rgba(255, 255, 255, 0.92)",
     marginTop: 1,
   },
   profileButton: {
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",

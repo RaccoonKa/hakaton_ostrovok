@@ -3,12 +3,12 @@
  */
 export const theme = {
   colors: {
-    // Primary & containers
-    primary: "#5438DC",
-    primaryContainer: "#4F46E5",
-    primaryHover: "#4338CA",
-    primaryLight: "#EEF2FF",
-    accentPurpleTint: "#EEF2FF",
+    // Primary & containers (Soft lavender/lilac #B286D0)
+    primary: "#B286D0",
+    primaryContainer: "#9C68C1",
+    primaryHover: "#8D57B4",
+    primaryLight: "#F8F2FC",
+    accentPurpleTint: "#F4EBF9",
 
     // Secondary & Tertiary
     secondary: "#FF7A30",
@@ -19,9 +19,9 @@ export const theme = {
     background: "#FBFBFD",
     surface: "#FFFFFF",
     card: "#FFFFFF",
-    surfaceContainerLow: "#F1F3FF",
-    surfaceContainer: "#E9EDFF",
-    surfaceContainerHigh: "#E1E8FD",
+    surfaceContainerLow: "#F9F5FC",
+    surfaceContainer: "#F3EBF9",
+    surfaceContainerHigh: "#ECE0F5",
     canvasMuted: "#F4F4F6",
     canvasSubtle: "#FAFAFA",
 

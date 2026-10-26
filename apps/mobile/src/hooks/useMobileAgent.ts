@@ -157,6 +157,13 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
   const handleBookingConfirmed = useCallback((id: string) => {
     setConfirmedBookingId(id);
+    const successMsg: MobileChatMessage = {
+      id: `ai-booked-${Date.now()}`,
+      role: "assistant",
+      content: `🎉 Тестовое бронирование #${id} успешно подтверждено!\n\nОплата сымитирована (0 ₽ списания), электронные билеты и ваучер отеля зафиксированы в сценарии. Вы можете продолжить диалог или спланировать новую поездку.`,
+      timestamp: formatCurrentTime(),
+    };
+    setMessages((prev) => [...prev, successMsg]);
   }, []);
 
   const resetChat = useCallback(() => {

@@ -31,6 +31,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"sbp" | "card" | "hotel">("sbp");
   const [traveler, setTraveler] = useState<TravelerData>({
     name: "Алексей Смирнов",
     phone: "+7 (999) 456-78-90",
@@ -50,12 +51,12 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
 
     setLoading(true);
     setTimeout(() => {
-      const generatedId = `OD-${Math.floor(10000 + Math.random() * 90000)}`;
+      const generatedId = `OST-2026-${Math.floor(1000 + Math.random() * 9000)}`;
       setBookingId(generatedId);
       setLoading(false);
       setConfirmed(true);
       onConfirmSuccess?.(generatedId);
-    }, 900);
+    }, 1100);
   };
 
   const handleClose = () => {
@@ -207,6 +208,79 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               </View>
             </View>
 
+            {/* Payment Method (Imitation / Test Mode) */}
+            <View style={styles.card}>
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.cardCaption}>Способ оплаты (симуляция)</Text>
+                <View style={styles.simBadge}>
+                  <Text style={styles.simBadgeText}>Тестовый контур</Text>
+                </View>
+              </View>
+
+              <Text style={styles.simNoticeText}>
+                В рамках демонстрации списание реальных средств не производится. Эмулируется моментальная авторизация через Ostrovok Travel Gateway.
+              </Text>
+
+              <View style={styles.paymentMethodsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.paymentMethodChip,
+                    paymentMethod === "sbp" && styles.paymentMethodChipActive,
+                  ]}
+                  onPress={() => setPaymentMethod("sbp")}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.paymentMethodIcon}>⚡</Text>
+                  <Text
+                    style={[
+                      styles.paymentMethodText,
+                      paymentMethod === "sbp" && styles.paymentMethodTextActive,
+                    ]}
+                  >
+                    СБП (0 ₽)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.paymentMethodChip,
+                    paymentMethod === "card" && styles.paymentMethodChipActive,
+                  ]}
+                  onPress={() => setPaymentMethod("card")}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.paymentMethodIcon}>💳</Text>
+                  <Text
+                    style={[
+                      styles.paymentMethodText,
+                      paymentMethod === "card" && styles.paymentMethodTextActive,
+                    ]}
+                  >
+                    Карта (тест)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.paymentMethodChip,
+                    paymentMethod === "hotel" && styles.paymentMethodChipActive,
+                  ]}
+                  onPress={() => setPaymentMethod("hotel")}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.paymentMethodIcon}>🏨</Text>
+                  <Text
+                    style={[
+                      styles.paymentMethodText,
+                      paymentMethod === "hotel" && styles.paymentMethodTextActive,
+                    ]}
+                  >
+                    В отеле
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Agreement Checkbox */}
             <TouchableOpacity
               style={styles.checkboxContainer}
@@ -217,7 +291,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
                 {agreed && <Text style={styles.checkMark}>✓</Text>}
               </View>
               <Text style={styles.checkboxText}>
-                Я согласен с условиями бронирования, правилами применения тарифа и политикой конфиденциальности
+                Я согласен с правилами бронирования и подтверждаю проведение тестовой транзакции
               </Text>
             </TouchableOpacity>
 
@@ -226,9 +300,9 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               <View style={styles.successBox}>
                 <Text style={styles.successIcon}>🎉</Text>
                 <View style={styles.successTextCol}>
-                  <Text style={styles.successTitle}>Бронирование подтверждено!</Text>
+                  <Text style={styles.successTitle}>Оплата успешно сымитирована!</Text>
                   <Text style={styles.successSub}>
-                    Заказ {bookingId}. Маршрутная квитанция и отельный ваучер высланы на {traveler.email}.
+                    Заказ #{bookingId} подтверждён в тестовом шлюзе. Электронный билет и отельный ваучер высланы на {traveler.email}.
                   </Text>
                 </View>
               </View>
@@ -246,19 +320,22 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               activeOpacity={0.85}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                  <Text style={styles.loadingText}>Авторизация тестового платежа...</Text>
+                </View>
               ) : (
                 <Text style={styles.ctaButtonText}>
                   {confirmed
-                    ? "Завершить и закрыть"
-                    : `Забронировать поездку (${totalPriceFormatted}) →`}
+                    ? "Вернуться к диалогу"
+                    : `Оплатить (имитация) • ${totalPriceFormatted} →`}
                 </Text>
               )}
             </TouchableOpacity>
 
             <View style={styles.encryptionRow}>
               <Text style={styles.lockIcon}>🔒</Text>
-              <Text style={styles.encryptionText}>256-битное защищённое шифрование</Text>
+              <Text style={styles.encryptionText}>Защищённый тестовый контур бронирования</Text>
             </View>
           </ScrollView>
 
@@ -559,6 +636,72 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  simBadge: {
+    backgroundColor: theme.colors.accentPurpleTint,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
+  },
+  simBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  simNoticeText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    lineHeight: 15,
+  },
+  paymentMethodsRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  paymentMethodChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surfaceContainerLow,
+  },
+  paymentMethodChipActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.accentPurpleTint,
+  },
+  paymentMethodIcon: {
+    fontSize: 13,
+  },
+  paymentMethodText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+  paymentMethodTextActive: {
+    color: theme.colors.primary,
+    fontWeight: "700",
   },
   encryptionRow: {
     flexDirection: "row",
