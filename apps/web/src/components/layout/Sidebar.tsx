@@ -92,10 +92,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar aside — frosted glass surface elevated over the main screen */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-white/75 backdrop-blur-2xl border-r border-black/[0.06] z-40 flex flex-col justify-between select-none shadow-[4px_0_30px_rgba(0,0,0,0.07)] transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 h-full w-64 bg-white/75 backdrop-blur-2xl z-40 flex flex-col justify-between select-none shadow-[4px_0_30px_rgba(0,0,0,0.07)] transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
+        {/* Right edge border: gradient purple at top matching the header, subtle glass border below */}
+        <div
+          className="absolute right-0 top-0 bottom-0 w-[1px] pointer-events-none z-30"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(88, 28, 135, 0.85) 0%, rgba(92, 30, 134, 0.80) 30%, rgba(92, 30, 134, 0.55) 52%, rgba(92, 30, 134, 0.28) 70%, rgba(92, 30, 134, 0.10) 85%, rgba(0, 0, 0, 0.08) 94%, rgba(0, 0, 0, 0.06) 100%)",
+          }}
+          aria-hidden="true"
+        />
+
         <div className="flex flex-col h-full overflow-hidden relative">
           {/* SINGLE continuous frosted purple gradient background (no separate rectangle, no seam, identical shade throughout!) */}
           <div
