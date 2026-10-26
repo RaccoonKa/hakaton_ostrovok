@@ -9,11 +9,13 @@ import {
   Calendar,
   DollarSign,
   Users,
+  SlidersHorizontal,
 } from "lucide-react";
 import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
 import { DateRangePicker } from "./common/DateRangePicker";
+import { SearchFiltersPopover } from "./chat/SearchFiltersPopover";
 import { useTravelAgent } from "../hooks/useTravelAgent";
 import { useSidebar } from "../context/SidebarContext";
 import { SHARED_SUGGESTIONS, SHARED_QUICK_CHIPS } from "@corvax/shared";
@@ -39,6 +41,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const heroFormRef = useRef<HTMLFormElement>(null);
   const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,6 +63,22 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
     });
     setIsDatePickerOpen(false);
+    focusHeroInputAtEnd();
+    requestAnimationFrame(focusHeroInputAtEnd);
+  };
+
+  const handleApplyHeroFilters = (formattedText: string) => {
+    if (!formattedText) return;
+    setHeroInput((prev) => {
+      let result = prev.trim();
+      result = result.replace(/\+?\s*Даты:[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*Бюджет:[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*(Гости|Компания|С детьми):[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*\d+\s*(взросл\w*|взр|детей|реб\w*)[^+]*/gi, "").trim();
+
+      return result ? `${result} ${formattedText}` : formattedText;
+    });
+    setIsFiltersOpen(false);
     focusHeroInputAtEnd();
     requestAnimationFrame(focusHeroInputAtEnd);
   };
@@ -159,6 +178,30 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border flex-wrap">
               {/* Tag modifier chips */}
               <div className="flex items-center flex-wrap gap-1.5">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setIsFiltersOpen((prev) => !prev)}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      isFiltersOpen
+                        ? "bg-primary text-white shadow-xs"
+                        : "bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary"
+                    }`}
+                    title="Параметры поиска"
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                    <span>Фильтры</span>
+                  </button>
+
+                  <SearchFiltersPopover
+                    isOpen={isFiltersOpen}
+                    onClose={() => setIsFiltersOpen(false)}
+                    onApply={handleApplyHeroFilters}
+                    anchorRef={heroFormRef}
+                  />
+                </div>
+
                 <div className="relative">
                   <button
                     type="button"

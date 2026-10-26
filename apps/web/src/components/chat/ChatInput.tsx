@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { DateRangePicker } from "../common/DateRangePicker";
+import { SearchFiltersPopover } from "./SearchFiltersPopover";
 import {
   Send,
   SlidersHorizontal,
@@ -33,6 +34,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [text, setText] = useState("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,6 +105,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
     });
     setIsDatePickerOpen(false);
+    focusInputAtEnd();
+    requestAnimationFrame(focusInputAtEnd);
+  };
+
+  const handleApplyFilters = (formattedText: string) => {
+    if (!formattedText) return;
+    setText((prev) => {
+      let result = prev.trim();
+      result = result.replace(/\+?\s*Даты:[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*Бюджет:[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*(Гости|Компания|С детьми):[^+]*/gi, "").trim();
+      result = result.replace(/\+?\s*\d+\s*(взросл\w*|взр|детей|реб\w*)[^+]*/gi, "").trim();
+
+      return result ? `${result} ${formattedText}` : formattedText;
+    });
+    setIsFiltersOpen(false);
     focusInputAtEnd();
     requestAnimationFrame(focusInputAtEnd);
   };
@@ -236,10 +254,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <button
             type="button"
             title="Параметры поиска"
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors shrink-0"
+            onClick={() => setIsFiltersOpen((prev) => !prev)}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+              isFiltersOpen
+                ? "bg-primary text-white shadow-xs"
+                : "text-content-muted hover:text-content-primary hover:bg-surface-container"
+            }`}
           >
             <SlidersHorizontal className="w-4 h-4" />
           </button>
+
+          <SearchFiltersPopover
+            isOpen={isFiltersOpen}
+            onClose={() => setIsFiltersOpen(false)}
+            onApply={handleApplyFilters}
+            anchorRef={chatFormRef}
+          />
 
           <input
             ref={inputRef}
