@@ -96,26 +96,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Top Brand Bar (h-14: matches header height with frosted purple glass) */}
-          <div className="relative h-14 px-4 bg-[#6b3b90]/80 text-white flex items-center justify-between shrink-0 backdrop-blur-xl">
-            {/* Frosted gray-white overlay layer giving it a softer, lighter purple tint */}
-            <div
-              className="absolute inset-0 bg-white/[0.14] backdrop-blur-md pointer-events-none"
-              aria-hidden="true"
-            />
+        <div className="flex flex-col h-full overflow-hidden relative">
+          {/* SINGLE continuous frosted purple gradient background (no separate rectangle, no seam, identical shade throughout!) */}
+          <div
+            className="absolute top-0 left-0 right-0 h-24 pointer-events-none z-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(122, 76, 160, 0.90) 0%, rgba(122, 76, 160, 0.85) 30%, rgba(122, 76, 160, 0.60) 52%, rgba(122, 76, 160, 0.32) 70%, rgba(122, 76, 160, 0.12) 85%, rgba(122, 76, 160, 0.03) 94%, rgba(122, 76, 160, 0) 100%)",
+            }}
+            aria-hidden="true"
+          />
 
-            {/* Ultra-smooth feathered gradient diffusion extending down (36px, seamless cubic ease) */}
-            <div
-              className="absolute inset-x-0 -bottom-9 h-9 pointer-events-none"
-              aria-hidden="true"
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-[#6b3b90]/80 via-[#6b3b90]/45 via-20% via-[#6b3b90]/20 via-45% via-[#6b3b90]/08 via-70% to-transparent backdrop-blur-xs" />
-              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.14] via-white/[0.07] via-25% via-white/[0.02] via-55% to-transparent" />
-            </div>
-
+          {/* Top Brand Bar (transparent background — sits over the single continuous gradient) */}
+          <div className="relative h-14 px-4 text-white flex items-center justify-between shrink-0 z-10">
             {/* Brand Logo & Title */}
-            <div className="flex items-center gap-2.5 relative z-10">
+            <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
                 О!
               </div>
@@ -132,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Search button */}
             <button
               type="button"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/85 hover:bg-white/15 hover:text-white transition-colors relative z-10"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/85 hover:bg-white/15 hover:text-white transition-colors"
               title="Поиск по диалогам"
             >
               <Search className="w-4 h-4" />
@@ -140,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* New route button section */}
-          <div className="px-3 pt-4 pb-1 relative z-10">
+          <div className="px-3 pt-2.5 pb-1 relative z-10">
             <button
               type="button"
               onClick={() => {
