@@ -253,15 +253,18 @@ export function useTravelAgent() {
       }, 1500);
 
       // Custom handler for curated revision scenario (Screen 4)
-      if (isRevisionScenario && selectedOption) {
+      const baseOption = selectedOption || tripOptions[0] || SCREEN_2_DESTINATIONS[0];
+      if (isRevisionScenario && baseOption) {
         setTimeout(() => {
           if (abortController.signal.aborted) return;
+          clearTimeout(stepTimer1);
+          clearTimeout(stepTimer2);
 
           const revisionText =
             "Пересчитал поездку на даты 14–21 ноября (7 ночей, чт–чт). За счёт сдвига вылета на четверг открылось окно низкого спроса на рейс Эйр Арабия (экономия 8 400 ₽), а семейный курорт 5★ Marjan Island Resort & Spa предоставил спецтариф «Софт Всё включено» (выгода 11 200 ₽). Итоговая стоимость тура снизилась со 148 200 ₽ до 128 600 ₽ (чистая выгода — 19 600 ₽ или -13.2%).";
 
           const revisedOption: TripOption = {
-            ...selectedOption,
+            ...baseOption,
             id: "revised-marjan-5star",
             title: "Рас-эль-Хайма • Marjan Island Resort & Spa 5★",
             destination: "Рас-эль-Хайма, Марджан-Айленд",
@@ -400,6 +403,10 @@ export function useTravelAgent() {
               }
             },
             onError: (err) => {
+              clearTimeout(stepTimer1);
+              clearTimeout(stepTimer2);
+              setIsLoading(false);
+              setCurrentStep("ready");
               setMessages((prev) => [
                 ...prev,
                 {
@@ -433,6 +440,12 @@ export function useTravelAgent() {
         if (!abortController.signal.aborted) {
           setIsLoading(false);
           setCurrentStep("ready");
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          clearTimeout(stepTimer1);
+          clearTimeout(stepTimer2);
+          setIsLoading(false);
         }
       }
     },

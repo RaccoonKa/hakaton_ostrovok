@@ -103,7 +103,7 @@ export class TravelApiClient {
           "Backend unavailable or graph not yet initialized. Falling back to Demo Mode.",
           err
         );
-        this.runMockResponse(message, callbacks);
+        await this.runMockResponse(message, callbacks);
       } else {
         callbacks.onError?.(err instanceof Error ? err : new Error(String(err)));
       }
@@ -113,28 +113,30 @@ export class TravelApiClient {
   /**
    * Имитирует потоковый ответ демонстрационного сценария.
    */
-  private runMockResponse(userMessage: string, callbacks: ClientCallbacks): void {
-    const demoResponseText =
-      "Отличный выбор! Я проанализировал лучшие направления для отдыха. " +
-      "Ниже представлены оптимальные варианты перелёта и проживания с детальным расчётом бюджета. " +
-      "Вы можете скорректировать даты, бюджет или выбрать конкретный отель.";
+  private runMockResponse(userMessage: string, callbacks: ClientCallbacks): Promise<void> {
+    return new Promise((resolve) => {
+      const demoResponseText =
+        "Отличный выбор! Я проанализировал лучшие направления для отдыха. " +
+        "Ниже представлены оптимальные варианты перелёта и проживания с детальным расчётом бюджета. " +
+        "Вы можете скорректировать даты, бюджет или выбрать конкретный отель.";
 
-    const words = demoResponseText.split(" ");
-    let index = 0;
+      const words = demoResponseText.split(" ");
+      let index = 0;
 
-    const interval = setInterval(() => {
-      if (index < words.length) {
-        callbacks.onToken?.((index === 0 ? "" : " ") + words[index]);
-        index++;
-      } else {
-        clearInterval(interval);
-        // Отправляем карточки с пометкой [Демо]
-        callbacks.onTripOptions?.(MOCK_TRIP_OPTIONS);
-        callbacks.onComplete?.();
-      }
-    }, 40);
+      const interval = setInterval(() => {
+        if (index < words.length) {
+          callbacks.onToken?.((index === 0 ? "" : " ") + words[index]);
+          index++;
+        } else {
+          clearInterval(interval);
+          // Отправляем карточки с пометкой [Демо]
+          callbacks.onTripOptions?.(MOCK_TRIP_OPTIONS);
+          callbacks.onComplete?.();
+          resolve();
+        }
+      }, 30);
+    });
   }
 }
 
 export { TravelApiClient as TravelAgentClient };
-

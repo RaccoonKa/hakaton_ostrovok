@@ -54,6 +54,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
+  // Auto-focus input when component mounts or when loading finishes
+  useEffect(() => {
+    if (!isLoading) {
+      focusInputAtEnd();
+    }
+  }, [isLoading]);
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     const trimmed = text.trim();
@@ -179,7 +186,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               }
             }}
             placeholder={placeholder}
-            disabled={isLoading}
             className="flex-1 bg-transparent border-none outline-none text-content-primary placeholder-content-muted text-xs sm:text-sm font-normal"
           />
 
