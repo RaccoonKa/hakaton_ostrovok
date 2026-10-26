@@ -39,6 +39,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const heroFormRef = useRef<HTMLFormElement>(null);
   const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const focusHeroInputAtEnd = () => {
@@ -133,6 +134,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
 
           {/* Hero text area input */}
           <form
+            ref={heroFormRef}
             onSubmit={handleHeroSubmit}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
@@ -182,7 +184,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
                     isOpen={isDatePickerOpen}
                     onClose={() => setIsDatePickerOpen(false)}
                     onApply={handleApplyDates}
-                    position="bottom"
+                    anchorRef={heroFormRef}
                   />
                 </div>
                 <button

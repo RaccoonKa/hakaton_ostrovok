@@ -33,6 +33,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [text, setText] = useState("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const chatFormRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Global shortcut ⌘K / Ctrl+K to focus input
@@ -141,6 +142,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       {/* Main input box */}
       <form
+        ref={chatFormRef}
         onSubmit={handleSubmit}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
@@ -170,7 +172,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               isOpen={isDatePickerOpen}
               onClose={() => setIsDatePickerOpen(false)}
               onApply={handleApplyDates}
-              position="top"
+              anchorRef={chatFormRef}
             />
           </div>
           <button

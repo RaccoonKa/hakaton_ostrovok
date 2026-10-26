@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Check, GripHorizontal } from "lucide-react";
 
 interface DateRangePickerProps {
   isOpen: boolean;
   onClose: () => void;
   onApply: (formattedText: string) => void;
-  position?: "top" | "bottom";
+  anchorRef?: React.RefObject<HTMLElement | null>;
   initialStartDate?: Date | null;
   initialEndDate?: Date | null;
   initialFlexDays?: number | null;
@@ -47,12 +47,22 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   isOpen,
   onClose,
   onApply,
-  position = "bottom",
+  anchorRef,
   initialStartDate = null,
   initialEndDate = null,
   initialFlexDays = null,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Position state for draggable window
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
+    startX: 0,
+    startY: 0,
+    initX: 0,
+    initY: 0,
+  });
 
   // Current viewed month & year in calendar
   const today = new Date();
@@ -67,11 +77,51 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [flexDays, setFlexDays] = useState<number | null>(initialFlexDays);
 
-  // Close on Escape or click outside
+  // Position by default to the left of the input container (anchorRef)
+  useEffect(() => {
+    if (!isOpen) {
+      setPos(null);
+      return;
+    }
+
+    const calendarWidth = 305;
+    const calendarHeight = 350;
+
+    if (anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      // Default to the left of the input box with a 16px gap
+      let x = rect.left - calendarWidth - 16;
+      let y = rect.top;
+
+      // If there's not enough room to the left (e.g. mobile or tablet),
+      // keep it within comfortable screen padding
+      if (x < 12) {
+        x = Math.max(12, rect.left);
+      }
+
+      // Check vertical bounds
+      if (y + calendarHeight > window.innerHeight - 16) {
+        y = Math.max(16, window.innerHeight - calendarHeight - 16);
+      }
+      if (y < 16) {
+        y = 16;
+      }
+
+      setPos({ x, y });
+    } else {
+      // Fallback: place in the left-center quadrant
+      const x = Math.max(16, Math.min(window.innerWidth - calendarWidth - 16, window.innerWidth * 0.1));
+      const y = Math.max(60, window.innerHeight / 2 - 170);
+      setPos({ x, y });
+    }
+  }, [isOpen, anchorRef]);
+
+  // Close on Escape or click outside (unless currently dragging)
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
+      if (isDraggingRef.current) return;
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         onClose();
       }
@@ -90,6 +140,53 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Dragging logic by header/frame
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return; // Only primary mouse button
+    const target = e.target as HTMLElement;
+    // Don't drag if user clicked interactive buttons
+    if (target.closest("button") || target.closest("input")) return;
+
+    e.preventDefault();
+    isDraggingRef.current = true;
+    dragStartRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initX: pos?.x ?? 0,
+      initY: pos?.y ?? 0,
+    };
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const calendarWidth = 305;
+      const calendarHeight = 350;
+
+      const deltaX = moveEvent.clientX - dragStartRef.current.startX;
+      const deltaY = moveEvent.clientY - dragStartRef.current.startY;
+
+      const nextX = dragStartRef.current.initX + deltaX;
+      const nextY = dragStartRef.current.initY + deltaY;
+
+      // Keep within viewport boundaries
+      const clampedX = Math.max(8, Math.min(window.innerWidth - calendarWidth - 8, nextX));
+      const clampedY = Math.max(8, Math.min(window.innerHeight - calendarHeight - 8, nextY));
+
+      setPos({ x: clampedX, y: clampedY });
+    };
+
+    const handlePointerUp = () => {
+      // Small timeout so outside click handler doesn't trigger on drag end
+      setTimeout(() => {
+        isDraggingRef.current = false;
+      }, 50);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  };
 
   if (!isOpen) return null;
 
@@ -126,22 +223,34 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return t > s && t < e;
   };
 
+  // Click 1: sets "от" (departure)
+  // Click 2: sets "до" (return)
   const handleDateClick = (dayDate: Date) => {
     if (dayDate.getTime() < today.getTime()) return; // Disallow past dates
 
     if (!startDate || (startDate && endDate)) {
+      // 1st click: sets "от"
       setStartDate(dayDate);
       setEndDate(null);
     } else if (startDate && !endDate) {
+      // 2nd click:
       if (dayDate.getTime() < startDate.getTime()) {
+        // If clicked date earlier than start, update "от"
         setStartDate(dayDate);
-      } else if (isSameDay(dayDate, startDate)) {
-        setEndDate(dayDate);
       } else {
+        // Sets "до"
         setEndDate(dayDate);
       }
     }
   };
+
+  // Calculate nights count
+  const nightsCount =
+    startDate && endDate
+      ? Math.round(
+          Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+        )
+      : null;
 
   const handleApply = () => {
     if (!startDate) return;
@@ -176,15 +285,19 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`absolute z-50 w-[285px] sm:w-[305px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none transition-all animate-fade-in ${
-        position === "top"
-          ? "bottom-full mb-2 left-0 sm:left-0"
-          : "top-full mt-2 left-0 sm:left-0"
-      }`}
+      onPointerDown={handlePointerDown}
+      className="fixed z-50 w-[295px] sm:w-[315px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none transition-shadow animate-fade-in cursor-default"
       style={{
-        boxShadow: "0 16px 36px -8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.06)",
+        left: pos ? `${pos.x}px` : "16px",
+        top: pos ? `${pos.y}px` : "100px",
+        boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0,0,0,0.08)",
       }}
     >
+      {/* Draggable Top Grip Frame Handle */}
+      <div className="w-full flex items-center justify-center -mt-1 pb-1 cursor-grab active:cursor-grabbing group">
+        <GripHorizontal className="w-6 h-3 text-content-muted/40 group-hover:text-primary transition-colors" />
+      </div>
+
       {/* Month Navigation & Close */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1">
@@ -221,6 +334,40 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </button>
       </div>
 
+      {/* Trip Range "от" / "до" Status Indicator Strip */}
+      {startDate && !endDate && (
+        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/10 text-primary font-medium mb-1.5 animate-fade-in">
+          <span className="flex items-center gap-1.5 truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+            <span>
+              Вылет (от): <strong>{startDate.getDate()} {MONTH_NAMES_GENITIVE[startDate.getMonth()]}</strong>
+            </span>
+          </span>
+          <span className="text-content-muted text-[10px] shrink-0 ml-1">выберите «до»</span>
+        </div>
+      )}
+
+      {startDate && endDate && (
+        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-medium mb-1.5 animate-fade-in">
+          <span className="truncate">
+            <strong>{startDate.getDate()} {MONTH_NAMES_GENITIVE[startDate.getMonth()]}</strong> (от)
+            {" → "}
+            <strong>{endDate.getDate()} {MONTH_NAMES_GENITIVE[endDate.getMonth()]}</strong> (до)
+          </span>
+          {nightsCount !== null && (
+            <span className="text-[10px] font-bold bg-primary text-white px-1.5 py-0.2 rounded-sm ml-1 shrink-0">
+              {nightsCount} {nightsCount === 1 ? "ночь" : nightsCount < 5 ? "ночи" : "ночей"}
+            </span>
+          )}
+        </div>
+      )}
+
+      {!startDate && (
+        <div className="text-[10px] text-content-muted px-1 mb-1.5 text-center">
+          Кликните день вылета (от) и возвращения (до)
+        </div>
+      )}
+
       {/* Calendar Weekday Headers */}
       <div className="grid grid-cols-7 gap-1 text-center mb-1">
         {WEEKDAY_NAMES.map((name, i) => (
@@ -236,14 +383,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       </div>
 
       {/* Calendar Days Grid */}
-      <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center">
+      <div className="grid grid-cols-7 gap-y-0.5 gap-x-0 text-center">
         {/* Previous month padding days */}
         {Array.from({ length: firstDayOfWeek }).map((_, i) => {
           const dayNum = daysInPrevMonth - firstDayOfWeek + i + 1;
           return (
             <div
               key={`prev-${i}`}
-              className="h-7 flex items-center justify-center text-[10px] text-content-muted/25 select-none"
+              className="h-8 flex items-center justify-center text-[10px] text-content-muted/25 select-none"
             >
               {dayNum}
             </div>
@@ -267,41 +414,61 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             isBetween(dayDate, startDate, hoverDate);
           const isToday = isSameDay(dayDate, today);
 
-          let cellClass = "text-content-primary hover:bg-surface-muted";
+          let bgWrapper = "";
+          let buttonStyle = "text-content-primary hover:bg-surface-muted rounded-lg";
+          let badgeLabel: string | null = null;
+
           if (isPast) {
-            cellClass = "text-content-muted/25 cursor-not-allowed pointer-events-none";
-          } else if (isStart || isEnd) {
-            cellClass =
-              "bg-primary text-white font-bold shadow-xs scale-105 z-10 rounded-full";
+            buttonStyle = "text-content-muted/25 cursor-not-allowed pointer-events-none";
+          } else if (isStart && isEnd) {
+            // Single day trip (same day from & to)
+            buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
+            badgeLabel = "1 дн";
+          } else if (isStart) {
+            // Start of range ("от")
+            bgWrapper = endDate ? "bg-primary/20 dark:bg-primary/30 rounded-l-lg" : "";
+            buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
+            badgeLabel = "от";
+          } else if (isEnd) {
+            // End of range ("до")
+            bgWrapper = "bg-primary/20 dark:bg-primary/30 rounded-r-lg";
+            buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
+            badgeLabel = "до";
           } else if (inRange || inHoverRange) {
-            cellClass = "bg-primary/15 text-primary font-medium rounded-none";
+            // Between "от" and "до"
+            bgWrapper = "bg-primary/20 dark:bg-primary/30";
+            buttonStyle = "text-primary font-bold rounded-none hover:bg-primary/30";
           }
 
           return (
-            <button
-              key={dayNum}
-              type="button"
-              disabled={isPast}
-              onClick={() => handleDateClick(dayDate)}
-              onMouseEnter={() => {
-                if (startDate && !endDate) {
-                  setHoverDate(dayDate);
-                }
-              }}
-              className={`h-7 w-full flex items-center justify-center text-xs transition-all relative ${cellClass} ${
-                !isStart && !isEnd && !inRange ? "rounded-md" : ""
-              }`}
-            >
-              <span>{dayNum}</span>
-              {isToday && !isStart && !isEnd && (
-                <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
-              )}
-            </button>
+            <div key={dayNum} className={`h-8 w-full flex items-center justify-center p-0.5 relative ${bgWrapper}`}>
+              <button
+                type="button"
+                disabled={isPast}
+                onClick={() => handleDateClick(dayDate)}
+                onMouseEnter={() => {
+                  if (startDate && !endDate) {
+                    setHoverDate(dayDate);
+                  }
+                }}
+                className={`h-full w-full flex flex-col items-center justify-center text-xs transition-all relative ${buttonStyle}`}
+              >
+                <span className="leading-none text-[11px] font-semibold">{dayNum}</span>
+                {badgeLabel && (
+                  <span className="text-[7.5px] font-extrabold uppercase tracking-tight text-white/95 leading-none mt-0.5">
+                    {badgeLabel}
+                  </span>
+                )}
+                {isToday && !isStart && !isEnd && (
+                  <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
+                )}
+              </button>
+            </div>
           );
         })}
       </div>
 
-      {/* Flexibility Options: +-1 день, +-3 дня, +- 7 дней (Compact without extra header) */}
+      {/* Flexibility Options: +-1 день, +-3 дня, +- 7 дней */}
       <div className="mt-2.5 pt-2 border-t border-surface-border dark:border-white/10">
         <div className="grid grid-cols-4 gap-1">
           <button
@@ -309,7 +476,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             onClick={() => setFlexDays(null)}
             className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === null
-                ? "bg-primary text-white shadow-xs"
+                ? "bg-primary text-white shadow-xs font-semibold"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
             }`}
           >
@@ -320,7 +487,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             onClick={() => setFlexDays(1)}
             className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 1
-                ? "bg-primary text-white shadow-xs"
+                ? "bg-primary text-white shadow-xs font-semibold"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
             }`}
           >
@@ -331,7 +498,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             onClick={() => setFlexDays(3)}
             className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 3
-                ? "bg-primary text-white shadow-xs"
+                ? "bg-primary text-white shadow-xs font-semibold"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
             }`}
           >
@@ -342,7 +509,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             onClick={() => setFlexDays(7)}
             className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 7
-                ? "bg-primary text-white shadow-xs"
+                ? "bg-primary text-white shadow-xs font-semibold"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
             }`}
           >
