@@ -97,12 +97,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden relative">
-          {/* SINGLE continuous frosted purple gradient background (no separate rectangle, no seam, identical shade throughout!) */}
+          {/* SINGLE continuous frosted purple gradient background (curved organic contour reaching lower on the left) */}
           <div
-            className="absolute top-0 left-0 right-0 h-24 pointer-events-none z-0"
+            className="absolute top-0 left-0 right-0 h-[104px] pointer-events-none z-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(92, 30, 134, 0.96) 0%, rgba(92, 30, 134, 0.93) 30%, rgba(92, 30, 134, 0.70) 52%, rgba(92, 30, 134, 0.38) 70%, rgba(92, 30, 134, 0.15) 85%, rgba(92, 30, 134, 0.04) 94%, rgba(92, 30, 134, 0) 100%)",
+                "radial-gradient(ellipse 150% 100% at 0% 0%, rgba(92, 30, 134, 0.96) 0%, rgba(92, 30, 134, 0.92) 28%, rgba(92, 30, 134, 0.68) 52%, rgba(92, 30, 134, 0.35) 72%, rgba(92, 30, 134, 0.12) 88%, rgba(92, 30, 134, 0) 100%), linear-gradient(180deg, rgba(92, 30, 134, 0.96) 0%, rgba(92, 30, 134, 0.88) 18%, transparent 55%)",
             }}
             aria-hidden="true"
           />
