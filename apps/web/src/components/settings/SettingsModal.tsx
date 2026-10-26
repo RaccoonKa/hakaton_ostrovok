@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   X,
   Sliders,
-  Globe,
+  Coins,
   MapPin,
   Plane,
   Luggage,
@@ -21,7 +21,6 @@ import {
 import {
   usePreferences,
   CurrencyCode,
-  LanguageCode,
   SettingsTab,
   TravelPreferences,
   UserProfile,
@@ -41,11 +40,6 @@ const CURRENCIES: { code: CurrencyCode; label: string; symbol: string }[] = [
   { code: "USD", label: "Доллар США", symbol: "$" },
   { code: "EUR", label: "Евро", symbol: "€" },
   { code: "AED", label: "Дирхам ОАЭ", symbol: "AED" },
-];
-
-const LANGUAGES: { code: LanguageCode; label: string; flag: string }[] = [
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
-  { code: "en", label: "English", flag: "🇬🇧" },
 ];
 
 export const SettingsModal: React.FC = () => {
@@ -170,14 +164,14 @@ export const SettingsModal: React.FC = () => {
           {activeTab === "search" ? (
             /* TAB 1: Search & Regional Preferences */
             <>
-              {/* Section 1: Currency & Language */}
+              {/* Section 1: Currency */}
               <div>
                 <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
-                  <Globe className="w-4 h-4 text-primary" />
-                  <span>Валюта и язык</span>
+                  <Coins className="w-4 h-4 text-primary" />
+                  <span>Валюта</span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {CURRENCIES.map((cur) => {
                     const isSelected = draftPrefs.currency === cur.code;
                     return (
@@ -196,27 +190,6 @@ export const SettingsModal: React.FC = () => {
                         <span className="text-[10px] text-content-muted truncate max-w-full">
                           {cur.label}
                         </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {LANGUAGES.map((lang) => {
-                    const isSelected = draftPrefs.language === lang.code;
-                    return (
-                      <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => setDraftPrefs((p) => ({ ...p, language: lang.code }))}
-                        className={`flex items-center justify-center gap-2 py-2 px-3 rounded-xl border transition-all ${
-                          isSelected
-                            ? "border-primary bg-primary-light text-primary font-bold shadow-xs"
-                            : "border-slate-200 hover:border-slate-300 bg-white text-content-secondary"
-                        }`}
-                      >
-                        <span className="text-base">{lang.flag}</span>
-                        <span className="text-xs font-semibold">{lang.label}</span>
                       </button>
                     );
                   })}

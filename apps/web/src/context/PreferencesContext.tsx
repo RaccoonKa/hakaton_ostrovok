@@ -69,7 +69,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       const saved = localStorage.getItem(STORAGE_PREFS_KEY);
       if (saved) {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved) };
+        return { ...DEFAULT_PREFERENCES, ...JSON.parse(saved), language: "ru" };
       }
     } catch {
       // fallback
@@ -123,8 +123,7 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const closeSettingsModal = () => setIsSettingsModalOpen(false);
 
-  const langLabel = preferences.language === "ru" ? "Русский" : "English";
-  const currencyLabel = `${preferences.currency} • ${langLabel}`;
+  const currencyLabel = `${preferences.currency} • Русский`;
 
   return (
     <PreferencesContext.Provider
