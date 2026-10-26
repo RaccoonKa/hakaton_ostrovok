@@ -28,6 +28,7 @@ dependencies = [
     "langchain-anthropic ~=1.4.8",
     "langchain-aws ~=1.6.1",
     "langchain-chroma ~=1.1.0",
+    "langchain-gigachat>=0.3.0",
     "langchain-google-genai ~=4.2.6",
     "langchain-google-vertexai>=3.2.4",
     "langchain-groq ~=1.1.3",
