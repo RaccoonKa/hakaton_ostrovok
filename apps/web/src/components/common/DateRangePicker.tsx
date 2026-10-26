@@ -264,12 +264,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     onClose();
   };
 
-  const handleReset = () => {
-    setStartDate(null);
-    setEndDate(null);
-    setFlexDays(null);
-  };
-
   return createPortal(
     <div
       ref={containerRef}
@@ -497,34 +491,24 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         </div>
       </div>
 
-      {/* Actions: Reset & Apply */}
-      <div className="mt-2.5 pt-2 border-t border-surface-border dark:border-white/10 flex items-center justify-between">
+      {/* Actions: Cancel & Apply */}
+      <div className="mt-2.5 pt-2 border-t border-surface-border dark:border-white/10 flex items-center justify-end gap-1.5">
         <button
           type="button"
-          onClick={handleReset}
-          className="text-[11px] text-content-muted hover:text-content-primary transition-colors px-1"
+          onClick={onClose}
+          className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
         >
-          Сбросить
+          Отмена
         </button>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
-          >
-            Отмена
-          </button>
-          <button
-            type="button"
-            disabled={!startDate}
-            onClick={handleApply}
-            className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold shadow-xs flex items-center gap-1 transition-all active:scale-95"
-          >
-            <Check className="w-3 h-3" />
-            <span>Применить</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={!startDate}
+          onClick={handleApply}
+          className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold shadow-xs flex items-center gap-1 transition-all active:scale-95"
+        >
+          <Check className="w-3 h-3" />
+          <span>Применить</span>
+        </button>
       </div>
     </div>,
     document.body
