@@ -1,3 +1,6 @@
 .DS_Store
 t.txt
 t.py
+.vscode/
+__pycache__/
+.ruff_cache
