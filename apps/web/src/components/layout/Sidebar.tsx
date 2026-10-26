@@ -6,7 +6,6 @@ import {
   Sliders,
   User,
   MessageSquare,
-  PanelLeftClose,
 } from "lucide-react";
 import { HistorySessionItem } from "../../types/travel";
 import { useSidebar } from "../../context/SidebarContext";
@@ -116,23 +115,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-content-muted hover:bg-surface-container-high hover:text-content-primary transition-colors"
-                  title="Поиск по диалогам"
-                >
-                  <Search className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={closeSidebar}
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-content-muted hover:bg-surface-container-high hover:text-content-primary transition-colors"
-                  title="Скрыть боковую панель (⌘\)"
-                >
-                  <PanelLeftClose className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:bg-surface-container-high hover:text-content-primary transition-colors"
+                title="Поиск по диалогам"
+              >
+                <Search className="w-4 h-4" />
+              </button>
             </div>
 
             {/* New route button with ⌘K */}
