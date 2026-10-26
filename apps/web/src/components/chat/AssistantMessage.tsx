@@ -1,0 +1,179 @@
+import React from "react";
+import { Sparkles, Info } from "lucide-react";
+import { ChatMessage, TripOption } from "../../types/travel";
+import { ClarificationChips } from "./ClarificationChips";
+import { StreamingIndicator } from "../common/StreamingIndicator";
+import { TripOptionCard } from "../cards/TripOptionCard";
+import { FlightCard } from "../cards/FlightCard";
+import { HotelCard } from "../cards/HotelCard";
+import { DayTimeline } from "../itinerary/DayTimeline";
+import { PriceBreakdown, PriceOptimizationDiff } from "../cards/PriceBreakdown";
+
+interface AssistantMessageProps {
+  message: ChatMessage;
+  isStreaming?: boolean;
+  tripOptions?: TripOption[];
+  selectedOption?: TripOption | null;
+  optimizationDiff?: PriceOptimizationDiff | null;
+  onSelectOption?: (option: TripOption) => void;
+  onSelectChip?: (text: string) => void;
+  onConfirmDemoBooking?: () => void;
+}
+
+export const AssistantMessage: React.FC<AssistantMessageProps> = ({
+  message,
+  isStreaming = false,
+  tripOptions = [],
+  selectedOption,
+  optimizationDiff,
+  onSelectOption,
+  onSelectChip,
+  onConfirmDemoBooking,
+}) => {
+  const formatTime = (isoString?: string) => {
+    if (!isoString) {
+      return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+    try {
+      const d = new Date(isoString);
+      return isNaN(d.getTime())
+        ? isoString
+        : d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return isoString;
+    }
+  };
+
+  const selectedOptionId = selectedOption?.id;
+  const hasTripOptions = tripOptions.length > 0;
+  const showDossier = selectedOption !== null && selectedOption !== undefined;
+
+  return (
+    <div className="flex flex-col gap-2 w-full animate-fade-in pr-2 sm:pr-8">
+      {/* Assistant Header */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-primary-container text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+          О!
+        </div>
+        <div className="flex items-baseline gap-1.5 flex-wrap">
+          <span className="font-semibold text-xs sm:text-sm text-content-primary">
+            О!дин запрос
+          </span>
+          <span className="text-xs text-content-muted">
+            • {formatTime(message.created_at)}
+          </span>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-container text-content-secondary hidden sm:inline-block">
+            Умный движок v2.4
+          </span>
+        </div>
+      </div>
+
+      {/* Assistant Body Container */}
+      <div className="ml-0 sm:ml-9 flex flex-col gap-3">
+        {/* Text bubble */}
+        {message.content && (
+          <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 shadow-xs border border-surface-container-highest/60 text-content-primary">
+            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-normal">
+              {message.content}
+            </p>
+
+            {/* Clarification Chips if no option selected yet */}
+            {!showDossier && !isStreaming && (
+              <ClarificationChips onSelectChip={onSelectChip} />
+            )}
+          </div>
+        )}
+
+        {/* Streaming Indicator */}
+        {isStreaming && (
+          <StreamingIndicator currentStep="finding_hotels" />
+        )}
+
+        {/* Structured Recommendations List (Screen 2) */}
+        {hasTripOptions && !showDossier && (
+          <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 shadow-xs border border-surface-container-highest/60 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs sm:text-sm font-semibold text-content-primary">
+                Рекомендованные направления (с гарантией тёплого моря):
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {tripOptions.map((opt) => (
+                <TripOptionCard
+                  key={opt.id || opt.title}
+                  option={opt}
+                  selected={selectedOptionId === opt.id}
+                  onSelect={onSelectOption}
+                />
+              ))}
+            </div>
+
+            <div className="mt-2 p-3 rounded-lg bg-surface-container-high/60 flex items-center justify-between text-xs text-content-secondary">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-primary shrink-0" />
+                <span>Все варианты включают прямые рейсы с багажом и медстраховку для ребёнка.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Curated Trip Dossier View (Screen 3 & 4) */}
+        {showDossier && (
+          <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-6 border border-surface-container-highest/60 flex flex-col gap-5 shadow-xs">
+            {/* Dossier Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-surface-container-highest/60 gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-xs font-semibold">
+                    Семейный тур
+                  </span>
+                  <span className="text-xs text-content-muted">
+                    7 ночей • 2 взр + 1 реб
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-content-primary">
+                  {selectedOption.destination || selectedOption.title}
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onSelectOption?.(selectedOption)}
+                className="self-start sm:self-auto text-xs text-primary hover:underline font-medium"
+              >
+                ← Вернуться к списку направлений
+              </button>
+            </div>
+
+            {/* Flight section */}
+            {selectedOption.flights?.[0] && (
+              <FlightCard
+                flight={selectedOption.flights[0]}
+                returnFlight={selectedOption.flights[1]}
+                isIncluded
+              />
+            )}
+
+            {/* Hotel section */}
+            {selectedOption.hotels?.[0] && (
+              <HotelCard hotel={selectedOption.hotels[0]} />
+            )}
+
+            {/* 4-segment chronological timeline */}
+            <DayTimeline option={selectedOption} />
+
+            {/* Itemized price breakdown & diff summary */}
+            <PriceBreakdown
+              budget={selectedOption.budget}
+              currency={selectedOption.currency}
+              optimizationDiff={optimizationDiff}
+              onConfirmDemo={onConfirmDemoBooking}
+              confirmLabel="Подтвердить демо-бронирование"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

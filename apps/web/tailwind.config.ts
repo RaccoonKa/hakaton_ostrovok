@@ -9,6 +9,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Stitch / Warm Tech Travel Workspace tokens
+        "surface-container-low": "#f6f2f7",
+        "surface-container": "#f0edf1",
+        "surface-container-high": "#eae7eb",
+        "surface-container-highest": "#e4e1e6",
+        "surface-container-lowest": "#ffffff",
+        "on-surface": "#1b1b1e",
+        "on-surface-variant": "#4a4453",
+        "primary-container": "#5b21b6",
+        "on-primary-container": "#c7aaff",
+        "primary-fixed": "#ebddff",
+        "on-primary-fixed-variant": "#581db3",
+        "secondary-container": "#d5e3fc",
+        "on-secondary-fixed": "#0d1c2e",
+        "tertiary-container": "#00534c",
+        "tertiary-fixed": "#89f5e7",
+        "outline-variant": "#ccc3d6",
+
+        // Foundation colors
         primary: {
           DEFAULT: "#5438DC",
           hover: "#4328CA",
@@ -38,6 +57,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        code: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
         xl: "12px",
