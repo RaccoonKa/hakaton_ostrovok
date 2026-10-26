@@ -1,0 +1,110 @@
+{
+  "projects": {
+    "web": {
+      "projectId": "9079318107367033283",
+      "name": "AI Travel Planner Web App",
+      "designSystem": "Warm Tech Travel Workspace",
+      "primaryColor": "#4F46E5",
+      "secondaryColor": "#EA580C",
+      "backgroundColor": "#FAF9F7",
+      "surfaceColor": "#FFFFFF",
+      "textColor": "#1E1E24",
+      "screens": [
+        {
+          "order": 1,
+          "id": "f5ca6ac6fa6043708e73f46efeac3f65",
+          "title": "Главный экран — Новый диалог (Desktop Web)",
+          "width": 2560,
+          "height": 2048,
+          "screenshotPath": "apps/client-design/stitch/web/1_f5ca6ac6fa6043708e73f46efeac3f65.png",
+          "htmlPath": "apps/client-design/stitch/web/1_f5ca6ac6fa6043708e73f46efeac3f65.html"
+        },
+        {
+          "order": 2,
+          "id": "ee2f647b1bad469597aa340a78cea034",
+          "title": "Диалог — Подбор направлений (Desktop Web)",
+          "width": 2560,
+          "height": 2782,
+          "screenshotPath": "apps/client-design/stitch/web/2_ee2f647b1bad469597aa340a78cea034.png",
+          "htmlPath": "apps/client-design/stitch/web/2_ee2f647b1bad469597aa340a78cea034.html"
+        },
+        {
+          "order": 3,
+          "id": "fa7b72eaa9134064970ff39331be5653",
+          "title": "Диалог — Отель и готовый маршрут (Desktop Web)",
+          "width": 2560,
+          "height": 3662,
+          "screenshotPath": "apps/client-design/stitch/web/3_fa7b72eaa9134064970ff39331be5653.png",
+          "htmlPath": "apps/client-design/stitch/web/3_fa7b72eaa9134064970ff39331be5653.html"
+        },
+        {
+          "order": 4,
+          "id": "18cd959121954b0c8bc00373b70ae76f",
+          "title": "Диалог — Ревизия и демо-бронирование (Desktop Web)",
+          "width": 2560,
+          "height": 3326,
+          "screenshotPath": "apps/client-design/stitch/web/4_18cd959121954b0c8bc00373b70ae76f.png",
+          "htmlPath": "apps/client-design/stitch/web/4_18cd959121954b0c8bc00373b70ae76f.html"
+        }
+      ]
+    },
+    "mobile": {
+      "projectId": "4453512043111389853",
+      "name": "AI Travel Planning Assistant",
+      "designSystem": "Calm Intelligence",
+      "primaryColor": "#5438DC",
+      "secondaryColor": "#FF7A30",
+      "tertiaryColor": "#22C55E",
+      "backgroundColor": "#FBFBFD",
+      "surfaceColor": "#FFFFFF",
+      "textColor": "#18181B",
+      "screens": [
+        {
+          "order": 1,
+          "id": "58418aca925d4f8b96ffc1d94e4b28e6",
+          "title": "О!дин запрос — Новый диалог (Mobile View)",
+          "width": 780,
+          "height": 1768,
+          "screenshotPath": "apps/client-design/stitch/mobile/1_58418aca925d4f8b96ffc1d94e4b28e6.png",
+          "htmlPath": "apps/client-design/stitch/mobile/1_58418aca925d4f8b96ffc1d94e4b28e6.html"
+        },
+        {
+          "order": 2,
+          "id": "419a20fc31714fdc9f2a43dbc3f194d5",
+          "title": "Диалог: Подбор направлений (Mobile View)",
+          "width": 780,
+          "height": 2400,
+          "screenshotPath": "apps/client-design/stitch/mobile/2_419a20fc31714fdc9f2a43dbc3f194d5.png",
+          "htmlPath": "apps/client-design/stitch/mobile/2_419a20fc31714fdc9f2a43dbc3f194d5.html"
+        },
+        {
+          "order": 3,
+          "id": "ad7a778346eb4e14975cb6bb46344c4a",
+          "title": "Сравнение отелей (Mobile View)",
+          "width": 780,
+          "height": 3722,
+          "screenshotPath": "apps/client-design/stitch/mobile/3_ad7a778346eb4e14975cb6bb46344c4a.png",
+          "htmlPath": "apps/client-design/stitch/mobile/3_ad7a778346eb4e14975cb6bb46344c4a.html"
+        },
+        {
+          "order": 4,
+          "id": "c7f4ef9e6a2444da951c603534d24aa8",
+          "title": "Маршрут поездки (Mobile View)",
+          "width": 780,
+          "height": 2734,
+          "screenshotPath": "apps/client-design/stitch/mobile/4_c7f4ef9e6a2444da951c603534d24aa8.png",
+          "htmlPath": "apps/client-design/stitch/mobile/4_c7f4ef9e6a2444da951c603534d24aa8.html"
+        },
+        {
+          "order": 5,
+          "id": "8961e1e8cbd84473a4734be7f1c4b726",
+          "title": "Демо-бронирование (Mobile View)",
+          "width": 780,
+          "height": 2520,
+          "screenshotPath": "apps/client-design/stitch/mobile/5_8961e1e8cbd84473a4734be7f1c4b726.png",
+          "htmlPath": "apps/client-design/stitch/mobile/5_8961e1e8cbd84473a4734be7f1c4b726.html"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "corvax-plan-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for «О!дин запрос» travel planning assistant",
+  "scripts": {
+    "build": "pnpm --filter \"./packages/*\" --filter \"./apps/*\" build",
+    "check:types": "pnpm -r --parallel check:types",
+    "lint": "pnpm -r --parallel lint",
+    "test": "pnpm -r --parallel test",
+    "web:dev": "pnpm --filter @corvax/web dev",
+    "web:build": "pnpm --filter @corvax/web build",
+    "mobile:start": "pnpm --filter @corvax/mobile start"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "typescript": "^5.7.3"
+  }
+}
