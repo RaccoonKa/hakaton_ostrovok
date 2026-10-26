@@ -3,7 +3,6 @@ import {
   Plus,
   Search,
   Settings,
-  Sliders,
   User,
   MessageSquare,
 } from "lucide-react";
@@ -68,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeHistoryId = "hist-1",
 }) => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
-  const { currencyLabel, openSettingsModal } = usePreferences();
+  const { openSettingsModal } = usePreferences();
 
   const todayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "today");
   const yesterdayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "yesterday");
@@ -224,18 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Footer User & Settings — frosted glass footer */}
-          <div className="p-3 bg-white/60 backdrop-blur-xl border-t border-black/[0.06] flex flex-col gap-2">
-            {/* Currency & Language selector button */}
-            <button
-              type="button"
-              onClick={() => openSettingsModal("search")}
-              className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-black/[0.05] shadow-2xs text-xs text-content-primary transition-all group cursor-pointer"
-              title="Настройки региона, валюты и параметров поиска"
-            >
-              <span className="font-medium">{currencyLabel}</span>
-              <Sliders className="w-3.5 h-3.5 text-content-muted group-hover:text-primary transition-colors" />
-            </button>
-
+          <div className="p-3 bg-white/60 backdrop-blur-xl border-t border-black/[0.06]">
             {/* User Profile bar with enlarged typography */}
             <div onClick={() => openSettingsModal("account")} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 transition-colors cursor-pointer group" title="Открыть профиль путешественника">
               <div className="flex items-center gap-3 overflow-hidden">
