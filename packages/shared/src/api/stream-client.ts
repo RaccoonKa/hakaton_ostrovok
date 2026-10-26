@@ -118,7 +118,7 @@ export class FastApiStreamClient {
       if (signal?.aborted) {
         return;
       }
-      callbacks.onError?.(err instanceof Error ? err : new Error(String(err)));
+      throw err;
     }
   }
 }

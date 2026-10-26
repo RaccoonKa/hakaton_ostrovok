@@ -2,6 +2,7 @@
 export * from "./domain/constants";
 export * from "./domain/types";
 export * from "./domain/schemas";
+export * from "./domain/cities";
 
 // Formatting utilities
 export * from "./formatters/travel";
@@ -14,3 +15,6 @@ export * from "./api/types";
 export * from "./api/agui-client";
 export * from "./api/stream-client";
 export * from "./api/agent-client";
+
+// Shared design tokens & simulation constants
+export * from "./theme/tokens";
