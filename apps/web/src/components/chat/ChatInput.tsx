@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { DateRangePicker } from "../common/DateRangePicker";
 import {
   Send,
   SlidersHorizontal,
@@ -31,6 +32,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = "Спросите что угодно или уточните параметры путешествия...",
 }) => {
   const [text, setText] = useState("");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Global shortcut ⌘K / Ctrl+K to focus input
@@ -52,6 +54,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       inputRef.current.setSelectionRange(len, len);
       inputRef.current.scrollLeft = inputRef.current.scrollWidth;
     }
+  };
+
+  const handleApplyDates = (datesText: string) => {
+    setText((prev) => {
+      const dateRegex = /(\+?\s*Даты:\s*)[^\n,+]*/i;
+      if (dateRegex.test(prev)) {
+        return prev.replace(dateRegex, `+ ${datesText}`);
+      }
+      const trimmed = prev.trim();
+      return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
+    });
+    setIsDatePickerOpen(false);
+    focusInputAtEnd();
+    requestAnimationFrame(focusInputAtEnd);
   };
 
   // Auto-focus input when component mounts or when loading finishes
@@ -135,15 +151,28 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       >
         {/* Modifier tags line */}
         <div className="flex items-center flex-wrap gap-1 px-1">
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => appendTag("+ Даты")}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
-          >
-            <Calendar className="w-3 h-3 text-content-muted" />
-            <span>+ Даты</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setIsDatePickerOpen((prev) => !prev)}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
+                isDatePickerOpen
+                  ? "bg-primary text-white shadow-xs"
+                  : "bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary"
+              }`}
+            >
+              <Calendar className="w-3 h-3 text-content-muted" />
+              <span>+ Даты</span>
+            </button>
+
+            <DateRangePicker
+              isOpen={isDatePickerOpen}
+              onClose={() => setIsDatePickerOpen(false)}
+              onApply={handleApplyDates}
+              position="top"
+            />
+          </div>
           <button
             type="button"
             onMouseDown={(e) => e.preventDefault()}

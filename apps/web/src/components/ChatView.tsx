@@ -13,6 +13,7 @@ import {
 import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
+import { DateRangePicker } from "./common/DateRangePicker";
 import { useTravelAgent } from "../hooks/useTravelAgent";
 import { useSidebar } from "../context/SidebarContext";
 import { SHARED_SUGGESTIONS, SHARED_QUICK_CHIPS } from "@corvax/shared";
@@ -37,6 +38,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
 
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const focusHeroInputAtEnd = () => {
@@ -45,6 +47,20 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       const len = heroTextareaRef.current.value.length;
       heroTextareaRef.current.setSelectionRange(len, len);
     }
+  };
+
+  const handleApplyDates = (datesText: string) => {
+    setHeroInput((prev) => {
+      const dateRegex = /(\+?\s*Даты:\s*)[^\n,+]*/i;
+      if (dateRegex.test(prev)) {
+        return prev.replace(dateRegex, `+ ${datesText}`);
+      }
+      const trimmed = prev.trim();
+      return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
+    });
+    setIsDatePickerOpen(false);
+    focusHeroInputAtEnd();
+    requestAnimationFrame(focusHeroInputAtEnd);
   };
 
   const handleHeroSubmit = (e?: React.FormEvent) => {
@@ -147,15 +163,28 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border flex-wrap">
               {/* Tag modifier chips */}
               <div className="flex items-center flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => appendHeroTag("+ Даты")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
-                >
-                  <Calendar className="w-3.5 h-3.5 text-content-muted" />
-                  <span>+ Даты</span>
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => setIsDatePickerOpen((prev) => !prev)}
+                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      isDatePickerOpen
+                        ? "bg-primary text-white shadow-xs"
+                        : "bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>+ Даты</span>
+                  </button>
+
+                  <DateRangePicker
+                    isOpen={isDatePickerOpen}
+                    onClose={() => setIsDatePickerOpen(false)}
+                    onApply={handleApplyDates}
+                    position="bottom"
+                  />
+                </div>
                 <button
                   type="button"
                   onMouseDown={(e) => e.preventDefault()}
