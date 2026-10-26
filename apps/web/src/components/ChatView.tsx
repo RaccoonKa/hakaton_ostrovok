@@ -3,6 +3,7 @@ import {
   Sun,
   Building,
   Mountain,
+  Sparkles,
   ArrowUpRight,
   Send,
   Calendar,
@@ -14,21 +15,7 @@ import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
 import { useTravelAgent } from "../hooks/useTravelAgent";
 import { useSidebar } from "../context/SidebarContext";
-
-const HERO_TEMPLATES = [
-  {
-    icon: Sun,
-    text: "К тёплому морю в ноябре с ребёнком 5 лет, до 150 000 ₽",
-  },
-  {
-    icon: Building,
-    text: "Уикенд в Стамбуле на двоих с уютным отелем в Бейоглу",
-  },
-  {
-    icon: Mountain,
-    text: "Горные лыжи в Сочи на 5 дней без очередей на подъёмники",
-  },
-];
+import { SHARED_SUGGESTIONS, SHARED_QUICK_CHIPS } from "@corvax/shared";
 
 interface ChatViewProps {
   externalHistoryTrigger?: string | null;
@@ -62,6 +49,20 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     setHeroInput((prev) => (prev ? `${prev} ${tag}: ` : `${tag}: `));
   };
 
+  const getSuggestionIcon = (text: string) => {
+    const lower = text.toLowerCase();
+    if (lower.includes("море") || lower.includes("пляж") || lower.includes("июле")) {
+      return Sun;
+    }
+    if (lower.includes("лыжи") || lower.includes("сочи") || lower.includes("январе")) {
+      return Mountain;
+    }
+    if (lower.includes("стамбул") || lower.includes("отель") || lower.includes("тур")) {
+      return Building;
+    }
+    return Sparkles;
+  };
+
   return (
     <div className="flex flex-col w-full relative min-h-[calc(100vh-3.5rem)]">
       {/* Background ambient radial glow matching Stitch */}
@@ -71,8 +72,8 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       {messages.length === 0 ? (
         <div className="relative w-full max-w-2xl mx-auto flex flex-col items-center text-center my-auto px-4 sm:px-6 py-12 z-10 animate-fade-in">
           {/* Tag pill */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-content-secondary text-xs font-medium mb-4 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-header" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary font-semibold text-xs mb-4 shadow-xs border border-primary/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span>Интеллектуальный подбор поездок</span>
           </div>
 
@@ -88,7 +89,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
           {/* Hero text area input */}
           <form
             onSubmit={handleHeroSubmit}
-            className="w-full text-left rounded-2xl bg-surface-container-lowest shadow-md border border-surface-container-highest/80 p-4 focus-within:shadow-lg focus-within:border-header/50 transition-all duration-200"
+            className="w-full text-left rounded-2xl bg-surface shadow-md border border-surface-border p-4 focus-within:shadow-lg focus-within:border-primary/50 transition-all duration-200"
           >
             <label htmlFor="travel-prompt-input" className="sr-only">
               Запрос для путешествия
@@ -108,13 +109,13 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               className="w-full resize-none bg-transparent text-sm sm:text-base text-content-primary placeholder:text-content-muted focus:outline-hidden leading-relaxed"
             />
 
-            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-container-highest/40 flex-wrap">
+            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border flex-wrap">
               {/* Tag modifier chips */}
               <div className="flex items-center flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={() => appendHeroTag("+ Даты")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <Calendar className="w-3.5 h-3.5 text-content-muted" />
                   <span>Даты</span>
@@ -122,7 +123,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
                 <button
                   type="button"
                   onClick={() => appendHeroTag("+ Бюджет")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <DollarSign className="w-3.5 h-3.5 text-content-muted" />
                   <span>Бюджет</span>
@@ -130,7 +131,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
                 <button
                   type="button"
                   onClick={() => appendHeroTag("+ С детьми")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <Users className="w-3.5 h-3.5 text-content-muted" />
                   <span>С детьми</span>
@@ -141,7 +142,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <button
                 type="submit"
                 disabled={!heroInput.trim() || isLoading}
-                className="w-9 h-9 rounded-full bg-header hover:bg-header-hover disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95 shrink-0"
+                className="w-9 h-9 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95 shrink-0"
                 title="Отправить запрос"
               >
                 <Send className="w-4 h-4" />
@@ -149,21 +150,21 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             </div>
           </form>
 
-          {/* Quick template starter buttons */}
+          {/* Quick template starter buttons from SHARED_SUGGESTIONS */}
           <div className="w-full flex flex-col gap-2 mt-6 text-left">
-            {HERO_TEMPLATES.map((tmpl) => {
-              const IconComp = tmpl.icon;
+            {SHARED_SUGGESTIONS.map((suggestionText) => {
+              const IconComp = getSuggestionIcon(suggestionText);
               return (
                 <button
-                  key={tmpl.text}
+                  key={suggestionText}
                   type="button"
-                  onClick={() => sendMessage(tmpl.text)}
-                  className="w-full p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low text-content-primary flex items-center justify-between group transition-colors shadow-xs border border-surface-container-highest/50"
+                  onClick={() => sendMessage(suggestionText)}
+                  className="w-full p-3.5 rounded-xl bg-surface hover:bg-surface-muted text-content-primary flex items-center justify-between group transition-colors shadow-xs border border-surface-border"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <IconComp className="w-4 h-4 text-content-muted shrink-0 group-hover:text-header transition-colors" />
+                    <IconComp className="w-4 h-4 text-primary shrink-0 transition-colors" />
                     <span className="text-xs sm:text-sm text-content-primary truncate">
-                      {tmpl.text}
+                      {suggestionText}
                     </span>
                   </div>
                   <ArrowUpRight className="w-4 h-4 text-content-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
@@ -203,6 +204,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <ChatInput
                 onSendMessage={(text) => sendMessage(text)}
                 isLoading={isLoading}
+                suggestions={SHARED_QUICK_CHIPS as unknown as string[]}
               />
             </div>
           </div>
