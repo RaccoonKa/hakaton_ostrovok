@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useState } from "react";
 
-export type CurrencyCode = "RUB" | "USD" | "EUR" | "AED";
+export type CurrencyCode =
+  | "RUB"
+  | "USD"
+  | "EUR"
+  | "AED"
+  | "AMD"
+  | "BYN"
+  | "GEL"
+  | "EGP"
+  | "KZT"
+  | "CNY"
+  | "THB"
+  | "TRY"
+  | (string & {});
 export type LanguageCode = "ru" | "en";
 export type SettingsTab = "search" | "account";
 

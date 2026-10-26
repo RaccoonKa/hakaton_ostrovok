@@ -19,6 +19,7 @@ import {
   Sparkles,
   Search,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import { CITIES_DATABASE, CityOption } from "@corvax/shared";
 import {
@@ -38,12 +39,25 @@ const POPULAR_CITIES = [
   "Сочи (AER)",
 ];
 
-const CURRENCIES: { code: CurrencyCode; label: string; symbol: string }[] = [
-  { code: "RUB", label: "Российский рубль", symbol: "₽" },
+const RAW_CURRENCIES: { code: CurrencyCode; label: string; symbol: string }[] = [
+  { code: "AMD", label: "Армянский драм", symbol: "֏" },
+  { code: "BYN", label: "Белорусский рубль", symbol: "Br" },
+  { code: "GEL", label: "Грузинский лари", symbol: "₾" },
+  { code: "AED", label: "Дирхам ОАЭ", symbol: "AED" },
   { code: "USD", label: "Доллар США", symbol: "$" },
   { code: "EUR", label: "Евро", symbol: "€" },
-  { code: "AED", label: "Дирхам ОАЭ", symbol: "AED" },
+  { code: "EGP", label: "Египетский фунт", symbol: "E£" },
+  { code: "KZT", label: "Казахстанский тенге", symbol: "₸" },
+  { code: "CNY", label: "Китайский юань", symbol: "¥" },
+  { code: "RUB", label: "Российский рубль", symbol: "₽" },
+  { code: "THB", label: "Тайский бат", symbol: "฿" },
+  { code: "TRY", label: "Турецкая лира", symbol: "₺" },
 ];
+
+// Alphabetical sort by Russian currency title
+const CURRENCIES = [...RAW_CURRENCIES].sort((a, b) =>
+  a.label.localeCompare(b.label, "ru")
+);
 
 export const SettingsModal: React.FC = () => {
   const {
@@ -73,6 +87,33 @@ export const SettingsModal: React.FC = () => {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Currency dropdown state
+  const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
+  const [currencySearchQuery, setCurrencySearchQuery] = useState("");
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedCurrencyItem = useMemo(() => {
+    return (
+      CURRENCIES.find((c) => c.code === draftPrefs.currency) || {
+        code: draftPrefs.currency,
+        label: draftPrefs.currency,
+        symbol: draftPrefs.currency,
+      }
+    );
+  }, [draftPrefs.currency]);
+
+  // Currencies filtered by search query (already sorted alphabetically)
+  const filteredCurrencies = useMemo(() => {
+    const q = currencySearchQuery.trim().toLowerCase();
+    if (!q) return CURRENCIES;
+    return CURRENCIES.filter(
+      (c) =>
+        c.label.toLowerCase().includes(q) ||
+        c.code.toLowerCase().includes(q) ||
+        c.symbol.toLowerCase().includes(q)
+    );
+  }, [currencySearchQuery]);
+
   // Sync draft whenever modal opens or tab changes
   useEffect(() => {
     if (isSettingsModalOpen) {
@@ -81,6 +122,8 @@ export const SettingsModal: React.FC = () => {
       setIsSaved(false);
       setCityQuery("");
       setIsCityDropdownOpen(false);
+      setIsCurrencyDropdownOpen(false);
+      setCurrencySearchQuery("");
       if (preferences.homeCity && !POPULAR_CITIES.includes(preferences.homeCity)) {
         setAvailableCities((prev) =>
           prev.includes(preferences.homeCity) ? prev : [...prev, preferences.homeCity]
@@ -89,7 +132,7 @@ export const SettingsModal: React.FC = () => {
     }
   }, [isSettingsModalOpen, preferences, profile]);
 
-  // Click outside to close city dropdown
+  // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -97,6 +140,12 @@ export const SettingsModal: React.FC = () => {
         !cityDropdownRef.current.contains(event.target as Node)
       ) {
         setIsCityDropdownOpen(false);
+      }
+      if (
+        currencyDropdownRef.current &&
+        !currencyDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCurrencyDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -229,35 +278,110 @@ export const SettingsModal: React.FC = () => {
           {activeTab === "search" ? (
             /* TAB 1: Search & Regional Preferences */
             <>
-              {/* Section 1: Currency */}
+              {/* Section 1: Currency Dropdown */}
               <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
-                  <Coins className="w-4 h-4 text-primary" />
-                  <span>Валюта</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider">
+                    <Coins className="w-4 h-4 text-primary" />
+                    <span>Валюта цен</span>
+                  </div>
+                  {selectedCurrencyItem && (
+                    <span className="text-[11px] font-semibold text-primary">
+                      {selectedCurrencyItem.code} ({selectedCurrencyItem.symbol})
+                    </span>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {CURRENCIES.map((cur) => {
-                    const isSelected = draftPrefs.currency === cur.code;
-                    return (
-                      <button
-                        key={cur.code}
-                        type="button"
-                        onClick={() => setDraftPrefs((p) => ({ ...p, currency: cur.code }))}
-                        className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
-                          isSelected
-                            ? "border-primary bg-primary-light text-primary font-bold shadow-xs"
-                            : "border-surface-border hover:border-slate-400 bg-surface text-content-secondary"
-                        }`}
-                      >
-                        <span className="text-lg font-bold leading-tight">{cur.symbol}</span>
-                        <span className="text-xs font-semibold mt-0.5">{cur.code}</span>
-                        <span className="text-[10px] text-content-muted truncate max-w-full">
-                          {cur.label}
+                {/* Currency Dropdown Container */}
+                <div ref={currencyDropdownRef} className="relative">
+                  {/* Select Trigger Box */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCurrencyDropdownOpen((prev) => !prev);
+                      setCurrencySearchQuery("");
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-surface-border hover:border-slate-400 bg-surface text-content-primary transition-all text-xs focus:border-primary focus:outline-none shadow-2xs group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-primary-light flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                        {selectedCurrencyItem?.symbol || "₽"}
+                      </div>
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-semibold text-content-primary truncate">
+                          {selectedCurrencyItem?.label || draftPrefs.currency}
                         </span>
-                      </button>
-                    );
-                  })}
+                        <span className="text-[10px] font-mono font-bold text-primary px-1.5 py-0.5 rounded bg-surface-muted">
+                          {selectedCurrencyItem?.code || draftPrefs.currency}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-content-muted group-hover:text-content-primary transition-transform duration-200 shrink-0 ${
+                        isCurrencyDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown Menu (Sorted Alphabetically) */}
+                  {isCurrencyDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface border border-surface-border rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-surface-border animate-fade-in max-h-64 flex flex-col">
+                      {/* Search inside currency dropdown */}
+                      <div className="p-2 bg-surface-muted/60 relative">
+                        <Search className="w-3.5 h-3.5 text-content-muted absolute left-4.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={currencySearchQuery}
+                          onChange={(e) => setCurrencySearchQuery(e.target.value)}
+                          placeholder="Поиск валюты (по названию или коду)..."
+                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-surface-border focus:border-primary focus:outline-none bg-surface text-content-primary placeholder:text-content-muted"
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* Currency options list */}
+                      <div className="overflow-y-auto max-h-48 divide-y divide-surface-border/60">
+                        {filteredCurrencies.length > 0 ? (
+                          filteredCurrencies.map((cur) => {
+                            const isSelected = draftPrefs.currency === cur.code;
+                            return (
+                              <button
+                                key={cur.code}
+                                type="button"
+                                onClick={() => {
+                                  setDraftPrefs((p) => ({ ...p, currency: cur.code }));
+                                  setIsCurrencyDropdownOpen(false);
+                                  setCurrencySearchQuery("");
+                                }}
+                                className={`w-full text-left px-3.5 py-2.5 flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? "bg-primary-light text-primary font-semibold"
+                                    : "hover:bg-surface-subtle text-content-primary"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <span className="w-6 text-center font-bold text-sm shrink-0">
+                                    {cur.symbol}
+                                  </span>
+                                  <span className="truncate">{cur.label}</span>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                  <span className="text-[10px] font-mono font-bold text-content-muted px-1.5 py-0.5 rounded bg-surface-muted">
+                                    {cur.code}
+                                  </span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
+                                </div>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <div className="p-3 text-center text-xs text-content-muted">
+                            Ничего не найдено
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
