@@ -18,7 +18,7 @@ export function useTravelAgent() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const clientRef = useRef(new TravelApiClient());
+  const clientRef = useRef(new TravelApiClient({ agentId: "travel_agent" }));
 
   // Cancel any running query
   const cancelRequest = useCallback(() => {

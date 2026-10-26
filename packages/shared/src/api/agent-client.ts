@@ -14,7 +14,9 @@ export class TravelApiClient {
 
   constructor(config: AgentClientConfig = {}) {
     this.baseUrl = config.baseUrl || "";
-    this.agentId = config.agentId || "travel";
+    // Harmonized default: backend registers 'travel_agent'. Also normalize legacy 'travel' -> 'travel_agent'
+    const rawAgent = config.agentId || "travel_agent";
+    this.agentId = rawAgent === "travel" ? "travel_agent" : rawAgent;
     this.authSecret = config.authSecret;
     this.useAgUi = config.useAgUi ?? false;
 

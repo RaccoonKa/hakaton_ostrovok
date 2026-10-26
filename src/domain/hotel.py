@@ -67,3 +67,15 @@ class Hotel(BaseModel):
         default=[],
         examples=[["Wi-Fi", "Pool", "Spa"]],
     )
+    rating: float | None = Field(
+        description="Рейтинг отеля (0.0 - 5.0).",
+        default=None,
+        ge=0.0,
+        le=5.0,
+        examples=[4.8],
+    )
+    image_url: str | None = Field(
+        description="URL фотографии отеля.",
+        default=None,
+        examples=["https://images.unsplash.com/photo-1566073771259-6a8506099945"],
+    )

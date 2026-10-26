@@ -36,6 +36,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   const clientRef = useRef<TravelApiClient>(
     new TravelApiClient({
       baseUrl: options.baseUrl || "http://localhost:8000",
+      agentId: "travel_agent",
       useAgUi: false,
     })
   );

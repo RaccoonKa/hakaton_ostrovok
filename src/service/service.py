@@ -89,6 +89,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     "Set AUTH_SECRET in your environment to enable bearer token authentication."
                 )
 
+            # Initialize offline SQLite database & fixtures for air-gapped offline operation
+            try:
+                from db.offline_db import seed_offline_data_if_needed
+                seed_offline_data_if_needed()
+                logger.info("Offline travel database and fixtures verified/loaded successfully.")
+            except Exception as e:
+                logger.warning(f"Failed to seed offline travel database: {e}")
+
             agents = get_all_agent_info()
             for a in agents:
                 try:

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "trf-aer-sochi-01",
+    "origin": "Аэропорт Сочи (AER)",
+    "destination": "Сириус / Имеретинская набережная",
+    "transport_type": "car",
+    "duration": "15 мин",
+    "price": 1200,
+    "currency": "RUB",
+    "conditions": "Комфорт+ класс, кондиционер, встреча с табличкой в зоне прилета"
+  },
+  {
+    "id": "trf-aer-polyana-01",
+    "origin": "Аэропорт Сочи (AER)",
+    "destination": "Красная Поляна / Роза Хутор",
+    "transport_type": "minivan",
+    "duration": "45 мин",
+    "price": 3200,
+    "currency": "RUB",
+    "conditions": "Минивэн для компании до 6 человек, крепления для лыж и сноубордов"
+  },
+  {
+    "id": "trf-led-spb-01",
+    "origin": "Аэропорт Пулково (LED)",
+    "destination": "Невский проспект, Санкт-Петербург",
+    "transport_type": "car",
+    "duration": "35 мин",
+    "price": 1600,
+    "currency": "RUB",
+    "conditions": "Бизнес-седан, бесплатное ожидание до 45 минут при задержке рейса"
+  }
+]

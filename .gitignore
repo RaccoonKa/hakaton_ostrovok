@@ -15,3 +15,7 @@ dist/
 .env.local
 .env.*.local
 .venv/
+*.db
+*.sqlite
+data/*.db
+data/*.sqlite
