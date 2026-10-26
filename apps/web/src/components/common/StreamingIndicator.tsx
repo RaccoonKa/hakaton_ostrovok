@@ -22,8 +22,8 @@ export const StreamingIndicator: React.FC<StreamingIndicatorProps> = ({
       case "finding_hotels":
         return {
           icon: Building2,
-          title: "Подбираю семейные отели на первой линии...",
-          desc: "Проверка пологого песчаного захода и формата Всё включено",
+          title: "Подбираю отели...",
+          desc: "Поиск доступных вариантов проживания",
         };
       case "calculating_budget":
         return {

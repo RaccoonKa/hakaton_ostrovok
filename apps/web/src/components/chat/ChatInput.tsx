@@ -73,9 +73,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Quick suggestions bar */}
       {suggestions && suggestions.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar select-none">
-          <span className="text-content-muted shrink-0 font-mono text-[11px] mr-1 hidden sm:inline">
-            Быстрый ответ:
-          </span>
           {suggestions.map((item) => (
             <button
               key={item}
@@ -169,13 +166,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </div>
         </div>
       </form>
-
-      {/* Reassurance caption */}
-      <div className="text-center">
-        <span className="text-[11px] text-content-muted select-none">
-          AI-ассистент анализирует перелёты, температуру воды и спецтарифы в реальном времени • Шорткат <kbd className="font-mono bg-surface-container px-1 py-0.5 rounded text-[10px]">⌘K</kbd>
-        </span>
-      </div>
     </div>
   );
 };

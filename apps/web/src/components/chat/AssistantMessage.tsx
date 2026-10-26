@@ -1,8 +1,7 @@
 import React from "react";
-import { Sparkles, Info } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { ChatMessage, TripOption } from "../../types/travel";
 import { ClarificationChips } from "./ClarificationChips";
-import { StreamingIndicator } from "../common/StreamingIndicator";
 import { TripOptionCard } from "../cards/TripOptionCard";
 import { FlightCard } from "../cards/FlightCard";
 import { HotelCard } from "../cards/HotelCard";
@@ -84,11 +83,6 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           </div>
         )}
 
-        {/* Streaming Indicator */}
-        {isStreaming && (
-          <StreamingIndicator currentStep="finding_hotels" />
-        )}
-
         {/* Structured Recommendations List (Screen 2) */}
         {hasTripOptions && !showDossier && (
           <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 shadow-xs border border-surface-container-highest/60 flex flex-col gap-3">
@@ -107,13 +101,6 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
                   onSelect={onSelectOption}
                 />
               ))}
-            </div>
-
-            <div className="mt-2 p-3 rounded-lg bg-surface-container-high/60 flex items-center justify-between text-xs text-content-secondary">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-primary shrink-0" />
-                <span>Все варианты включают прямые рейсы с багажом и медстраховку для ребёнка.</span>
-              </div>
             </div>
           </div>
         )}
