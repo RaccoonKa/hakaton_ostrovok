@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Check } from "lucide-react";
 
 interface DateRangePickerProps {
   isOpen: boolean;
@@ -130,31 +130,18 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     if (dayDate.getTime() < today.getTime()) return; // Disallow past dates
 
     if (!startDate || (startDate && endDate)) {
-      // First click: set start date, reset end date
       setStartDate(dayDate);
       setEndDate(null);
     } else if (startDate && !endDate) {
-      // Second click:
       if (dayDate.getTime() < startDate.getTime()) {
-        // Clicked date is earlier than start: make it new start date
         setStartDate(dayDate);
       } else if (isSameDay(dayDate, startDate)) {
-        // Clicked same day: single day trip
         setEndDate(dayDate);
       } else {
-        // Clicked date is after start: set end date
         setEndDate(dayDate);
       }
     }
   };
-
-  // Calculate nights
-  const nightsCount =
-    startDate && endDate
-      ? Math.round(
-          Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
-        )
-      : null;
 
   const handleApply = () => {
     if (!startDate) return;
@@ -189,108 +176,48 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`absolute z-50 w-[330px] sm:w-[360px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-4 text-content-primary select-none transition-all animate-fade-in ${
+      className={`absolute z-50 w-[285px] sm:w-[305px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none transition-all animate-fade-in ${
         position === "top"
           ? "bottom-full mb-2 left-0 sm:left-0"
           : "top-full mt-2 left-0 sm:left-0"
       }`}
       style={{
-        boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.06)",
+        boxShadow: "0 16px 36px -8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.06)",
       }}
     >
-      {/* Header with Title & Close */}
-      <div className="flex items-center justify-between pb-3 border-b border-surface-border dark:border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-            <CalendarIcon className="w-4 h-4" />
-          </div>
-          <div>
-            <h4 className="text-xs sm:text-sm font-bold text-content-primary">
-              Даты поездки
-            </h4>
-            <p className="text-[11px] text-content-muted">
-              Выберите диапазон вылета и возвращения
-            </p>
-          </div>
+      {/* Month Navigation & Close */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handlePrevMonth}
+            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+            title="Предыдущий месяц"
+          >
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+
+          <span className="text-xs sm:text-sm font-bold text-content-primary px-1">
+            {MONTH_NAMES[currentMonth]} {currentYear}
+          </span>
+
+          <button
+            type="button"
+            onClick={handleNextMonth}
+            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+            title="Следующий месяц"
+          >
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
+
         <button
           type="button"
           onClick={onClose}
-          className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
           title="Закрыть"
         >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* Selected Range Display Pills */}
-      <div className="grid grid-cols-2 gap-2 my-3">
-        <div
-          className={`p-2 rounded-xl border text-left transition-colors ${
-            startDate
-              ? "bg-primary/5 border-primary/30"
-              : "bg-surface-muted/50 border-surface-border"
-          }`}
-        >
-          <span className="text-[10px] text-content-muted font-medium block uppercase tracking-wider">
-            Вылет (от)
-          </span>
-          <span className="text-xs font-semibold text-content-primary truncate block mt-0.5">
-            {startDate
-              ? `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`
-              : "Выберите дату"}
-          </span>
-        </div>
-
-        <div
-          className={`p-2 rounded-xl border text-left transition-colors ${
-            endDate
-              ? "bg-primary/5 border-primary/30"
-              : "bg-surface-muted/50 border-surface-border"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-content-muted font-medium block uppercase tracking-wider">
-              Возврат (до)
-            </span>
-            {nightsCount !== null && (
-              <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded-sm">
-                {nightsCount} {nightsCount === 1 ? "ночь" : nightsCount < 5 ? "ночи" : "ночей"}
-              </span>
-            )}
-          </div>
-          <span className="text-xs font-semibold text-content-primary truncate block mt-0.5">
-            {endDate
-              ? `${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`
-              : startDate
-              ? "В один конец"
-              : "Выберите дату"}
-          </span>
-        </div>
-      </div>
-
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <button
-          type="button"
-          onClick={handlePrevMonth}
-          className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-          title="Предыдущий месяц"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-
-        <span className="text-xs sm:text-sm font-bold text-content-primary">
-          {MONTH_NAMES[currentMonth]} {currentYear}
-        </span>
-
-        <button
-          type="button"
-          onClick={handleNextMonth}
-          className="w-7 h-7 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-          title="Следующий месяц"
-        >
-          <ChevronRight className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
@@ -299,7 +226,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
         {WEEKDAY_NAMES.map((name, i) => (
           <span
             key={name}
-            className={`text-[11px] font-semibold py-1 ${
+            className={`text-[10px] font-semibold py-0.5 ${
               i >= 5 ? "text-amber-500/80" : "text-content-muted"
             }`}
           >
@@ -309,14 +236,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       </div>
 
       {/* Calendar Days Grid */}
-      <div className="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center">
+      <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center">
         {/* Previous month padding days */}
         {Array.from({ length: firstDayOfWeek }).map((_, i) => {
           const dayNum = daysInPrevMonth - firstDayOfWeek + i + 1;
           return (
             <div
               key={`prev-${i}`}
-              className="h-8 flex items-center justify-center text-[11px] text-content-muted/30 select-none"
+              className="h-7 flex items-center justify-center text-[10px] text-content-muted/25 select-none"
             >
               {dayNum}
             </div>
@@ -342,7 +269,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
           let cellClass = "text-content-primary hover:bg-surface-muted";
           if (isPast) {
-            cellClass = "text-content-muted/30 cursor-not-allowed pointer-events-none";
+            cellClass = "text-content-muted/25 cursor-not-allowed pointer-events-none";
           } else if (isStart || isEnd) {
             cellClass =
               "bg-primary text-white font-bold shadow-xs scale-105 z-10 rounded-full";
@@ -361,37 +288,26 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
                   setHoverDate(dayDate);
                 }
               }}
-              className={`h-8 w-full flex items-center justify-center text-xs transition-all relative ${cellClass} ${
-                !isStart && !isEnd && !inRange ? "rounded-lg" : ""
+              className={`h-7 w-full flex items-center justify-center text-xs transition-all relative ${cellClass} ${
+                !isStart && !isEnd && !inRange ? "rounded-md" : ""
               }`}
             >
               <span>{dayNum}</span>
               {isToday && !isStart && !isEnd && (
-                <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+                <span className="absolute bottom-0.5 w-1 h-1 rounded-full bg-primary" />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Flexibility Options: +-1 день, +-3 дня, +- 7 дней */}
-      <div className="mt-4 pt-3 border-t border-surface-border dark:border-white/10">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-semibold text-content-secondary">
-            Гибкость дат:
-          </span>
-          {flexDays !== null && (
-            <span className="text-[10px] text-primary font-medium">
-              ±{flexDays} {flexDays === 1 ? "день" : flexDays === 3 ? "дня" : "дней"}
-            </span>
-          )}
-        </div>
-
-        <div className="grid grid-cols-4 gap-1.5">
+      {/* Flexibility Options: +-1 день, +-3 дня, +- 7 дней (Compact without extra header) */}
+      <div className="mt-2.5 pt-2 border-t border-surface-border dark:border-white/10">
+        <div className="grid grid-cols-4 gap-1">
           <button
             type="button"
             onClick={() => setFlexDays(null)}
-            className={`py-1 px-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === null
                 ? "bg-primary text-white shadow-xs"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
@@ -402,7 +318,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={() => setFlexDays(1)}
-            className={`py-1 px-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 1
                 ? "bg-primary text-white shadow-xs"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
@@ -413,7 +329,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={() => setFlexDays(3)}
-            className={`py-1 px-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 3
                 ? "bg-primary text-white shadow-xs"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
@@ -424,7 +340,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           <button
             type="button"
             onClick={() => setFlexDays(7)}
-            className={`py-1 px-1.5 rounded-lg text-xs font-medium transition-all ${
+            className={`py-1 px-1 rounded-lg text-[11px] font-medium transition-all ${
               flexDays === 7
                 ? "bg-primary text-white shadow-xs"
                 : "bg-surface-muted hover:bg-surface-subtle text-content-secondary"
@@ -436,20 +352,20 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       </div>
 
       {/* Actions: Reset & Apply */}
-      <div className="mt-4 pt-3 border-t border-surface-border dark:border-white/10 flex items-center justify-between">
+      <div className="mt-2.5 pt-2 border-t border-surface-border dark:border-white/10 flex items-center justify-between">
         <button
           type="button"
           onClick={handleReset}
-          className="text-xs text-content-muted hover:text-content-primary transition-colors px-1"
+          className="text-[11px] text-content-muted hover:text-content-primary transition-colors px-1"
         >
           Сбросить
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-xl text-xs font-medium text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
+            className="px-2.5 py-1 rounded-lg text-[11px] font-medium text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
           >
             Отмена
           </button>
@@ -457,9 +373,9 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
             type="button"
             disabled={!startDate}
             onClick={handleApply}
-            className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs flex items-center gap-1 transition-all active:scale-95"
+            className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-active disabled:opacity-40 disabled:cursor-not-allowed text-white text-[11px] font-semibold shadow-xs flex items-center gap-1 transition-all active:scale-95"
           >
-            <Check className="w-3.5 h-3.5" />
+            <Check className="w-3 h-3" />
             <span>Применить</span>
           </button>
         </div>
