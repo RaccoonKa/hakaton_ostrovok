@@ -235,13 +235,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               );
             })}
           </div>
-
-          {/* Production Footer Note */}
-          <footer className="w-full max-w-xl text-center pt-8">
-            <p className="text-xs text-content-muted leading-relaxed">
-              О!дин запрос моментально анализирует регулярные рейсы, проверенные отели и трансферы с гарантией актуальности цен.
-            </p>
-          </footer>
         </div>
       ) : (
         /* Screens 2, 3, 4: Active Chat Flow */
