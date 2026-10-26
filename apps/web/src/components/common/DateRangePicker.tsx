@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, Check, GripHorizontal } from "lucide-react";
 
 interface DateRangePickerProps {
@@ -54,7 +55,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Position state for draggable window
+  // Position state for draggable window in screen viewport coordinates
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
@@ -64,7 +65,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     initY: 0,
   });
 
-  // Current viewed month & year in calendar
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -77,29 +77,28 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [flexDays, setFlexDays] = useState<number | null>(initialFlexDays);
 
-  // Position by default to the left of the input container (anchorRef)
+  // Calculate default position: to the left of the input container (anchorRef)
   useEffect(() => {
     if (!isOpen) {
       setPos(null);
       return;
     }
 
-    const calendarWidth = 305;
+    const calendarWidth = 310;
     const calendarHeight = 350;
 
     if (anchorRef?.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      // Default to the left of the input box with a 16px gap
+      // Default position: to the left of the input box with a 16px gap
       let x = rect.left - calendarWidth - 16;
       let y = rect.top;
 
-      // If there's not enough room to the left (e.g. mobile or tablet),
-      // keep it within comfortable screen padding
-      if (x < 12) {
-        x = Math.max(12, rect.left);
+      // If not enough room to the left of the input box, place at left margin of the screen
+      if (x < 16) {
+        x = 16;
       }
 
-      // Check vertical bounds
+      // Check vertical viewport bounds
       if (y + calendarHeight > window.innerHeight - 16) {
         y = Math.max(16, window.innerHeight - calendarHeight - 16);
       }
@@ -109,10 +108,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
       setPos({ x, y });
     } else {
-      // Fallback: place in the left-center quadrant
-      const x = Math.max(16, Math.min(window.innerWidth - calendarWidth - 16, window.innerWidth * 0.1));
-      const y = Math.max(60, window.innerHeight / 2 - 170);
-      setPos({ x, y });
+      setPos({ x: 16, y: 100 });
     }
   }, [isOpen, anchorRef]);
 
@@ -141,11 +137,10 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     };
   }, [isOpen, onClose]);
 
-  // Dragging logic by header/frame
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return; // Only primary mouse button
+  // Dragging logic by top frame / handle
+  const handleDragStart = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    // Don't drag if user clicked interactive buttons
     if (target.closest("button") || target.closest("input")) return;
 
     e.preventDefault();
@@ -153,13 +148,13 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initX: pos?.x ?? 0,
-      initY: pos?.y ?? 0,
+      initX: pos?.x ?? 16,
+      initY: pos?.y ?? 100,
     };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const calendarWidth = 305;
+      const calendarWidth = 310;
       const calendarHeight = 350;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
@@ -168,7 +163,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       const nextX = dragStartRef.current.initX + deltaX;
       const nextY = dragStartRef.current.initY + deltaY;
 
-      // Keep within viewport boundaries
+      // Allow dragging all the way to 8px from screen edges
       const clampedX = Math.max(8, Math.min(window.innerWidth - calendarWidth - 8, nextX));
       const clampedY = Math.max(8, Math.min(window.innerHeight - calendarHeight - 8, nextY));
 
@@ -176,7 +171,6 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     };
 
     const handlePointerUp = () => {
-      // Small timeout so outside click handler doesn't trigger on drag end
       setTimeout(() => {
         isDraggingRef.current = false;
       }, 50);
@@ -201,9 +195,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setViewDate(new Date(currentYear, currentMonth + 1, 1));
   };
 
-  // Calendar days calculation
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDayOfWeek = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7; // Monday = 0
+  const firstDayOfWeek = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7;
   const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
 
   const isSameDay = (d1: Date | null, d2: Date | null) => {
@@ -223,28 +216,23 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     return t > s && t < e;
   };
 
-  // Click 1: sets "от" (departure)
-  // Click 2: sets "до" (return)
+  // Click 1: sets "от"
+  // Click 2: sets "до"
   const handleDateClick = (dayDate: Date) => {
-    if (dayDate.getTime() < today.getTime()) return; // Disallow past dates
+    if (dayDate.getTime() < today.getTime()) return;
 
     if (!startDate || (startDate && endDate)) {
-      // 1st click: sets "от"
       setStartDate(dayDate);
       setEndDate(null);
     } else if (startDate && !endDate) {
-      // 2nd click:
       if (dayDate.getTime() < startDate.getTime()) {
-        // If clicked date earlier than start, update "от"
         setStartDate(dayDate);
       } else {
-        // Sets "до"
         setEndDate(dayDate);
       }
     }
   };
 
-  // Calculate nights count
   const nightsCount =
     startDate && endDate
       ? Math.round(
@@ -282,73 +270,76 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     setFlexDays(null);
   };
 
-  return (
+  return createPortal(
     <div
       ref={containerRef}
-      onPointerDown={handlePointerDown}
-      className="fixed z-50 w-[295px] sm:w-[315px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none transition-shadow animate-fade-in cursor-default"
+      className="fixed z-[100] w-[300px] sm:w-[315px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default"
       style={{
         left: pos ? `${pos.x}px` : "16px",
         top: pos ? `${pos.y}px` : "100px",
-        boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0,0,0,0.08)",
+        boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0,0,0,0.1)",
       }}
     >
-      {/* Draggable Top Grip Frame Handle */}
-      <div className="w-full flex items-center justify-center -mt-1 pb-1 cursor-grab active:cursor-grabbing group">
-        <GripHorizontal className="w-6 h-3 text-content-muted/40 group-hover:text-primary transition-colors" />
-      </div>
-
-      {/* Month Navigation & Close */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-            title="Предыдущий месяц"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-
-          <span className="text-xs sm:text-sm font-bold text-content-primary px-1">
-            {MONTH_NAMES[currentMonth]} {currentYear}
-          </span>
-
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
-            title="Следующий месяц"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+      {/* Draggable Top Frame Bar */}
+      <div
+        onPointerDown={handleDragStart}
+        className="w-full flex items-center justify-between pb-1.5 mb-1.5 border-b border-surface-border/60 dark:border-white/10 cursor-grab active:cursor-grabbing group select-none"
+        title="Зажмите и перетащите в любое место"
+      >
+        <div className="flex items-center gap-1.5 text-[10px] font-medium text-content-muted group-hover:text-primary transition-colors">
+          <GripHorizontal className="w-3.5 h-3.5" />
+          <span>Перетащить</span>
         </div>
-
         <button
           type="button"
           onClick={onClose}
-          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+          className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
           title="Закрыть"
         >
           <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between mb-1.5 px-0.5">
+        <button
+          type="button"
+          onClick={handlePrevMonth}
+          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+          title="Предыдущий месяц"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
+
+        <span className="text-xs sm:text-sm font-bold text-content-primary">
+          {MONTH_NAMES[currentMonth]} {currentYear}
+        </span>
+
+        <button
+          type="button"
+          onClick={handleNextMonth}
+          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted flex items-center justify-center transition-colors"
+          title="Следующий месяц"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
       {/* Trip Range "от" / "до" Status Indicator Strip */}
       {startDate && !endDate && (
-        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/10 text-primary font-medium mb-1.5 animate-fade-in">
+        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/10 text-primary font-medium mb-1.5">
           <span className="flex items-center gap-1.5 truncate">
             <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
             <span>
               Вылет (от): <strong>{startDate.getDate()} {MONTH_NAMES_GENITIVE[startDate.getMonth()]}</strong>
             </span>
           </span>
-          <span className="text-content-muted text-[10px] shrink-0 ml-1">выберите «до»</span>
+          <span className="text-content-muted text-[10px] shrink-0 ml-1">кликните дату «до»</span>
         </div>
       )}
 
       {startDate && endDate && (
-        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary font-medium mb-1.5 animate-fade-in">
+        <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded-lg bg-primary/15 border border-primary/25 text-primary font-medium mb-1.5">
           <span className="truncate">
             <strong>{startDate.getDate()} {MONTH_NAMES_GENITIVE[startDate.getMonth()]}</strong> (от)
             {" → "}
@@ -421,21 +412,17 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           if (isPast) {
             buttonStyle = "text-content-muted/25 cursor-not-allowed pointer-events-none";
           } else if (isStart && isEnd) {
-            // Single day trip (same day from & to)
             buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
             badgeLabel = "1 дн";
           } else if (isStart) {
-            // Start of range ("от")
             bgWrapper = endDate ? "bg-primary/20 dark:bg-primary/30 rounded-l-lg" : "";
             buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
             badgeLabel = "от";
           } else if (isEnd) {
-            // End of range ("до")
             bgWrapper = "bg-primary/20 dark:bg-primary/30 rounded-r-lg";
             buttonStyle = "bg-primary text-white font-bold shadow-sm rounded-lg scale-100 z-10";
             badgeLabel = "до";
           } else if (inRange || inHoverRange) {
-            // Between "от" and "до"
             bgWrapper = "bg-primary/20 dark:bg-primary/30";
             buttonStyle = "text-primary font-bold rounded-none hover:bg-primary/30";
           }
@@ -547,6 +534,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
