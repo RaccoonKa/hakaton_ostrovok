@@ -3,6 +3,7 @@ from functools import cache
 from langchain_anthropic import ChatAnthropic
 from langchain_aws import ChatBedrock
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
+from langchain_gigachat.chat_models import GigaChat
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_vertexai import ChatVertexAI
 from langchain_groq import ChatGroq
@@ -17,6 +18,7 @@ from schema.models import (
     AzureOpenAIModelName,
     DeepseekModelName,
     FakeModelName,
+    GigaChatModelName,
     GoogleModelName,
     GroqModelName,
     OllamaModelName,
@@ -39,6 +41,7 @@ _MODEL_TABLE = (
     | {m: m.value for m in OllamaModelName}
     | {m: m.value for m in OpenRouterModelName}
     | {m: m.value for m in FakeModelName}
+    | {m: m.value for m in GigaChatModelName}
 )
 
 
@@ -60,17 +63,26 @@ type ModelT = (
     | ChatBedrock
     | ChatOllama
     | FakeToolModel
+    | GigaChat
 )
 
 
 @cache
 def get_model(model_name: AllModelEnum, /) -> ModelT:
-    # NOTE: models with streaming=True will send tokens as they are generated
-    # if the /stream endpoint is called with stream_tokens=True (the default)
     api_model_name = _MODEL_TABLE.get(model_name)
     if not api_model_name:
         raise ValueError(f"Unsupported model: {model_name}")
 
+    if model_name in GigaChatModelName:
+        if not settings.GIGACHAT_CREDENTIALS:
+            raise ValueError("GigaChat credentials must be configured")
+        return GigaChat(
+            credentials=settings.GIGACHAT_CREDENTIALS.get_secret_value(),
+            model=api_model_name,
+            verify_ssl_certs=False,
+            scope="GIGACHAT_API_PERS",
+            streaming=True,
+        )
     if model_name in OpenAIModelName:
         return ChatOpenAI(model=api_model_name, streaming=True)
     if model_name in OpenAICompatibleName:
@@ -88,7 +100,6 @@ def get_model(model_name: AllModelEnum, /) -> ModelT:
         if not settings.AZURE_OPENAI_API_KEY or not settings.AZURE_OPENAI_ENDPOINT:
             raise ValueError("Azure OpenAI API key and endpoint must be configured")
 
-        # GPT-5 generation is reasoning-based and rejects temperature (400); omit it.
         return AzureChatOpenAI(
             azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
             deployment_name=api_model_name,
@@ -107,9 +118,6 @@ def get_model(model_name: AllModelEnum, /) -> ModelT:
         )
     if model_name in AnthropicModelName:
         if model_name == AnthropicModelName.SONNET_5:
-            # Claude Sonnet 5 rejects non-default sampling parameters (temperature,
-            # top_p, top_k) with a 400 error -- adaptive thinking is on by default
-            # instead. See https://docs.anthropic.com/en/docs/about-claude/models
             return ChatAnthropic(model_name=api_model_name, streaming=True)
         return ChatAnthropic(model_name=api_model_name, temperature=0.5, streaming=True)
     if model_name in GoogleModelName:
@@ -118,11 +126,10 @@ def get_model(model_name: AllModelEnum, /) -> ModelT:
         return ChatVertexAI(model=api_model_name, temperature=0.5, streaming=True)
     if model_name in GroqModelName:
         if model_name == GroqModelName.GPT_OSS_SAFEGUARD_20B:
-            return ChatGroq(model=api_model_name, temperature=0.0)  # type: ignore[call-arg]
-        return ChatGroq(model=api_model_name, temperature=0.5)  # type: ignore[call-arg]
+            return ChatGroq(model=api_model_name, temperature=0.0)
+        return ChatGroq(model=api_model_name, temperature=0.5)
     if model_name in AWSModelName:
         if model_name == AWSModelName.BEDROCK_SONNET:
-            # Sonnet 5 rejects non-default sampling params (400); omit temperature.
             return ChatBedrock(model=api_model_name)
         return ChatBedrock(model=api_model_name, temperature=0.5)
     if model_name in OllamaModelName:
@@ -136,8 +143,6 @@ def get_model(model_name: AllModelEnum, /) -> ModelT:
             chat_ollama = ChatOllama(model=settings.OLLAMA_MODEL, temperature=0.5)
         return chat_ollama
     if model_name in OpenRouterModelName:
-        # Without an explicit key the openai SDK falls back to OPENAI_API_KEY,
-        # which would send that key to openrouter.ai.
         if not settings.OPENROUTER_API_KEY:
             raise ValueError("OpenRouter API key must be configured")
 
