@@ -51,7 +51,7 @@ const config: Config = {
       boxShadow: {
         card: "0 1px 3px rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.02)",
         "card-hover": "0 4px 12px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.03)",
-        focus: "0 0 0 3px rgba(126, 34, 206, 0.25)",
+        focus: "0 0 0 3px rgba(88, 28, 135, 0.25)",
       },
     },
   },
