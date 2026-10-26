@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-low":"#f6f2f7","on-primary":"#ffffff","error":"#ba1a1a","tertiary-fixed":"#89f5e7","secondary-fixed-dim":"#b9c7df","inverse-primary":"#d3bbff","on-error-container":"#93000a","primary":"#420093","on-primary-fixed":"#250059","surface-bright":"#fbf8fc","inverse-surface":"#303033","on-background":"#1b1b1e","surface-container-highest":"#e4e1e6","surface-container":"#f0edf1","primary-fixed":"#ebddff","on-tertiary-fixed-variant":"#005049","tertiary":"#003a35","on-tertiary":"#ffffff","secondary":"#515f74","surface":"#fbf8fc","on-surface-variant":"#4a4453","on-secondary-container":"#57657a","on-error":"#ffffff","primary-fixed-dim":"#d3bbff","on-secondary-fixed-variant":"#3a485b","background":"#fbf8fc","surface-variant":"#e4e1e6","inverse-on-surface":"#f3f0f4","on-secondary-fixed":"#0d1c2e","tertiary-fixed-dim":"#6bd8cb","surface-dim":"#dcd9dd","secondary-container":"#d5e3fc","primary-container":"#5b21b6","outline":"#7b7485","on-surface":"#1b1b1e","error-container":"#ffdad6","on-primary-container":"#c7aaff","outline-variant":"#ccc3d6","on-tertiary-fixed":"#00201d","on-secondary":"#ffffff","surface-container-high":"#eae7eb","on-tertiary-container":"#5ccabd","tertiary-container":"#00534c","surface-container-lowest":"#ffffff","surface-tint":"#713dcc","on-primary-fixed-variant":"#581db3","secondary-fixed":"#d5e3fc"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"margin":"2rem","space-sm":"0.5rem","margin-sm":"1rem","gutter":"1.5rem","space-xl":"2.5rem","space-md":"1rem","space-lg":"1.5rem","gutter-sm":"1rem","space-xs":"0.25rem"},"fontFamily":{"body-md":["Inter"],"headline-lg-mobile":["Inter"],"headline-sm":["Inter"],"headline-lg":["Inter"],"display-mobile":["Inter"],"label-md":["Inter"],"display":["Inter"],"headline-md":["Inter"],"code":["JetBrains Mono"],"body-lg":["Inter"],"body-sm":["Inter"],"label-sm":["Inter"]},"fontSize":{"body-md":["0.9375rem",{"lineHeight":"1.6rem","letterSpacing":"0","fontWeight":"400"}],"headline-lg-mobile":["1.5rem",{"lineHeight":"2rem","letterSpacing":"-0.02em","fontWeight":"600"}],"headline-sm":["1.125rem",{"lineHeight":"1.625rem","letterSpacing":"-0.01em","fontWeight":"500"}],"headline-lg":["2rem",{"lineHeight":"2.5rem","letterSpacing":"-0.025em","fontWeight":"600"}],"display-mobile":["2.25rem",{"lineHeight":"2.75rem","letterSpacing":"-0.025em","fontWeight":"600"}],"label-md":["0.875rem",{"lineHeight":"1.25rem","letterSpacing":"0","fontWeight":"500"}],"display":["3rem",{"lineHeight":"3.5rem","letterSpacing":"-0.03em","fontWeight":"600"}],"headline-md":["1.375rem",{"lineHeight":"1.875rem","letterSpacing":"-0.015em","fontWeight":"600"}],"code":["0.8125rem",{"lineHeight":"1.4rem","letterSpacing":"0","fontWeight":"400"}],"body-lg":["1.0625rem",{"lineHeight":"1.75rem","letterSpacing":"-0.005em","fontWeight":"400"}],"body-sm":["0.8125rem",{"lineHeight":"1.35rem","letterSpacing":"0.005em","fontWeight":"400"}],"label-sm":["0.75rem",{"lineHeight":"1rem","letterSpacing":"0.02em","fontWeight":"500"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low z-40 hidden md:flex flex-col justify-between select-none"><div class="flex flex-col h-full overflow-hidden"><div class="p-space-md pb-space-sm"><div class="flex items-center justify-between mb-space-md"><div class="flex items-center gap-space-sm"><div class="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-on-primary font-headline-sm text-headline-sm font-semibold">О!</div><div class="flex flex-col"><span class="font-headline-sm text-label-md text-on-surface font-semibold leading-none">О!дин запрос</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">ИИ-ассистент путешествий</span></div></div><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">search</span></button></div><a class="w-full flex items-center justify-between px-space-md py-space-sm rounded-lg bg-surface-container-lowest text-on-surface hover:bg-surface-container-high transition-colors" data-path="chat" href="#"><span class="flex items-center gap-space-sm font-label-md text-label-md font-medium"><span class="material-symbols-outlined text-primary-container text-[18px]">add</span>Новый маршрут</span><span class="font-code text-code text-outline">⌘K</span></a></div><div class="flex-1 overflow-y-auto px-space-sm py-space-xs"><div class="px-space-sm pt-space-sm pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">Сегодня</div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-surface-container-high text-on-surface font-medium"><a aria-current="page" class="truncate px-space-sm py-space-xs rounded-lg transition-colors bg-surface-container-high text-on-surface font-medium" data-path="warm-sea-november" href="#">К тёплому морю в ноябре с ребёнком</a><a class="truncate px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="weekend-istanbul" href="#">Уикенд в Стамбуле на двоих</a></nav><div class="px-space-sm pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">Вчера</div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-surface-container-high text-on-surface font-medium"><a class="truncate px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="ski-sochi-5days" href="#">Горные лыжи в Сочи на 5 дней</a><a class="truncate px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="georgia-wine-tour" href="#">Винный маршрут по Кахетии</a></nav><div class="px-space-sm pt-space-md pb-space-xs font-label-sm text-label-sm text-outline uppercase tracking-wider">Предыдущие 7 дней</div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-surface-container-high text-on-surface font-medium"><a class="truncate px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="baikal-ice-trip" href="#">Лёд Байкала: Ольхон и Листвянка</a><a class="truncate px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface font-body-sm text-body-sm transition-colors" data-path="dubai-stopover" href="#">Стыковка в Дубае 36 часов</a></nav></div><div class="p-space-sm bg-surface-container-low"><div class="flex items-center justify-between px-space-sm py-space-xs rounded-lg bg-surface-container mb-space-xs"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-tertiary-container"></span><span class="font-label-sm text-label-sm text-on-surface">₽ (Рубли) • Русский</span></div><a class="text-outline hover:text-on-surface transition-colors flex items-center" data-path="settings" href="#"><span class="material-symbols-outlined text-[16px]">tune</span></a></div><div class="flex items-center justify-between p-space-xs rounded-lg hover:bg-surface-container-high transition-colors"><div class="flex items-center gap-space-sm overflow-hidden"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><div class="flex flex-col truncate"><span class="font-label-md text-label-md text-on-surface truncate leading-tight">Алексей С.</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate leading-tight">Демо-режим</span></div></div><a class="text-outline hover:text-on-surface transition-colors" data-path="account-settings" href="#"><span class="material-symbols-outlined text-[18px]">settings</span></a></div></div></div></aside><div class="md:pl-64 min-h-screen flex flex-col bg-surface"><header class="fixed top-0 left-0 md:left-64 right-0 h-14 bg-surface/80 backdrop-blur-xl z-30 flex items-center justify-between px-space-md border-b border-surface-container/60"><div class="flex items-center gap-space-md"><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors md:flex" type="button"><span class="material-symbols-outlined text-[20px]">dock_to_left</span></button><div class="flex items-center gap-space-xs"><span class="font-label-md text-label-md text-on-surface font-medium">О!дин запрос v2.4</span><span class="font-label-sm text-label-sm text-outline">•</span><span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline">Ассистент путешествий</span></div></div><div class="flex items-center gap-space-sm"><div class="flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-secondary-container text-on-secondary-fixed font-label-sm text-label-sm"><span class="w-1.5 h-1.5 rounded-full bg-primary"></span><span class="truncate">Демо-режим (симуляция)</span></div><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">ios_share</span></button></div></header><main class="w-full pt-14 bg-surface flex-1 flex flex-col"><div class="flex flex-col w-full relative">
+<!-- Interactive State Anchor -->
+<div class="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-44 flex flex-col gap-y-6">
+<!-- Previous context quote marker -->
+<div class="flex items-center justify-center gap-3 my-1 opacity-70">
+<div class="h-[1px] w-12 bg-surface-container-highest"></div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Корректировка сценария #2</span>
+<div class="h-[1px] w-12 bg-surface-container-highest"></div>
+</div>
+<!-- 1. USER PROMPT TURN -->
+<div class="flex justify-end w-full">
+<div class="max-w-[85%] sm:max-w-xl bg-surface-container-low text-on-surface rounded-2xl rounded-tr-sm px-5 py-3.5 shadow-sm">
+<div class="flex items-center justify-between gap-4 mb-1">
+<span class="font-label-sm text-label-sm text-outline">Вы</span>
+<span class="font-code text-code text-outline text-[11px]">14:26</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-normal leading-relaxed">
+          Сделай на два дня позже и уложись в меньший бюджет
+        </p>
+</div>
+</div>
+<!-- 2. ASSISTANT EXPLANATION -->
+<div class="flex items-start gap-3 w-full">
+<div class="w-7 h-7 rounded-lg bg-primary-container text-on-primary flex items-center justify-center shrink-0 mt-1 text-xs font-semibold shadow-sm">
+        О!
+      </div>
+<div class="flex flex-col gap-2 flex-1 min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-medium text-on-surface">О!дин запрос</span>
+<span class="font-label-sm text-label-sm text-outline">• Только что</span>
+<span class="font-code text-code text-[11px] px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant">Умный движок v2.4</span>
+</div>
+<div class="text-on-surface font-body-md text-body-md leading-relaxed">
+          Пересчитал поездку на даты <strong>14–21 ноября</strong> (7 ночей, чт–чт). За счёт сдвига вылета на четверг открылось окно низкого тарифа на рейс Эйр Арабия (экономия <strong>8 400 ₽</strong>), а семейный курорт 5★ <strong>Marjan Island Resort &amp; Spa</strong> предоставил спецтариф «Софт Всё включено» (выгода <strong>11 200 ₽</strong>).
+          Итоговая стоимость тура снизилась со <span class="line-through text-outline">148 200 ₽</span> до <span class="font-semibold text-primary">128 600 ₽</span> (ваша чистая выгода — <strong>19 600 ₽</strong> или <strong>-13.2%</strong>).
+        </div>
+</div>
+</div>
+<!-- 3. COMPACT DIFF / WHAT CHANGED CARD -->
+<div class="ml-0 sm:ml-10 bg-surface-container-lowest rounded-xl p-5 shadow-sm flex flex-col gap-4 border border-surface-container/60">
+<div class="flex flex-wrap items-center justify-between gap-3 pb-3 bg-surface-container-lowest border-b border-surface-container/60">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container text-xl">tune</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface">Сводка оптимизации тарифа</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-container text-tertiary-fixed font-label-md text-label-md font-medium">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span class="">Экономия 19 600 ₽ (-13.2%)</span>
+</div>
+</div>
+<!-- Diff Table Items -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+<!-- Date Diff -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1.5">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">calendar_today</span>
+<span class="">Даты вылета</span>
+</div>
+<div class="flex items-center gap-1 text-outline font-body-sm text-body-sm line-through">
+            12–19 ноября 2024
+          </div>
+<div class="flex items-center gap-1 font-label-md text-label-md font-medium text-on-surface">
+<span class="material-symbols-outlined text-[15px] text-tertiary-container">arrow_forward</span>
+<span class="">14–21 ноя (чт–чт)</span>
+</div>
+<span class="font-code text-code text-[11px] text-on-surface-variant mt-1">Окно низкого спроса</span>
+</div>
+<!-- Flight Diff -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1.5">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">flight_takeoff</span>
+<span class="">Перелёт (3 чел)</span>
+</div>
+<div class="flex items-center gap-1 text-outline font-body-sm text-body-sm line-through">
+            Флайдубай (Дубай)
+          </div>
+<div class="flex items-center gap-1 font-label-md text-label-md font-medium text-on-surface">
+<span class="material-symbols-outlined text-[15px] text-tertiary-container">arrow_forward</span>
+<span class="">Эйр Арабия (Шарджа)</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary-container font-semibold mt-1">Выгода: 8 400 ₽</span>
+</div>
+<!-- Hotel Diff -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1.5">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">hotel</span>
+<span class="">Проживание (7 ночей)</span>
+</div>
+<div class="flex items-center gap-1 text-outline font-body-sm text-body-sm line-through">
+            BM Beach Resort 4★
+          </div>
+<div class="flex items-center gap-1 font-label-md text-label-md font-medium text-on-surface truncate" title="Marjan Island Resort &amp; Spa 5★">
+<span class="material-symbols-outlined text-[15px] text-tertiary-container shrink-0">arrow_forward</span>
+<span class="truncate">Marjan Resort 5★</span>
+</div>
+<span class="font-label-sm text-label-sm text-tertiary-container font-semibold mt-1">Выгода: 11 200 ₽ (Софт Всё вкл.)</span>
+</div>
+</div>
+</div>
+<!-- 4. VISUAL PREVIEW & RESORT MEDIA CARD -->
+<div class="ml-0 sm:ml-10 bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-surface-container/60">
+<div class="relative h-44 sm:h-52 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A tranquil luxury beachfront resort in Ras Al Khaimah featuring pristine azure Persian Gulf waters, golden sand with stylish private sun loungers, elegant Arabian arch architecture with soft ambient afternoon lighting, lush palm trees, and clear peaceful sky matching a high-end serene travel aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeQbajPRc7WBSH7iJU_7PWVDNEsgD_eRuJGiiA7WPjjZCj4RDQ9RnaSCau6TE1ZLb79cr_L57GSTsuNid12n0dI-CT1fWTevWzlAeaE3nVkXFLFWD4OepohXLvmI5SJezc7PF2u9TspZ31JK46B7NeK0XNOHsyeuV8ybwR-c8ATxFKUH64nwEcE2FuEWa_FfXh7B3ADe3Omtens1K8oUpDggKf8_HmdBHYIDbP6b8ruaWMsLInz0ac"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-black/30"></div>
+<div class="absolute top-3 left-3 flex flex-wrap gap-2">
+<span class="px-2.5 py-1 rounded-md bg-surface-container-lowest/90 backdrop-blur-md text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-amber-500 text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span> 5.0 Для всей семьи
+          </span>
+<span class="px-2.5 py-1 rounded-md bg-tertiary-container text-tertiary-fixed font-label-sm text-label-sm font-medium">
+            Спецтариф утверждён
+          </span>
+</div>
+<div class="absolute bottom-3 left-4 right-4 flex items-end justify-between text-on-surface">
+<div>
+<div class="font-headline-sm text-headline-sm font-semibold text-on-surface">Marjan Island Resort &amp; Spa 5★</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">location_on</span>
+              Рас-эль-Хайма, Марджан-Айленд • 1-я линия • Песчаная лагуна
+            </div>
+</div>
+<div class="text-right hidden sm:block">
+<span class="font-code text-code text-on-surface-variant block text-xs">Тариф «Семейный софт всё включено»</span>
+<span class="font-headline-sm text-headline-sm font-semibold text-primary">68 600 ₽</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 5. SIMULATED CONFIRMATION CARD (REASSURING, TRANSPARENT) -->
+<div class="ml-0 sm:ml-10 bg-surface-container-lowest rounded-2xl p-6 sm:p-7 shadow-sm border border-outline-variant/30 flex flex-col gap-6">
+<!-- Header & ID status -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-xl bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-xl">verified</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Оформление бронирования</h2>
+<span class="font-code text-code text-xs text-outline">Идентификатор сборки: #ODIN-84920-RU</span>
+</div>
+</div>
+<div class="flex items-center gap-1.5 self-start sm:self-center text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px] text-tertiary">schedule</span>
+<span class="">Тариф зафиксирован на 24 часа</span>
+</div>
+</div>
+<!-- Traveler Details info pill -->
+<div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-surface-container-low rounded-xl text-body-sm font-body-sm">
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">group</span>
+<span class="font-medium">Путешественники:</span>
+<span class="text-on-surface-variant">2 взрослых, 1 ребёнок (4 года)</span>
+</div>
+<div class="text-outline text-xs">
+Алексей С., Елена С., Марк С.
+</div>
+</div>
+<!-- Itemized Price Breakdown -->
+<div class="space-y-2.5 font-body-sm text-body-sm">
+<div class="flex items-center justify-between py-2 px-3.5 rounded-lg hover:bg-surface-container-low/60 transition-colors">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-outline">flight</span>
+<span class="text-on-surface">Перелёт Эйр Арабия Москва ⇄ Шарджа (прямой, 3 билета с багажом)</span>
+</div>
+<span class="font-code font-medium text-on-surface shrink-0">51 400 ₽</span>
+</div>
+<div class="flex items-center justify-between py-2 px-3.5 rounded-lg hover:bg-surface-container-low/60 transition-colors">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-outline">hotel</span>
+<span class="text-on-surface">Курорт Marjan Island Resort &amp; Spa 5★ (Superior Sea View, 7 ночей, Софт Всё включено)</span>
+</div>
+<span class="font-code font-medium text-on-surface shrink-0">68 600 ₽</span>
+</div>
+<div class="flex items-center justify-between py-2 px-3.5 rounded-lg hover:bg-surface-container-low/60 transition-colors">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-[18px] text-outline">directions_car</span>
+<span class="text-on-surface">Индивидуальный трансфер а/п – отель – а/п (автокресло Maxi-Cosi)</span>
+</div>
+<span class="font-code font-medium text-on-surface shrink-0">8 600 ₽</span>
+</div>
+</div>
+<!-- Total Row -->
+<div class="flex items-baseline justify-between pt-3 border-t border-surface-container px-1">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline block">Итоговая стоимость тура</span>
+<span class="font-body-sm text-body-sm text-outline">Включая налоги, таксы и сервисное обслуживание</span>
+</div>
+<div class="text-right">
+<div class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">128 600 ₽</div>
+<span class="font-label-sm text-label-sm text-outline">за 3 человек (было 148 200 ₽)</span>
+</div>
+</div>
+<!-- Action & Reassurance Disclaimer -->
+<div class="flex flex-col gap-3 pt-1">
+<button class="w-full py-3.5 px-6 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-headline-sm text-headline-sm font-medium transition-all shadow-sm hover:shadow flex items-center justify-center gap-2" id="confirm-demo-btn" onclick="openSimulationDrawer()" type="button">
+<span class="">Подтвердить демо-бронирование</span>
+<span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+<div class="flex items-center justify-center gap-1.5 text-center text-outline font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm text-outline">verified_user</span>
+<span class="">Демо-режим (симуляция) — списание средств не производится</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 6. SIMULATION SUCCESS DRAWER / MODAL OVERLAY (Client Interactive) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-on-background/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="simulation-modal">
+<div class="bg-surface-container-lowest w-full max-w-lg rounded-2xl shadow-xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col" id="modal-box">
+<!-- Modal Header -->
+<div class="p-6 pb-4 flex items-center justify-between bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-full bg-tertiary-container text-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-semibold text-on-surface">Бронирование смоделировано</h3>
+<span class="font-code text-code text-xs text-outline">PNR: 7W4KL9 • Отель: CONF-88301</span>
+</div>
+</div>
+<button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" onclick="closeSimulationDrawer()" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Modal Body -->
+<div class="p-6 flex flex-col gap-4">
+<div class="p-4 rounded-xl bg-tertiary-container/10 flex items-center gap-3">
+<span class="material-symbols-outlined text-tertiary-container text-3xl shrink-0">flight_takeoff</span>
+<div>
+<div class="font-headline-sm text-label-md font-semibold text-on-surface">Электронные маршрут-квитанции сформированы</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">3 билета Эйр Арабия G9-952 привязаны к профилю Алексея С. Места 12A, 12B, 12C.</div>
+</div>
+</div>
+<div class="space-y-2.5 font-body-sm text-body-sm">
+<div class="flex justify-between py-1.5 bg-surface-container-low px-3 rounded-md">
+<span class="text-on-surface-variant">Период проживания:</span>
+<span class="font-medium text-on-surface">14.11.2024 — 21.11.2024 (7 ночей)</span>
+</div>
+<div class="flex justify-between py-1.5 bg-surface-container-low px-3 rounded-md">
+<span class="text-on-surface-variant">Курорт:</span>
+<span class="font-medium text-on-surface">Marjan Island Resort &amp; Spa 5★</span>
+</div>
+<div class="flex justify-between py-1.5 bg-surface-container-low px-3 rounded-md">
+<span class="text-on-surface-variant">Сумма симуляции:</span>
+<span class="font-code font-bold text-primary">128 600 ₽ (Оплачено в демо)</span>
+</div>
+</div>
+<div class="p-3 bg-surface-container rounded-lg text-xs font-label-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-base text-tertiary-container">info</span>
+<span class="">Демо-режим (симуляция) — списание средств не производится. В реальной версии ссылка на оплату через СБП/Tinkoff Pay отправляется по SMS и сохраняется в профиле.</span>
+</div>
+</div>
+<!-- Modal Actions -->
+<div class="p-4 bg-surface-container-low flex items-center justify-end gap-3">
+<button class="px-4 py-2 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-label-md text-label-md font-medium transition-colors" onclick="closeSimulationDrawer()" type="button">
+          Закрыть окно
+        </button>
+<button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-medium shadow hover:bg-primary-container transition-colors flex items-center gap-1.5" onclick="printSimulationConfirmation()" type="button">
+<span class="material-symbols-outlined text-[16px]">download</span>
+<span class="">Сохранить в календарь (.ics)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 7. CLEAN ELEGANT BOTTOM COMPOSER (Floating Above Shell Canvas) -->
+<div class="fixed bottom-0 left-0 md:left-64 right-0 z-20 pointer-events-none pb-4 pt-8 bg-gradient-to-t from-surface via-surface/90 to-transparent">
+<div class="max-w-3xl mx-auto px-4 sm:px-6 w-full pointer-events-auto">
+<form class="relative flex items-center bg-surface-container-lowest rounded-2xl shadow-lg transition-shadow duration-200 border border-outline-variant/30" id="chat-composer-form" onsubmit="handleMessageSubmit(event)">
+<!-- Action Attachment Button -->
+<button class="w-10 h-10 ml-2 rounded-xl flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors" title="Прикрепить билет или ссылку на отель" type="button">
+<span class="material-symbols-outlined text-[20px]">add_circle</span>
+</button>
+<!-- Main Auto-Expanding Text Input -->
+<textarea class="w-full py-3.5 px-3 bg-transparent text-on-surface font-body-md text-body-md placeholder:text-outline focus:outline-none resize-none max-h-32" id="user-query-input" oninput="adjustInputHeight(this)" onkeydown="handleTextareaKeydown(event)" placeholder="Спросите что угодно («Добавь экскурсию в пустыню», «Какой курс дирхама»)..." rows="1"></textarea>
+<!-- Microphone / Voice Input -->
+<button class="w-9 h-9 rounded-xl flex items-center justify-center text-outline hover:text-on-surface hover:bg-surface-container transition-colors shrink-0" title="Голосовой ввод запроса" type="button">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<!-- Submit Button -->
+<button class="w-10 h-10 mr-2 rounded-xl bg-surface-container-high text-on-surface-variant flex items-center justify-center transition-all shrink-0 hover:bg-primary-container hover:text-on-primary ml-1" id="send-query-btn" title="Отправить запрос" type="submit">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</form>
+<!-- Assistant micro helper prompts -->
+<div class="flex items-center justify-start sm:justify-center gap-2 mt-2 px-2 overflow-x-auto text-nowrap pb-1">
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors text-xs shrink-0" onclick="fillPrompt('Добавь трансфер на комфортном микроавтобусе')" type="button">
+          + Детское питание в отель
+        </button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors text-xs shrink-0" onclick="fillPrompt('Нужна ли медицинская страховка для визита в ОАЭ?')" type="button">
+          + Включить расширенную страховку
+        </button>
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low hover:bg-surface-container text-on-surface-variant font-label-sm text-label-sm transition-colors text-xs shrink-0" onclick="fillPrompt('Покажи прогноз погоды и температуру воды')" type="button">
+          Погода в Рас-эль-Хайме в ноябре
+        </button>
+</div>
+</div>
+</div>
+<!-- Inline Client Interaction Script -->
+<script>
+    function openSimulationDrawer() {
+      const modal = document.getElementById('simulation-modal');
+      const box = document.getElementById('modal-box');
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+      modal.classList.add('opacity-100');
+      box.classList.remove('scale-95');
+      box.classList.add('scale-100');
+    }
+
+    function closeSimulationDrawer() {
+      const modal = document.getElementById('simulation-modal');
+      const box = document.getElementById('modal-box');
+      modal.classList.add('pointer-events-none', 'opacity-0');
+      modal.classList.remove('opacity-100');
+      box.classList.add('scale-95');
+      box.classList.remove('scale-100');
+    }
+
+    function focusChatInput() {
+      const input = document.getElementById('user-query-input');
+      input.focus();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function fillPrompt(text) {
+      const input = document.getElementById('user-query-input');
+      input.value = text;
+      adjustInputHeight(input);
+      input.focus();
+    }
+
+    function adjustInputHeight(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+      
+      const sendBtn = document.getElementById('send-query-btn');
+      if (el.value.trim().length > 0) {
+        sendBtn.classList.remove('bg-surface-container-high', 'text-on-surface-variant');
+        sendBtn.classList.add('bg-primary-container', 'text-on-primary');
+      } else {
+        sendBtn.classList.add('bg-surface-container-high', 'text-on-surface-variant');
+        sendBtn.classList.remove('bg-primary-container', 'text-on-primary');
+      }
+    }
+
+    function handleTextareaKeydown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleMessageSubmit(e);
+      }
+    }
+
+    function handleMessageSubmit(e) {
+      if (e) e.preventDefault();
+      const input = document.getElementById('user-query-input');
+      const val = input.value.trim();
+      if (!val) return;
+      
+      // Clear input and return height
+      input.value = '';
+      adjustInputHeight(input);
+      
+      // Visual feedback pulse
+      const btn = document.getElementById('send-query-btn');
+      btn.classList.add('scale-90');
+      setTimeout(() => btn.classList.remove('scale-90'), 150);
+    }
+
+    function triggerDownloadSimulation() {
+      const originalText = event.currentTarget.innerText;
+      const target = event.currentTarget;
+      target.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Формирую PDF...</span>';
+      setTimeout(() => {
+        target.innerHTML = '<span class="material-symbols-outlined text-[18px] text-tertiary">done</span><span>Файл скачан (1.4 МБ)</span>';
+        setTimeout(() => {
+          target.innerHTML = '<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span><span>Скачать PDF-памятку</span>';
+        }, 3000);
+      }, 900);
+    }
+
+    function printSimulationConfirmation() {
+      alert('Демо-событие добавлено в ваш локальный календарь: Вылет 14 ноября Москва (DME) -> Шарджа (SHJ), Эйр Арабия.');
+      closeSimulationDrawer();
+    }
+  </script>
+</div></main></div>
+</body></html>

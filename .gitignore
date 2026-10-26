@@ -4,3 +4,14 @@ t.py
 .vscode/
 __pycache__/
 .ruff_cache
+
+# Node / Monorepo
+node_modules/
+dist/
+.expo/
+*.tsbuildinfo
+.npm/
+.turbo/
+.env.local
+.env.*.local
+.venv/
