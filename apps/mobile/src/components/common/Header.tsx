@@ -1,7 +1,7 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
-import { DemoBadge } from "./DemoBadge";
 
 export interface HeaderProps {
   title?: string;
@@ -10,7 +10,7 @@ export interface HeaderProps {
   onBackPress?: () => void;
   onMenuPress?: () => void;
   onNewChatPress?: () => void;
-  showDemoBadge?: boolean;
+  onSettingsPress?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,52 +20,73 @@ export const Header: React.FC<HeaderProps> = ({
   onBackPress,
   onMenuPress,
   onNewChatPress,
-  showDemoBadge = true,
+  onSettingsPress,
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.header}>
-      <View style={styles.leftContainer}>
-        {showBack ? (
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={onBackPress}
-            accessibilityLabel="Назад"
-          >
-            <Text style={styles.backArrow}>←</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.leftButtons}>
+    <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        {/* Left Actions */}
+        <View style={styles.leftContainer}>
+          {showBack ? (
             <TouchableOpacity
               style={styles.iconButton}
-              onPress={onMenuPress}
-              accessibilityLabel="Меню истории"
+              onPress={onBackPress}
+              accessibilityLabel="Назад"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.iconText}>☰</Text>
+              <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
-            {onNewChatPress && (
+          ) : (
+            <View style={styles.leftButtons}>
               <TouchableOpacity
                 style={styles.iconButton}
-                onPress={onNewChatPress}
-                accessibilityLabel="Новый диалог"
+                onPress={onMenuPress}
+                accessibilityLabel="История диалогов"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.iconText}>✎</Text>
+                <Text style={styles.iconText}>☰</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
-
-      <View style={styles.centerContainer}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title}>{title}</Text>
+              {onNewChatPress && (
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={onNewChatPress}
+                  accessibilityLabel="Новый диалог"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={styles.iconText}>✎</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-      </View>
 
-      <View style={styles.rightContainer}>
-        {showDemoBadge && <DemoBadge variant="tint" label="Демо" />}
-        <View style={styles.avatarPill}>
-          <Text style={styles.avatarText}>👤</Text>
+        {/* Center Brand Title */}
+        <View style={styles.centerContainer}>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+
+        {/* Right Status / Profile Indicator (Stitch Screen 1 & 2) */}
+        <View style={styles.rightContainer}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={onSettingsPress}
+            accessibilityLabel="Параметры и профиль"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarIcon}>👤</Text>
+              <View style={styles.onlineDot} />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -73,16 +94,19 @@ export const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    ...theme.shadows.sm,
+    zIndex: 50,
+  },
   header: {
     height: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    ...theme.shadows.sm,
   },
   leftContainer: {
     flex: 1,
@@ -93,7 +117,7 @@ const styles = StyleSheet.create({
   leftButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   centerContainer: {
     flex: 2,
@@ -105,50 +129,61 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 6,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  subtitle: {
-    fontSize: 11,
-    color: theme.colors.textTertiary,
-    marginTop: 1,
   },
   iconButton: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surfaceContainerLow,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.canvasMuted,
+  },
+  iconText: {
+    fontSize: 18,
+    color: theme.colors.textPrimary,
+    fontWeight: "600",
   },
   backArrow: {
     fontSize: 20,
     color: theme.colors.textPrimary,
     fontWeight: "600",
   },
-  iconText: {
+  title: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
   },
-  avatarPill: {
-    width: 32,
-    height: 32,
-    borderRadius: theme.borderRadius.full,
+  subtitle: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textTertiary,
+    marginTop: 1,
+  },
+  profileButton: {
+    padding: 2,
+  },
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
   },
-  avatarText: {
-    fontSize: 14,
+  avatarIcon: {
+    fontSize: 16,
+  },
+  onlineDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: theme.colors.success,
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    borderWidth: 1.5,
+    borderColor: theme.colors.surface,
   },
 });

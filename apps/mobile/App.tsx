@@ -4,12 +4,12 @@ import {
   View,
   Text,
   ScrollView,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { theme } from "./src/theme";
 import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
@@ -17,10 +17,10 @@ import { ChatInputBar } from "./src/components/chat/ChatInputBar";
 import { QuickReplyChips } from "./src/components/chat/QuickReplyChips";
 import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
-import { DemoCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
+import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
-export default function App() {
+function MainApp() {
   const [inputText, setInputText] = useState("");
   const scrollViewRef = useRef<any>(null);
 
@@ -51,7 +51,6 @@ export default function App() {
   };
 
   const handleSelectChip = (chipText: string) => {
-    // Strip leading emoji if desired or send directly
     sendMessage(chipText);
   };
 
@@ -66,28 +65,30 @@ export default function App() {
   const isInitialState = messages.length <= 1;
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <View style={styles.rootContainer}>
       <StatusBar style="dark" />
 
+      {/* Top Header with Edge-to-Edge Safe Inset Handling */}
+      <Header
+        title="О!дин запрос"
+        subtitle="ИИ-помощник в путешествиях"
+        onNewChatPress={resetChat}
+        onMenuPress={resetChat}
+      />
+
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.keyboardContainer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Top Header */}
-        <Header
-          title="О!дин запрос"
-          subtitle="ИИ-помощник в путешествиях"
-          onNewChatPress={resetChat}
-        />
-
         {/* Messages and Content Feed */}
         <ScrollView
           ref={scrollViewRef}
           style={styles.feed}
           contentContainerStyle={styles.feedContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Welcome Screen Cards if start of conversation (Screen 1) */}
+          {/* Welcome Screen Cards if start of conversation (Stitch Screen 1) */}
           {isInitialState && (
             <View style={styles.welcomeHero}>
               <View style={styles.heroIconBadge}>
@@ -149,10 +150,28 @@ export default function App() {
                   <Text style={styles.starterArrow}>↗</Text>
                 </TouchableOpacity>
               </View>
+
+              {/* History Dialogs Action */}
+              <TouchableOpacity
+                style={styles.historyLink}
+                onPress={resetChat}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.historyLinkIcon}>🕒</Text>
+                <Text style={styles.historyLinkText}>История диалогов</Text>
+              </TouchableOpacity>
+
+              {/* Step Synthesis Feature Badge */}
+              <View style={styles.heroFeatureBadge}>
+                <Text style={styles.heroFeatureIcon}>⚡</Text>
+                <Text style={styles.heroFeatureText}>
+                  Синтез билетов, жилья и трансферов за один шаг
+                </Text>
+              </View>
             </View>
           )}
 
-          {/* Chat Messages Turn List (Screen 2) */}
+          {/* Chat Messages Turn List (Stitch Screen 2) */}
           {!isInitialState && (
             <View style={styles.messagesList}>
               {messages.map((m) => (
@@ -175,7 +194,7 @@ export default function App() {
             />
           )}
 
-          {/* Standalone Trip Options Cards (Screen 3 & 4) */}
+          {/* Standalone Trip Options Cards (Stitch Screen 3 & 4) */}
           {tripOptions.length > 0 && (
             <View style={styles.tripCardsContainer}>
               <View style={styles.tripSectionHeader}>
@@ -200,7 +219,7 @@ export default function App() {
           )}
         </ScrollView>
 
-        {/* Quick Suggestion Chips (Screen 2) above input */}
+        {/* Quick Suggestion Chips (Stitch Screen 2) above input */}
         <QuickReplyChips
           chips={
             tripOptions.length > 0
@@ -215,7 +234,7 @@ export default function App() {
           onSelectChip={handleSelectChip}
         />
 
-        {/* Mobile Input Bar */}
+        {/* Mobile Input Bar with Safe Area Bottom Padding */}
         <ChatInputBar
           value={inputText}
           onChangeText={setInputText}
@@ -226,26 +245,33 @@ export default function App() {
           placeholder="Например: Хочу к теплому морю в ноябре..."
         />
 
-        {/* Demo Booking & Checkout Modal (Screen 5) */}
-        <DemoCheckoutModal
+        {/* Booking & Checkout Modal (Stitch Screen 5) */}
+        <BookingCheckoutModal
           visible={checkoutVisible}
           option={checkoutOption}
           onClose={closeCheckout}
           onConfirmSuccess={handleBookingConfirmed}
         />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  safeContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-  },
-  container: {
+  rootContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  keyboardContainer: {
+    flex: 1,
   },
   feed: {
     flex: 1,
@@ -261,76 +287,112 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   heroIconBadge: {
-    width: 48,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: theme.borderRadius.xl,
     backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
+    marginBottom: 14,
+    ...theme.shadows.sm,
   },
   heroIcon: {
-    fontSize: 24,
+    fontSize: 26,
   },
   heroTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "700",
     color: theme.colors.textPrimary,
     textAlign: "center",
     letterSpacing: -0.3,
   },
   heroDescription: {
-    fontSize: 13,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 18,
-    marginTop: 6,
+    lineHeight: 20,
+    marginTop: 8,
     maxWidth: 320,
   },
   starterChipsContainer: {
     width: "100%",
-    marginTop: 20,
-    gap: 8,
+    marginTop: 24,
+    gap: 10,
   },
   starterChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.surface,
-    padding: 10,
+    padding: 12,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    gap: 10,
+    gap: 12,
     ...theme.shadows.sm,
   },
   starterChipIconBox: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.surfaceContainerLow,
     alignItems: "center",
     justifyContent: "center",
   },
   starterIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   starterChipText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "500",
     color: theme.colors.textPrimary,
     flex: 1,
   },
   starterArrow: {
-    fontSize: 14,
+    fontSize: 16,
     color: theme.colors.textTertiary,
     fontWeight: "600",
   },
+  historyLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.canvasMuted,
+  },
+  historyLinkIcon: {
+    fontSize: 13,
+  },
+  historyLinkText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+  heroFeatureBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  heroFeatureIcon: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+  },
+  heroFeatureText: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    fontWeight: "500",
+  },
   messagesList: {
-    gap: 10,
+    gap: 12,
   },
   tripCardsContainer: {
     marginTop: 8,
-    gap: 12,
+    gap: 14,
   },
   tripSectionHeader: {
     flexDirection: "row",
@@ -339,12 +401,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   tripSectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
   tripSectionCount: {
-    fontSize: 12,
+    fontSize: 13,
     color: theme.colors.textTertiary,
     fontWeight: "500",
   },
