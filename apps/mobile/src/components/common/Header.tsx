@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity, Platform } from "react-native";
+import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 
@@ -35,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
               onPress={onBackPress}
               accessibilityLabel="Назад"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
             >
               <Text style={styles.backArrow}>←</Text>
             </TouchableOpacity>
@@ -45,6 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onPress={onMenuPress}
                 accessibilityLabel="История диалогов"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                activeOpacity={0.7}
               >
                 <Text style={styles.iconText}>☰</Text>
               </TouchableOpacity>
@@ -54,6 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onPress={onNewChatPress}
                   accessibilityLabel="Новый диалог"
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.iconText}>✎</Text>
                 </TouchableOpacity>
@@ -81,6 +84,7 @@ export const Header: React.FC<HeaderProps> = ({
             onPress={onSettingsPress}
             accessibilityLabel="Параметры и профиль"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            activeOpacity={0.7}
           >
             <View style={styles.avatarCircle}>
               <Text style={styles.avatarIcon}>👤</Text>
@@ -95,10 +99,10 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.primary,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    ...theme.shadows.sm,
+    borderBottomColor: "rgba(255, 255, 255, 0.12)",
+    ...theme.shadows.md,
     zIndex: 50,
   },
   header: {
@@ -117,7 +121,7 @@ const styles = StyleSheet.create({
   leftButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   centerContainer: {
     flex: 2,
@@ -134,56 +138,56 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
   iconText: {
-    fontSize: 18,
-    color: theme.colors.textPrimary,
+    fontSize: 17,
+    color: "#FFFFFF",
     fontWeight: "600",
   },
   backArrow: {
     fontSize: 20,
-    color: theme.colors.textPrimary,
+    color: "#FFFFFF",
     fontWeight: "600",
   },
   title: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
+    color: "#FFFFFF",
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 11,
     fontWeight: "500",
-    color: theme.colors.textTertiary,
+    color: "rgba(255, 255, 255, 0.82)",
     marginTop: 1,
   },
   profileButton: {
     padding: 2,
   },
   avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: theme.colors.surfaceContainer,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
   avatarIcon: {
-    fontSize: 16,
+    fontSize: 17,
   },
   onlineDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: theme.colors.success,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#22C55E",
     position: "absolute",
     bottom: 0,
     right: 0,
-    borderWidth: 1.5,
-    borderColor: theme.colors.surface,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
   },
 });
