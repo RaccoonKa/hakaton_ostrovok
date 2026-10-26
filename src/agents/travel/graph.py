@@ -27,15 +27,21 @@ workflow.add_node("tools", ToolNode(TRAVEL_TOOLS))
 workflow.add_node("response", generate_response)
 
 workflow.add_edge(START, "planner")
+
+# Умная маршрутизация из планировщика
 workflow.add_conditional_edges(
     "planner",
     route_after_planner,
     {
-        "tools": "tools",
-        END: END,
+        "tools": "tools",  # Если есть вызов тула -> идем в тулы
+        END: "response",   # Если вызовов нет (собрали всё что нужно) -> идем генерировать ответ
     },
 )
-workflow.add_edge("tools", "response")
+
+# Замыкаем цикл: после тула возвращаемся в планировщик, чтобы он оценил результат
+workflow.add_edge("tools", "planner")
+
+# Завершаем граф после выдачи ответа
 workflow.add_edge("response", END)
 
 travel_agent_graph = workflow.compile()
