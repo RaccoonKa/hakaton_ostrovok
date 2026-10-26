@@ -4,14 +4,11 @@ import {
   Sliders,
   Globe,
   MapPin,
-  Users,
   Plane,
   Luggage,
   Star,
   Check,
   RotateCcw,
-  Minus,
-  Plus,
 } from "lucide-react";
 import {
   usePreferences,
@@ -218,83 +215,7 @@ export const SettingsModal: React.FC = () => {
             />
           </div>
 
-          {/* Section 3: Default Travelers Composition */}
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
-              <Users className="w-4 h-4 text-primary" />
-              <span>Состав путешественников</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/60">
-              {/* Adults */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-content-primary">Взрослые</div>
-                  <div className="text-[11px] text-content-muted">от 12 лет</div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    disabled={draft.adultsCount <= 1}
-                    onClick={() =>
-                      setDraft((p) => ({ ...p, adultsCount: Math.max(1, p.adultsCount - 1) }))
-                    }
-                    className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-content-secondary hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-5 text-center text-xs font-bold text-content-primary">
-                    {draft.adultsCount}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={draft.adultsCount >= 8}
-                    onClick={() =>
-                      setDraft((p) => ({ ...p, adultsCount: Math.min(8, p.adultsCount + 1) }))
-                    }
-                    className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-content-secondary hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Children */}
-              <div className="flex items-center justify-between sm:border-l sm:border-slate-200 sm:pl-3">
-                <div>
-                  <div className="text-xs font-bold text-content-primary">Дети</div>
-                  <div className="text-[11px] text-content-muted">до 11 лет</div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    disabled={draft.childrenCount <= 0}
-                    onClick={() =>
-                      setDraft((p) => ({ ...p, childrenCount: Math.max(0, p.childrenCount - 1) }))
-                    }
-                    className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-content-secondary hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-5 text-center text-xs font-bold text-content-primary">
-                    {draft.childrenCount}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={draft.childrenCount >= 6}
-                    onClick={() =>
-                      setDraft((p) => ({ ...p, childrenCount: Math.min(6, p.childrenCount + 1) }))
-                    }
-                    className="w-7 h-7 rounded-lg border border-slate-200 bg-white flex items-center justify-center text-content-secondary hover:bg-slate-100 disabled:opacity-40 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: Flight & Hotel Preferences */}
+          {/* Section 3: Flight & Hotel Preferences */}
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
               <Plane className="w-4 h-4 text-primary" />
