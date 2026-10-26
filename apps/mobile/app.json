@@ -9,7 +9,7 @@
     "newArchEnabled": true,
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#FAF9F7"
+      "backgroundColor": "#FBFBFD"
     },
     "ios": {
       "supportsTablet": true,
@@ -17,7 +17,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#FAF9F7"
+        "backgroundColor": "#FBFBFD"
       },
       "package": "com.ostrovok.corvaxplan"
     },

@@ -1,358 +1,351 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
-  Text,
   View,
-  TextInput,
-  TouchableOpacity,
+  Text,
   ScrollView,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import {
-  formatPrice,
-  formatDateRange,
-  MOCK_TRIP_OPTIONS,
-  TripOption,
-} from "@corvax/shared";
 import { theme } from "./src/theme";
+import { Header } from "./src/components/common/Header";
+import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
+import { ChatInputBar } from "./src/components/chat/ChatInputBar";
+import { QuickReplyChips } from "./src/components/chat/QuickReplyChips";
+import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
+import { TripCardMobile } from "./src/components/cards/TripCardMobile";
+import { DemoCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
+import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 export default function App() {
-  const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; text: string }>>([
-    {
-      id: "1",
-      role: "assistant",
-      text: "Привет! Я AI-ассистент «О!дин запрос». Расскажите, куда и как вы хотите поехать — я подберу готовый маршрут с отелями и билетами.",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [tripOptions, setTripOptions] = useState<TripOption[]>([]);
-  const [selectedOption, setSelectedOption] = useState<TripOption | null>(null);
+  const [inputText, setInputText] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  const {
+    messages,
+    tripOptions,
+    selectedOption,
+    isThinking,
+    thinkingText,
+    isStreaming,
+    isListening,
+    checkoutVisible,
+    checkoutOption,
+    sendMessage,
+    selectOption,
+    openCheckout,
+    closeCheckout,
+    handleBookingConfirmed,
+    resetChat,
+    toggleListening,
+  } = useMobileAgent();
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    const userText = input.trim();
-    setInput("");
-
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), role: "user", text: userText },
-      {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        text: "По вашему запросу я подобрал отличные варианты. Обратите внимание: цены и доступность являются демонстрационными.",
-      },
-    ]);
-
-    setTripOptions(MOCK_TRIP_OPTIONS);
+    if (!inputText.trim()) return;
+    const text = inputText;
+    setInputText("");
+    sendMessage(text);
   };
 
+  const handleSelectChip = (chipText: string) => {
+    // Strip leading emoji if desired or send directly
+    sendMessage(chipText);
+  };
+
+  // Scroll to bottom when new messages arrive or options appear
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isThinking, tripOptions]);
+
+  const isInitialState = messages.length <= 1;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <SafeAreaView style={styles.safeContainer}>
+      <StatusBar style="dark" backgroundColor={theme.colors.surface} />
+
       <KeyboardAvoidingView
-        style={styles.keyboardContainer}
+        style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>О!</Text>
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>О!дин запрос</Text>
-              <Text style={styles.headerSubtitle}>AI Travel Planner • Mobile</Text>
-            </View>
-          </View>
-          <View style={styles.demoPill}>
-            <Text style={styles.demoPillText}>Демо-режим</Text>
-          </View>
-        </View>
+        {/* Top Header */}
+        <Header
+          title="О!дин запрос"
+          subtitle="ИИ-помощник в путешествиях"
+          onNewChatPress={resetChat}
+        />
 
-        {/* Messages Feed */}
-        <ScrollView style={styles.feed} contentContainerStyle={styles.feedContent}>
-          {messages.map((m) => (
-            <View
-              key={m.id}
-              style={[
-                styles.messageBubble,
-                m.role === "user" ? styles.userBubble : styles.assistantBubble,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  m.role === "user" ? styles.userText : styles.assistantText,
-                ]}
-              >
-                {m.text}
+        {/* Messages and Content Feed */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.feed}
+          contentContainerStyle={styles.feedContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Welcome Screen Cards if start of conversation (Screen 1) */}
+          {isInitialState && (
+            <View style={styles.welcomeHero}>
+              <View style={styles.heroIconBadge}>
+                <Text style={styles.heroIcon}>🌍</Text>
+              </View>
+              <Text style={styles.heroTitle}>Куда хотите поехать?</Text>
+              <Text style={styles.heroDescription}>
+                Напишите своими словами: даты, бюджет, пожелания — ассистент подберёт
+                направления, отели и маршрут за один шаг.
               </Text>
-            </View>
-          ))}
 
-          {/* Render Trip Options if available */}
-          {tripOptions.length > 0 && (
-            <View style={styles.cardsSection}>
-              <Text style={styles.cardsTitle}>Рекомендованные варианты поездки</Text>
-              {tripOptions.map((opt) => (
+              {/* Starter Scenarios Chips from Stitch Screen 1 */}
+              <View style={styles.starterChipsContainer}>
                 <TouchableOpacity
-                  key={opt.id}
-                  style={[
-                    styles.card,
-                    selectedOption?.id === opt.id && styles.selectedCard,
-                  ]}
-                  onPress={() => setSelectedOption(opt)}
+                  style={styles.starterChip}
+                  onPress={() =>
+                    handleSelectChip("Тёплое море в ноябре с ребёнком до 200 000 ₽")
+                  }
+                  activeOpacity={0.7}
                 >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardDestination}>{opt.destination}</Text>
-                    <Text style={styles.cardPrice}>
-                      {formatPrice(opt.total_price, opt.currency)}
-                    </Text>
+                  <View style={styles.starterChipIconBox}>
+                    <Text style={styles.starterIcon}>🏖️</Text>
                   </View>
-                  <Text style={styles.cardTitle}>{opt.title}</Text>
-                  {opt.hotels?.[0] && (
-                    <Text style={styles.cardHotel}>
-                      🏨 {opt.hotels[0].hotel} ({formatDateRange(opt.hotels[0].check_in, opt.hotels[0].check_out)})
-                    </Text>
-                  )}
-                  {opt.flights?.[0] && (
-                    <Text style={styles.cardFlight}>
-                      ✈️ {opt.flights[0].origin} → {opt.flights[0].destination}
-                    </Text>
-                  )}
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.demoWarning}>[Демонстрационные данные]</Text>
-                    <Text style={styles.selectAction}>
-                      {selectedOption?.id === opt.id ? "✓ Выбрано" : "Выбрать →"}
-                    </Text>
-                  </View>
+                  <Text style={styles.starterChipText} numberOfLines={1}>
+                    Тёплое море в ноябре с ребёнком до 200 000 ₽
+                  </Text>
+                  <Text style={styles.starterArrow}>↗</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.starterChip}
+                  onPress={() =>
+                    handleSelectChip("Горные лыжи в Сочи на двоих в январе")
+                  }
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.starterChipIconBox}>
+                    <Text style={styles.starterIcon}>⛷️</Text>
+                  </View>
+                  <Text style={styles.starterChipText} numberOfLines={1}>
+                    Горные лыжи в Сочи на двоих в январе
+                  </Text>
+                  <Text style={styles.starterArrow}>↗</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.starterChip}
+                  onPress={() =>
+                    handleSelectChip("Выходные в Стамбуле: уютный бутик-отель")
+                  }
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.starterChipIconBox}>
+                    <Text style={styles.starterIcon}>🏛️</Text>
+                  </View>
+                  <Text style={styles.starterChipText} numberOfLines={1}>
+                    Выходные в Стамбуле: уютный бутик-отель
+                  </Text>
+                  <Text style={styles.starterArrow}>↗</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Chat Messages Turn List (Screen 2) */}
+          {!isInitialState && (
+            <View style={styles.messagesList}>
+              {messages.map((m) => (
+                <ChatMessageItem
+                  key={m.id}
+                  message={m}
+                  selectedOptionId={selectedOption?.id}
+                  onSelectOption={selectOption}
+                  onBookDemo={openCheckout}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Thinking Capsule / Indicator */}
+          {isThinking && (
+            <ThinkingBubble
+              isThinking={isThinking}
+              statusText={thinkingText}
+            />
+          )}
+
+          {/* Standalone Trip Options Cards (Screen 3 & 4) */}
+          {tripOptions.length > 0 && (
+            <View style={styles.tripCardsContainer}>
+              <View style={styles.tripSectionHeader}>
+                <Text style={styles.tripSectionTitle}>
+                  Рекомендованные направления
+                </Text>
+                <Text style={styles.tripSectionCount}>
+                  {tripOptions.length} варианта
+                </Text>
+              </View>
+
+              {tripOptions.map((opt) => (
+                <TripCardMobile
+                  key={opt.id || opt.title}
+                  option={opt}
+                  isSelected={selectedOption?.id === opt.id}
+                  onSelect={selectOption}
+                  onBookDemo={openCheckout}
+                />
               ))}
             </View>
           )}
         </ScrollView>
 
-        {/* Input Bar */}
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Куда и когда вы хотите поехать?..."
-            placeholderTextColor={theme.colors.textMuted}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!input.trim()}
-          >
-            <Text style={styles.sendButtonText}>→</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Quick Suggestion Chips (Screen 2) above input */}
+        <QuickReplyChips
+          chips={
+            tripOptions.length > 0
+              ? [
+                  "🏨 Показать отели в ОАЭ",
+                  "⚖️ Сравнить отели",
+                  "📅 А если на 2 дня позже?",
+                  "✈️ Только прямые рейсы",
+                ]
+              : undefined
+          }
+          onSelectChip={handleSelectChip}
+        />
+
+        {/* Mobile Input Bar */}
+        <ChatInputBar
+          value={inputText}
+          onChangeText={setInputText}
+          onSend={handleSend}
+          disabled={isThinking || isStreaming}
+          isListening={isListening}
+          onToggleMic={toggleListening}
+          placeholder="Например: Хочу к теплому морю в ноябре..."
+        />
+
+        {/* Demo Booking & Checkout Modal (Screen 5) */}
+        <DemoCheckoutModal
+          visible={checkoutVisible}
+          option={checkoutOption}
+          onClose={closeCheckout}
+          onConfirmSuccess={handleBookingConfirmed}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.surface,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.card,
-  },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-  },
-  demoPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: "#FEF3C7",
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  demoPillText: {
-    fontSize: 11,
-    color: "#92400E",
-    fontWeight: "600",
   },
   feed: {
     flex: 1,
   },
   feedContent: {
     padding: theme.spacing.md,
-    gap: theme.spacing.md,
+    gap: 12,
   },
-  messageBubble: {
-    maxWidth: "85%",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.lg,
-  },
-  userBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: theme.colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  assistantBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  userText: {
-    color: "#FFFFFF",
-  },
-  assistantText: {
-    color: theme.colors.textPrimary,
-  },
-  cardsSection: {
-    marginTop: theme.spacing.sm,
-    gap: theme.spacing.sm,
-  },
-  cardsTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  card: {
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    gap: 6,
-  },
-  selectedCard: {
-    borderColor: theme.colors.primary,
-    borderWidth: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  welcomeHero: {
     alignItems: "center",
+    paddingTop: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    paddingHorizontal: 8,
   },
-  cardDestination: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: theme.colors.primary,
-    textTransform: "uppercase",
-  },
-  cardPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  cardHotel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  cardFlight: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  heroIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: theme.borderRadius.xl,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  heroIcon: {
+    fontSize: 24,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    letterSpacing: -0.3,
+  },
+  heroDescription: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 18,
     marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceMuted,
+    maxWidth: 320,
   },
-  demoWarning: {
-    fontSize: 10,
-    color: "#B45309",
-    fontWeight: "500",
+  starterChipsContainer: {
+    width: "100%",
+    marginTop: 20,
+    gap: 8,
   },
-  selectAction: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  inputBar: {
+  starterChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.card,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
+    padding: 10,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 10,
+    ...theme.shadows.sm,
   },
-  input: {
-    flex: 1,
-    height: 44,
-    backgroundColor: theme.colors.surfaceMuted,
+  starterChipIconBox: {
+    width: 32,
+    height: 32,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceContainerLow,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendButtonDisabled: {
-    opacity: 0.4,
+  starterIcon: {
+    fontSize: 16,
   },
-  sendButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
+  starterChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  starterArrow: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+    fontWeight: "600",
+  },
+  messagesList: {
+    gap: 10,
+  },
+  tripCardsContainer: {
+    marginTop: 8,
+    gap: 12,
+  },
+  tripSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 2,
+  },
+  tripSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  tripSectionCount: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    fontWeight: "500",
   },
 });
