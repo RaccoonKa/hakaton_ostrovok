@@ -226,7 +226,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Currency & Language selector */}
             <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 border border-black/[0.05] shadow-2xs text-xs text-content-primary">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span className="font-medium">RUB • Русский</span>
               </div>
               <button
