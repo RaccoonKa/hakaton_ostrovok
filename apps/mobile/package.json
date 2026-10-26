@@ -13,6 +13,7 @@
     "lint": "echo Mobile lint passed"
   },
   "dependencies": {
+    "@babel/runtime": "^8.0.8",
     "@corvax/shared": "workspace:*",
     "expo": "~52.0.37",
     "expo-status-bar": "~2.0.1",
