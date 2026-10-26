@@ -62,8 +62,8 @@ const MONTH_NAMES_GENITIVE = [
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
 const MIN_POSSIBLE_BUDGET = 20000;
-const MAX_POSSIBLE_BUDGET = 500000;
-const BUDGET_STEP = 5000;
+const MAX_POSSIBLE_BUDGET = 1000000;
+const BUDGET_STEP = 10000;
 
 function formatRubles(amount: number): string {
   return amount.toLocaleString("ru-RU") + " ₽";
@@ -83,8 +83,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
   // Synchronous position calculation: perfectly centered between open sidebar and input, raised high up
   const calculateDefaultPosition = () => {
-    const panelWidth = 290;
-    const panelHeight = 420;
+    const panelWidth = 330;
+    const panelHeight = 440;
     const headerHeight = 56;
     const margin = 10;
 
@@ -227,8 +227,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const panelWidth = 290;
-      const panelHeight = 420;
+      const panelWidth = 330;
+      const panelHeight = 440;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
       const deltaY = moveEvent.clientY - dragStartRef.current.startY;
@@ -389,7 +389,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className="fixed z-[100] w-[285px] sm:w-[290px] max-h-[calc(100vh-76px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-2 animate-fade-in"
+      className="fixed z-[100] w-[320px] sm:w-[330px] max-h-[calc(100vh-76px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-2.5 animate-fade-in"
       style={{
         left: `${currentPos.x}px`,
         top: `${currentPos.y}px`,
@@ -584,11 +584,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         </div>
 
         {/* Quick budget chips */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
           {[
-            { label: "до 150 тыс.", min: 40000, max: 150000 },
-            { label: "до 250 тыс.", min: 60000, max: 250000 },
-            { label: "до 400 тыс.", min: 100000, max: 400000 },
+            { label: "до 150 тыс.", min: 20000, max: 150000 },
+            { label: "до 300 тыс.", min: 40000, max: 300000 },
+            { label: "до 500 тыс.", min: 50000, max: 500000 },
+            { label: "до 1 млн", min: 100000, max: 1000000 },
           ].map((chip) => (
             <button
               key={chip.label}
@@ -606,17 +607,19 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 4. Bottom: Adults and Children Counters */}
-      <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+      <div className="flex flex-col gap-2.5 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
         <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5 text-primary" />
           <span>Гости</span>
         </span>
 
         {/* Adults row */}
-        <div className="flex items-center justify-between py-0.5">
+        <div className="flex items-center justify-between py-1">
           <div className="flex flex-col">
             <span className="text-xs sm:text-sm font-bold text-content-primary">Взрослые</span>
-            <span className="text-[11px] font-medium text-content-muted">от 12 лет</span>
+            <span className="text-xs sm:text-[13px] font-semibold text-content-muted dark:text-purple-200/70 mt-1">
+              от 12 лет
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -640,10 +643,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         </div>
 
         {/* Children row */}
-        <div className="flex items-center justify-between py-0.5 border-t border-surface-border/50 dark:border-[#2d2744] pt-1.5">
+        <div className="flex items-center justify-between py-1 border-t border-surface-border/50 dark:border-[#2d2744] pt-2">
           <div className="flex flex-col">
             <span className="text-xs sm:text-sm font-bold text-content-primary">Дети</span>
-            <span className="text-[11px] font-medium text-content-muted">до 11 лет</span>
+            <span className="text-xs sm:text-[13px] font-semibold text-content-muted dark:text-purple-200/70 mt-1">
+              до 11 лет
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
