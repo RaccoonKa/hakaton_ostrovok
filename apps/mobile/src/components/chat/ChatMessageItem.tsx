@@ -24,7 +24,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
       {!isUser && (
         <View style={styles.assistantAvatar}>
-          <Text style={styles.avatarIcon}>✨</Text>
+          <Text style={styles.avatarIcon}>✦</Text>
         </View>
       )}
 
@@ -34,11 +34,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             {message.content}
           </Text>
 
-          {message.timestamp && (
-            <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.assistantTimestamp]}>
-              {message.timestamp}
-            </Text>
-          )}
+          <View style={styles.metaRow}>
+            {message.timestamp && (
+              <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.assistantTimestamp]}>
+                {message.timestamp}
+              </Text>
+            )}
+            {isUser && <Text style={styles.readCheckmark}>✓✓</Text>}
+          </View>
         </View>
 
         {/* Embedded trip options if provided in this message */}
@@ -62,9 +65,10 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 4,
+    marginVertical: 6,
     flexDirection: "row",
-    gap: 8,
+    gap: 10,
+    width: "100%",
   },
   userContainer: {
     justifyContent: "flex-end",
@@ -73,66 +77,81 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
   },
   assistantAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: theme.borderRadius.full,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
+    ...theme.shadows.sm,
   },
   avatarIcon: {
-    fontSize: 13,
+    fontSize: 16,
+    color: "#FFFFFF",
   },
   contentCol: {
     maxWidth: "85%",
   },
   userContentCol: {
     alignItems: "flex-end",
+    flex: 1,
   },
   assistantContentCol: {
     alignItems: "flex-start",
     flex: 1,
   },
   bubble: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    ...theme.shadows.sm,
   },
   userBubble: {
-    backgroundColor: theme.colors.primary,
-    borderBottomRightRadius: 4,
+    backgroundColor: theme.colors.surfaceContainerHigh,
+    borderTopRightRadius: 4,
+    borderWidth: 1,
+    borderColor: "#DCE2F7",
   },
   assistantBubble: {
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderBottomLeftRadius: 4,
+    borderTopLeftRadius: 4,
   },
   text: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   userText: {
-    color: "#FFFFFF",
+    color: theme.colors.textPrimary,
   },
   assistantText: {
     color: theme.colors.textPrimary,
   },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+    marginTop: 6,
+  },
   timestamp: {
-    fontSize: 10,
-    marginTop: 4,
-    alignSelf: "flex-end",
+    fontSize: 11,
   },
   userTimestamp: {
-    color: "rgba(255, 255, 255, 0.7)",
+    color: theme.colors.textTertiary,
   },
   assistantTimestamp: {
     color: theme.colors.textTertiary,
   },
+  readCheckmark: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    fontWeight: "700",
+  },
   tripOptionsList: {
     width: "100%",
     marginTop: 10,
-    gap: 12,
   },
 });
