@@ -117,12 +117,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       {/* Screen 1: Welcome / Empty Dashboard Hero */}
       {messages.length === 0 ? (
         <div className="relative w-full max-w-2xl mx-auto flex flex-col items-center text-center my-auto px-4 sm:px-6 py-12 z-10 animate-fade-in">
-          {/* Tag pill */}
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-light text-primary font-semibold text-xs mb-4 shadow-xs border border-primary/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            <span>Интеллектуальный подбор поездок</span>
-          </div>
-
           {/* Heading */}
           <h1 className="text-3xl sm:text-4xl font-extrabold text-content-primary tracking-tight mb-2">
             Куда хотите поехать?

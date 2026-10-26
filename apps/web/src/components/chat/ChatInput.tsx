@@ -33,8 +33,44 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 }) => {
   const [text, setText] = useState("");
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleVoiceInput = () => {
+    const SpeechRecognition =
+      (window as unknown as { SpeechRecognition?: any }).SpeechRecognition ||
+      (window as unknown as { webkitSpeechRecognition?: any }).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      return;
+    }
+
+    if (isListening) return;
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "ru-RU";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = () => setIsListening(false);
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results?.[0]?.[0]?.transcript;
+        if (transcript) {
+          setText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+          focusInputAtEnd();
+        }
+      };
+
+      recognition.start();
+    } catch {
+      setIsListening(false);
+    }
+  };
 
   // Global shortcut ⌘K / Ctrl+K to focus input
   useEffect(() => {
@@ -223,9 +259,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
-              title="Голосовой ввод"
-              onClick={() => setText("Хочу в Рас-эль-Хайму на 7 ночей в ноябре с ребёнком")}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors"
+              title={isListening ? "Слушаю..." : "Голосовой ввод"}
+              onClick={handleVoiceInput}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                isListening
+                  ? "text-red-500 bg-red-500/10 animate-pulse"
+                  : "text-content-muted hover:text-content-primary hover:bg-surface-container"
+              }`}
             >
               <Mic className="w-4 h-4" />
             </button>

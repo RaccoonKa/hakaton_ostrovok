@@ -45,7 +45,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
   const hotel = tripOption?.hotels?.[0];
   const flight = tripOption?.flights?.[0];
   const pnr = "7W4KL9";
-  const effectivePrice = totalAmount ?? tripOption?.total_price ?? 128600;
+  const effectivePrice = totalAmount ?? tripOption?.total_price ?? 0;
 
   const handlePrint = () => {
     window.print();
