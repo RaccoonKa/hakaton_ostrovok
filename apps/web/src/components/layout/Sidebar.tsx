@@ -93,6 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar aside — frosted glass surface elevated over the main screen */}
       <aside
+        id="main-sidebar"
         className={`fixed left-0 top-0 h-full w-64 bg-white/75 dark:bg-[#151221]/90 backdrop-blur-2xl z-40 flex flex-col justify-between select-none shadow-[4px_0_30px_rgba(0,0,0,0.07)] dark:shadow-[4px_0_30px_rgba(0,0,0,0.4)] transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}

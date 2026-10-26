@@ -82,28 +82,63 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   // Custom position if dragged by user
   const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Synchronous position calculation relative to anchorRef
+  // Synchronous position calculation: perfectly centered between the open sidebar and the input box
   const calculateDefaultPosition = () => {
-    const panelWidth = 330;
-    const panelHeight = 540;
+    const panelWidth = 310;
+    const panelHeight = 520;
+    const headerHeight = 56;
+    const margin = 12;
+
+    // 1. Determine the right boundary of the open sidebar
+    let sidebarRight = 0;
+    const asideEl = document.getElementById("main-sidebar") || document.querySelector("aside");
+    if (asideEl) {
+      const asideRect = asideEl.getBoundingClientRect();
+      if (asideRect.right > 0 && asideRect.left >= 0) {
+        sidebarRight = asideRect.right;
+      }
+    } else if (window.innerWidth >= 768) {
+      sidebarRight = 256;
+    }
 
     if (anchorRef?.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      let x = rect.left - panelWidth - 16;
-      let y = rect.top;
+      const inputLeft = rect.left;
+      const gap = inputLeft - sidebarRight;
+      let x: number;
 
-      if (x < 16) {
-        x = 16;
+      if (gap >= panelWidth + margin * 2) {
+        // Exactly in the center between the sidebar boundary and the input box
+        x = sidebarRight + (gap - panelWidth) / 2;
+      } else {
+        // If the gap is narrower than the panel, place it safely to the right of the sidebar
+        // so it is 100% visible and never hidden under the sidebar
+        x = sidebarRight + margin;
       }
-      if (y + panelHeight > window.innerHeight - 16) {
-        y = Math.max(16, window.innerHeight - panelHeight - 16);
+
+      // Clamp within screen boundaries
+      x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
+
+      // Calculate vertical position (y):
+      let y = rect.top;
+      const maxY = window.innerHeight - panelHeight - margin;
+      const minY = headerHeight + margin;
+
+      if (y > maxY) {
+        y = maxY;
       }
-      if (y < 16) {
-        y = 16;
+      if (y < minY) {
+        y = minY;
       }
+
       return { x, y };
     }
-    return { x: 16, y: 80 };
+
+    const fallbackX =
+      sidebarRight > 0
+        ? sidebarRight + margin
+        : Math.max(margin, (window.innerWidth - panelWidth) / 2);
+    return { x: fallbackX, y: headerHeight + margin + 10 };
   };
 
   const isDraggingRef = useRef(false);
@@ -200,8 +235,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const panelWidth = 330;
-      const panelHeight = 540;
+      const panelWidth = 310;
+      const panelHeight = 520;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
       const deltaY = moveEvent.clientY - dragStartRef.current.startY;
@@ -362,7 +397,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className="fixed z-[100] w-[320px] sm:w-[335px] max-h-[calc(100vh-32px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-3 animate-fade-in"
+      className="fixed z-[100] w-[310px] max-h-[calc(100vh-76px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-2.5 animate-fade-in"
       style={{
         left: `${currentPos.x}px`,
         top: `${currentPos.y}px`,

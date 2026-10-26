@@ -62,24 +62,57 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const calculateDefaultPosition = () => {
     const calendarWidth = 310;
     const calendarHeight = 350;
+    const headerHeight = 56;
+    const margin = 12;
+
+    // Determine the right boundary of the open sidebar
+    let sidebarRight = 0;
+    const asideEl = document.getElementById("main-sidebar") || document.querySelector("aside");
+    if (asideEl) {
+      const asideRect = asideEl.getBoundingClientRect();
+      if (asideRect.right > 0 && asideRect.left >= 0) {
+        sidebarRight = asideRect.right;
+      }
+    } else if (window.innerWidth >= 768) {
+      sidebarRight = 256;
+    }
 
     if (anchorRef?.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      let x = rect.left - calendarWidth - 16;
-      let y = rect.top;
+      const inputLeft = rect.left;
+      const gap = inputLeft - sidebarRight;
+      let x: number;
 
-      if (x < 16) {
-        x = 16;
+      if (gap >= calendarWidth + margin * 2) {
+        // Exactly in the center between the sidebar boundary and the input box
+        x = sidebarRight + (gap - calendarWidth) / 2;
+      } else {
+        // If the gap is narrower than the calendar, place it safely to the right of the sidebar
+        x = sidebarRight + margin;
       }
-      if (y + calendarHeight > window.innerHeight - 16) {
-        y = Math.max(16, window.innerHeight - calendarHeight - 16);
+
+      // Clamp within screen boundaries
+      x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - calendarWidth - margin, x));
+
+      // Vertical position (y)
+      let y = rect.top;
+      const maxY = window.innerHeight - calendarHeight - margin;
+      const minY = headerHeight + margin;
+
+      if (y > maxY) {
+        y = maxY;
       }
-      if (y < 16) {
-        y = 16;
+      if (y < minY) {
+        y = minY;
       }
+
       return { x, y };
     }
-    return { x: 16, y: 100 };
+    const fallbackX =
+      sidebarRight > 0
+        ? sidebarRight + margin
+        : Math.max(margin, (window.innerWidth - calendarWidth) / 2);
+    return { x: fallbackX, y: headerHeight + margin + 10 };
   };
 
   const isDraggingRef = useRef(false);
