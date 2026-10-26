@@ -105,11 +105,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               aria-hidden="true"
             />
 
-            {/* Compact gradient edge (subtle 8px transition) */}
+            {/* Smooth feathered gradient edge extending slightly lower (20px) */}
             <div
-              className="absolute inset-x-0 -bottom-2 h-2 bg-gradient-to-b from-[#6b3b90]/70 via-[#6b3b90]/25 to-transparent pointer-events-none"
+              className="absolute inset-x-0 -bottom-5 h-5 bg-gradient-to-b from-[#6b3b90] via-[#6b3b90]/60 via-35% via-[#6b3b90]/15 via-70% to-transparent pointer-events-none"
               aria-hidden="true"
-            />
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.12] via-white/[0.05] via-40% to-transparent" />
+            </div>
 
             {/* Brand Logo & Title */}
             <div className="flex items-center gap-2.5 relative z-10">
@@ -137,7 +139,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* New route button section */}
-          <div className="px-3 pt-3 pb-1">
+          <div className="px-3 pt-3.5 pb-1 relative z-10">
             <button
               type="button"
               onClick={() => {
