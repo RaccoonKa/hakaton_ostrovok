@@ -97,15 +97,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
-          {/* Top Brand & Actions with Purple Gradient & Backdrop Blur Effect */}
-          <div className="relative pt-3.5 px-4 pb-6 bg-gradient-to-b from-[#581c87] via-[#581c87]/95 via-65% to-transparent backdrop-blur-md text-white shadow-xs">
-            {/* Ambient blur glow layer extending slightly lower */}
+          {/* Top Brand & Actions with Dusty Purple & Frosted Gray-White Layer */}
+          <div className="relative pt-3.5 px-4 pb-3.5 bg-[#6b3b90] text-white shadow-xs">
+            {/* Frosted gray-white overlay layer giving it a softer, lighter purple tint */}
             <div
-              className="absolute inset-x-0 bottom-0 h-8 pointer-events-none -mb-3 bg-gradient-to-b from-[#581c87]/30 via-[#581c87]/10 to-transparent blur-xs"
+              className="absolute inset-0 bg-white/[0.12] backdrop-blur-md pointer-events-none"
               aria-hidden="true"
             />
 
-            <div className="flex items-center justify-between mb-3.5 relative z-10">
+            {/* Compact gradient edge (subtle 10px transition, does not take up extra space) */}
+            <div
+              className="absolute inset-x-0 -bottom-2.5 h-2.5 bg-gradient-to-b from-[#6b3b90]/75 via-[#6b3b90]/25 to-transparent pointer-events-none"
+              aria-hidden="true"
+            />
+
+            <div className="flex items-center justify-between mb-3 relative z-10">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
                   О!
@@ -114,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="text-sm font-bold text-white tracking-tight leading-tight">
                     О!дин запрос
                   </span>
-                  <span className="text-[11px] text-white/80 font-medium leading-tight">
+                  <span className="text-[11px] text-white/85 font-medium leading-tight">
                     travel AI-assistant
                   </span>
                 </div>
@@ -139,7 +145,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white text-content-primary hover:bg-white/95 border border-white/30 transition-all shadow-sm group relative z-10"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
-                <Plus className="w-4 h-4 text-[#581c87] group-hover:rotate-90 transition-transform" />
+                <Plus className="w-4 h-4 text-[#6b3b90] group-hover:rotate-90 transition-transform" />
                 <span>Новый маршрут</span>
               </span>
               <kbd className="font-mono text-[10px] text-content-muted bg-surface-container px-1.5 py-0.5 rounded border border-surface-container-highest/60">
