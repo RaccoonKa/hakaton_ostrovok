@@ -6,15 +6,11 @@ import {
   Sparkles,
   ArrowUpRight,
   Send,
-  Calendar,
-  DollarSign,
-  Users,
   SlidersHorizontal,
 } from "lucide-react";
 import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
-import { DateRangePicker } from "./common/DateRangePicker";
 import { SearchFiltersPopover } from "./chat/SearchFiltersPopover";
 import { useTravelAgent } from "../hooks/useTravelAgent";
 import { useSidebar } from "../context/SidebarContext";
@@ -40,7 +36,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
 
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const heroFormRef = useRef<HTMLFormElement>(null);
   const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,20 +46,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       const len = heroTextareaRef.current.value.length;
       heroTextareaRef.current.setSelectionRange(len, len);
     }
-  };
-
-  const handleApplyDates = (datesText: string) => {
-    setHeroInput((prev) => {
-      const dateRegex = /(\+?\s*Даты:\s*)[^\n,+]*/i;
-      if (dateRegex.test(prev)) {
-        return prev.replace(dateRegex, `+ ${datesText}`);
-      }
-      const trimmed = prev.trim();
-      return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
-    });
-    setIsDatePickerOpen(false);
-    focusHeroInputAtEnd();
-    requestAnimationFrame(focusHeroInputAtEnd);
   };
 
   const handleApplyHeroFilters = (formattedText: string) => {
@@ -88,30 +69,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     if (!heroInput.trim() || isLoading) return;
     sendMessage(heroInput.trim());
     setHeroInput("");
-  };
-
-  const appendHeroTag = (tag: string) => {
-    setHeroInput((prev) => {
-      const trimmed = prev.trim();
-      const tagWithColon = `${tag}:`;
-      const existingIndex = trimmed.indexOf(tagWithColon);
-      if (existingIndex !== -1) {
-        requestAnimationFrame(() => {
-          if (heroTextareaRef.current) {
-            heroTextareaRef.current.focus();
-            const targetPos = existingIndex + tagWithColon.length + 1;
-            heroTextareaRef.current.setSelectionRange(targetPos, targetPos);
-          }
-        });
-        return prev;
-      }
-      return trimmed ? `${trimmed} ${tag}: ` : `${tag}: `;
-    });
-
-    focusHeroInputAtEnd();
-    requestAnimationFrame(() => {
-      focusHeroInputAtEnd();
-    });
   };
 
   const getSuggestionIcon = (text: string) => {
@@ -175,73 +132,28 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               className="w-full resize-none bg-transparent text-sm sm:text-base text-content-primary placeholder:text-content-muted focus:outline-hidden leading-relaxed"
             />
 
-            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border flex-wrap">
-              {/* Tag modifier chips */}
-              <div className="flex items-center flex-wrap gap-1.5">
-                <div className="relative">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setIsFiltersOpen((prev) => !prev)}
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      isFiltersOpen
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary"
-                    }`}
-                    title="Параметры поиска"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Фильтры</span>
-                  </button>
-
-                  <SearchFiltersPopover
-                    isOpen={isFiltersOpen}
-                    onClose={() => setIsFiltersOpen(false)}
-                    onApply={handleApplyHeroFilters}
-                    anchorRef={heroFormRef}
-                  />
-                </div>
-
-                <div className="relative">
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setIsDatePickerOpen((prev) => !prev)}
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      isDatePickerOpen
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary"
-                    }`}
-                  >
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span>+ Даты</span>
-                  </button>
-
-                  <DateRangePicker
-                    isOpen={isDatePickerOpen}
-                    onClose={() => setIsDatePickerOpen(false)}
-                    onApply={handleApplyDates}
-                    anchorRef={heroFormRef}
-                  />
-                </div>
+            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border">
+              {/* Settings button on the left as icon */}
+              <div className="relative">
                 <button
                   type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => appendHeroTag("+ Бюджет")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
+                  title="Параметры поиска"
+                  onClick={() => setIsFiltersOpen((prev) => !prev)}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                    isFiltersOpen
+                      ? "bg-primary text-white shadow-xs"
+                      : "text-content-muted hover:text-content-primary hover:bg-surface-muted"
+                  }`}
                 >
-                  <DollarSign className="w-3.5 h-3.5 text-content-muted" />
-                  <span>+ Бюджет</span>
+                  <SlidersHorizontal className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => appendHeroTag("+ С детьми")}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
-                >
-                  <Users className="w-3.5 h-3.5 text-content-muted" />
-                  <span>+ С детьми</span>
-                </button>
+
+                <SearchFiltersPopover
+                  isOpen={isFiltersOpen}
+                  onClose={() => setIsFiltersOpen(false)}
+                  onApply={handleApplyHeroFilters}
+                  anchorRef={heroFormRef}
+                />
               </div>
 
               {/* Submit button */}

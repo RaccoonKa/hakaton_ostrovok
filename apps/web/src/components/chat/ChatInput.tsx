@@ -1,13 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { DateRangePicker } from "../common/DateRangePicker";
 import { SearchFiltersPopover } from "./SearchFiltersPopover";
 import {
   Send,
   SlidersHorizontal,
   Mic,
-  Calendar,
-  DollarSign,
-  Users,
   Sparkles,
 } from "lucide-react";
 
@@ -33,7 +29,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   placeholder = "Спросите что угодно или уточните параметры путешествия...",
 }) => {
   const [text, setText] = useState("");
-  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const chatFormRef = useRef<HTMLFormElement>(null);
@@ -95,20 +90,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handleApplyDates = (datesText: string) => {
-    setText((prev) => {
-      const dateRegex = /(\+?\s*Даты:\s*)[^\n,+]*/i;
-      if (dateRegex.test(prev)) {
-        return prev.replace(dateRegex, `+ ${datesText}`);
-      }
-      const trimmed = prev.trim();
-      return trimmed ? `${trimmed} + ${datesText}` : `+ ${datesText}`;
-    });
-    setIsDatePickerOpen(false);
-    focusInputAtEnd();
-    requestAnimationFrame(focusInputAtEnd);
-  };
-
   const handleApplyFilters = (formattedText: string) => {
     if (!formattedText) return;
     setText((prev) => {
@@ -150,31 +131,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     });
   };
 
-  const appendTag = (tag: string) => {
-    setText((prev) => {
-      const trimmed = prev.trim();
-      const tagWithColon = `${tag}:`;
-      const existingIndex = trimmed.indexOf(tagWithColon);
-      if (existingIndex !== -1) {
-        requestAnimationFrame(() => {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            const targetPos = existingIndex + tagWithColon.length + 1;
-            inputRef.current.setSelectionRange(targetPos, targetPos);
-            inputRef.current.scrollLeft = inputRef.current.scrollWidth;
-          }
-        });
-        return prev;
-      }
-      return trimmed ? `${trimmed} ${tag}: ` : `${tag}: `;
-    });
-
-    focusInputAtEnd();
-    requestAnimationFrame(() => {
-      focusInputAtEnd();
-    });
-  };
-
   return (
     <div className="w-full max-w-3xl mx-auto flex flex-col gap-2">
       {/* Quick suggestions bar */}
@@ -205,50 +161,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         }}
         className="bg-surface-container-lowest rounded-2xl shadow-lg border border-surface-container-highest/80 p-2 sm:p-2.5 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-header/25 focus-within:border-header/40 transition-all duration-200 backdrop-blur-md"
       >
-        {/* Modifier tags line */}
-        <div className="flex items-center flex-wrap gap-1 px-1">
-          <div className="relative">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => setIsDatePickerOpen((prev) => !prev)}
-              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                isDatePickerOpen
-                  ? "bg-primary text-white shadow-xs"
-                  : "bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary"
-              }`}
-            >
-              <Calendar className="w-3 h-3 text-content-muted" />
-              <span>+ Даты</span>
-            </button>
-
-            <DateRangePicker
-              isOpen={isDatePickerOpen}
-              onClose={() => setIsDatePickerOpen(false)}
-              onApply={handleApplyDates}
-              anchorRef={chatFormRef}
-            />
-          </div>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => appendTag("+ Бюджет")}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
-          >
-            <DollarSign className="w-3 h-3 text-content-muted" />
-            <span>+ Бюджет</span>
-          </button>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => appendTag("+ С детьми")}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
-          >
-            <Users className="w-3 h-3 text-content-muted" />
-            <span>+ С детьми</span>
-          </button>
-        </div>
-
         {/* Input & action controls */}
         <div className="flex items-center gap-2 px-1">
           <button

@@ -118,8 +118,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       // Clamp within screen boundaries
       x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
 
-      // 2. Vertical position (y): positioned just below header (~78px from top, lowered ~3mm)
-      const targetY = headerHeight + 22;
+      // 2. Vertical position (y): positioned ~5mm lower (~97px from top of screen)
+      const targetY = headerHeight + 41;
       const maxY = Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin);
       const y = Math.min(targetY, maxY);
 
@@ -130,7 +130,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       sidebarRight > 0
         ? sidebarRight + margin
         : Math.max(margin, (window.innerWidth - panelWidth) / 2);
-    return { x: fallbackX, y: headerHeight + 22 };
+    return { x: fallbackX, y: headerHeight + 41 };
   };
 
   const isDraggingRef = useRef(false);
