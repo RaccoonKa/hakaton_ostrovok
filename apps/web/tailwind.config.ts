@@ -9,11 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Brand header color
+        // Deep purple brand header color
         header: {
-          DEFAULT: "#a758cc",
-          hover: "#9544b8",
-          dark: "#8433a5",
+          DEFAULT: "#581c87",
+          hover: "#4c1675",
+          dark: "#3b0764",
         },
 
         // Stitch / Warm Tech Travel Workspace tokens
@@ -24,7 +24,7 @@ const config: Config = {
         "surface-container-lowest": "#ffffff",
         "on-surface": "#1b1b1e",
         "on-surface-variant": "#4a4453",
-        "primary-container": "#5b21b6",
+        "primary-container": "#581c87",
         "on-primary-container": "#c7aaff",
         "primary-fixed": "#ebddff",
         "on-primary-fixed-variant": "#581db3",
@@ -74,7 +74,7 @@ const config: Config = {
       boxShadow: {
         card: "0 1px 3px rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.02)",
         "card-hover": "0 4px 12px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.03)",
-        focus: "0 0 0 3px rgba(167, 88, 204, 0.25)",
+        focus: "0 0 0 3px rgba(88, 28, 135, 0.3)",
       },
     },
   },

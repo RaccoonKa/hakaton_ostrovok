@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
 
   return (
     <header
-      className={`fixed top-0 right-0 h-14 bg-[#a758cc] text-white shadow-xs z-30 flex items-center justify-between px-4 sm:px-6 select-none transition-all duration-300 ease-in-out ${
+      className={`fixed top-0 right-0 h-14 bg-[#581c87] text-white shadow-xs z-30 flex items-center justify-between px-4 sm:px-6 select-none transition-all duration-300 ease-in-out ${
         isSidebarOpen ? "left-0 md:left-64" : "left-0"
       }`}
     >
@@ -51,13 +51,8 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
         </div>
       </div>
 
-      {/* Right: Online Status badge & actions */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/15 text-white border border-white/20 backdrop-blur-xs shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-          <span>Онлайн</span>
-        </div>
-
+      {/* Right: Actions */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
         {onResetChat && (
           <button
             type="button"
