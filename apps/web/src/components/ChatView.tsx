@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Sun,
   Building,
@@ -37,6 +37,15 @@ export const ChatView: React.FC<ChatViewProps> = () => {
 
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
+  const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const focusHeroInputAtEnd = () => {
+    if (heroTextareaRef.current) {
+      heroTextareaRef.current.focus();
+      const len = heroTextareaRef.current.value.length;
+      heroTextareaRef.current.setSelectionRange(len, len);
+    }
+  };
 
   const handleHeroSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -46,7 +55,27 @@ export const ChatView: React.FC<ChatViewProps> = () => {
   };
 
   const appendHeroTag = (tag: string) => {
-    setHeroInput((prev) => (prev ? `${prev} ${tag}: ` : `${tag}: `));
+    setHeroInput((prev) => {
+      const trimmed = prev.trim();
+      const tagWithColon = `${tag}:`;
+      const existingIndex = trimmed.indexOf(tagWithColon);
+      if (existingIndex !== -1) {
+        requestAnimationFrame(() => {
+          if (heroTextareaRef.current) {
+            heroTextareaRef.current.focus();
+            const targetPos = existingIndex + tagWithColon.length + 1;
+            heroTextareaRef.current.setSelectionRange(targetPos, targetPos);
+          }
+        });
+        return prev;
+      }
+      return trimmed ? `${trimmed} ${tag}: ` : `${tag}: `;
+    });
+
+    focusHeroInputAtEnd();
+    requestAnimationFrame(() => {
+      focusHeroInputAtEnd();
+    });
   };
 
   const getSuggestionIcon = (text: string) => {
@@ -89,12 +118,18 @@ export const ChatView: React.FC<ChatViewProps> = () => {
           {/* Hero text area input */}
           <form
             onSubmit={handleHeroSubmit}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                focusHeroInputAtEnd();
+              }
+            }}
             className="w-full text-left rounded-2xl bg-surface shadow-md border border-surface-border p-4 focus-within:shadow-lg focus-within:border-primary/50 transition-all duration-200"
           >
             <label htmlFor="travel-prompt-input" className="sr-only">
               Запрос для путешествия
             </label>
             <textarea
+              ref={heroTextareaRef}
               id="travel-prompt-input"
               rows={3}
               value={heroInput}
@@ -114,27 +149,30 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <div className="flex items-center flex-wrap gap-1.5">
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => appendHeroTag("+ Даты")}
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <Calendar className="w-3.5 h-3.5 text-content-muted" />
-                  <span>Даты</span>
+                  <span>+ Даты</span>
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => appendHeroTag("+ Бюджет")}
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <DollarSign className="w-3.5 h-3.5 text-content-muted" />
-                  <span>Бюджет</span>
+                  <span>+ Бюджет</span>
                 </button>
                 <button
                   type="button"
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => appendHeroTag("+ С детьми")}
                   className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-muted hover:bg-surface-subtle text-content-secondary hover:text-content-primary text-xs font-medium transition-colors"
                 >
                   <Users className="w-3.5 h-3.5 text-content-muted" />
-                  <span>С детьми</span>
+                  <span>+ С детьми</span>
                 </button>
               </div>
 

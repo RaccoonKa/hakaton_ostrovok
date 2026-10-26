@@ -45,6 +45,15 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const focusInputAtEnd = () => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+      const len = inputRef.current.value.length;
+      inputRef.current.setSelectionRange(len, len);
+      inputRef.current.scrollLeft = inputRef.current.scrollWidth;
+    }
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     const trimmed = text.trim();
@@ -57,15 +66,35 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     // Strip quotes if any
     const cleanText = suggestionText.replace(/^«|»$/g, "");
     setText(cleanText);
-    inputRef.current?.focus();
+    focusInputAtEnd();
+    requestAnimationFrame(() => {
+      focusInputAtEnd();
+    });
   };
 
   const appendTag = (tag: string) => {
     setText((prev) => {
       const trimmed = prev.trim();
+      const tagWithColon = `${tag}:`;
+      const existingIndex = trimmed.indexOf(tagWithColon);
+      if (existingIndex !== -1) {
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            const targetPos = existingIndex + tagWithColon.length + 1;
+            inputRef.current.setSelectionRange(targetPos, targetPos);
+            inputRef.current.scrollLeft = inputRef.current.scrollWidth;
+          }
+        });
+        return prev;
+      }
       return trimmed ? `${trimmed} ${tag}: ` : `${tag}: `;
     });
-    inputRef.current?.focus();
+
+    focusInputAtEnd();
+    requestAnimationFrame(() => {
+      focusInputAtEnd();
+    });
   };
 
   return (
@@ -77,6 +106,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <button
               key={item}
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => handleSuggestionClick(item)}
               className="shrink-0 px-3 py-1 rounded-full bg-surface-container hover:bg-surface-container-high text-content-primary transition-colors text-xs flex items-center gap-1 shadow-xs active:scale-95"
             >
@@ -89,12 +119,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Main input box */}
       <form
         onSubmit={handleSubmit}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            focusInputAtEnd();
+          }
+        }}
         className="bg-surface-container-lowest rounded-2xl shadow-lg border border-surface-container-highest/80 p-2 sm:p-2.5 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-header/25 focus-within:border-header/40 transition-all duration-200 backdrop-blur-md"
       >
         {/* Modifier tags line */}
         <div className="flex items-center flex-wrap gap-1 px-1">
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => appendTag("+ Даты")}
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
           >
@@ -103,6 +139,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => appendTag("+ Бюджет")}
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
           >
@@ -111,6 +148,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => appendTag("+ С детьми")}
             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container text-content-secondary hover:text-content-primary text-[11px] font-medium transition-colors"
           >
