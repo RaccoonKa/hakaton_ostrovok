@@ -5,6 +5,12 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from core.settings import DatabaseType, settings
+from memory.db_storage import (
+    fetch_payloads,
+    init_db_and_seed,
+    is_db_available,
+    query_db,
+)
 from memory.mongodb import get_mongo_saver
 from memory.postgres import get_postgres_saver, get_postgres_store
 from memory.sqlite import get_sqlite_saver, get_sqlite_store
@@ -37,4 +43,11 @@ def initialize_store():
         return get_sqlite_store()
 
 
-__all__ = ["initialize_database", "initialize_store"]
+__all__ = [
+    "fetch_payloads",
+    "init_db_and_seed",
+    "initialize_database",
+    "initialize_store",
+    "is_db_available",
+    "query_db",
+]

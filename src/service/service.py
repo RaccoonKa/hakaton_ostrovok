@@ -28,9 +28,8 @@ from langsmith import Client as LangsmithClient
 from langsmith import uuid7
 
 from agents import DEFAULT_AGENT, get_agent, get_all_agent_info, load_agent
-
 from core import settings
-from memory import initialize_database, initialize_store
+from memory import init_db_and_seed, initialize_database, initialize_store
 from schema import (
     ChatHistory,
     ChatHistoryInput,
@@ -77,6 +76,7 @@ def verify_bearer(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
+        await init_db_and_seed()
         async with initialize_database() as saver, initialize_store() as store:
             if hasattr(saver, "setup"):
                 await saver.setup()
