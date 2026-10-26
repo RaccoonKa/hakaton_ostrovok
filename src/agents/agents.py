@@ -4,8 +4,9 @@ from typing import Any
 from langgraph.graph.state import CompiledStateGraph
 
 from agents.travel.graph import travel_agent_graph
-from .chatbot import chatbot
 from schema import AgentInfo
+
+from .chatbot import chatbot
 
 DEFAULT_AGENT = "chatbot"
 
@@ -13,7 +14,12 @@ DEFAULT_AGENT = "chatbot"
 @dataclass
 class Agent:
     description: str
-    graph: CompiledStateGraph
+    graph: CompiledStateGraph | Any = None
+    graph_like: Any = None
+
+    def __post_init__(self) -> None:
+        if self.graph is None and self.graph_like is not None:
+            self.graph = self.graph_like
 
 
 agents: dict[str, Agent] = {
