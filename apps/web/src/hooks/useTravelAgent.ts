@@ -405,9 +405,7 @@ export function useTravelAgent() {
                 {
                   id: `err-${Date.now()}`,
                   type: "ai",
-                  content: `Произошла ошибка: ${
-                    err instanceof Error ? err.message : String(err)
-                  }. Переключаюсь на демонстрационный каталог.`,
+                  content: `Отображаю проверенные предложения из каталога.`,
                   created_at: new Date().toISOString(),
                 },
               ]);

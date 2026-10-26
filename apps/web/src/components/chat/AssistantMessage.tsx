@@ -52,7 +52,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
     <div className="flex flex-col gap-2 w-full animate-fade-in pr-2 sm:pr-8">
       {/* Assistant Header */}
       <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-primary-container text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+        <div className="w-7 h-7 rounded-lg bg-header text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
           О!
         </div>
         <div className="flex items-baseline gap-1.5 flex-wrap">
@@ -140,7 +140,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
               <button
                 type="button"
                 onClick={() => onSelectOption?.(selectedOption)}
-                className="self-start sm:self-auto text-xs text-primary hover:underline font-medium"
+                className="self-start sm:self-auto text-xs text-header hover:underline font-medium"
               >
                 ← Вернуться к списку направлений
               </button>
@@ -169,7 +169,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
               currency={selectedOption.currency}
               optimizationDiff={optimizationDiff}
               onConfirmDemo={onConfirmDemoBooking}
-              confirmLabel="Подтвердить демо-бронирование"
+              confirmLabel="Забронировать тур"
             />
           </div>
         )}

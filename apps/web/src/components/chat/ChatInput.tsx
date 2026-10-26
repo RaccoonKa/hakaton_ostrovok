@@ -92,7 +92,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       {/* Main input box */}
       <form
         onSubmit={handleSubmit}
-        className="bg-surface-container-lowest rounded-2xl shadow-lg border border-surface-container-highest/80 p-2 sm:p-2.5 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-primary/20 transition-all backdrop-blur-md"
+        className="bg-surface-container-lowest rounded-2xl shadow-lg border border-surface-container-highest/80 p-2 sm:p-2.5 flex flex-col gap-2 focus-within:ring-2 focus-within:ring-header/25 focus-within:border-header/40 transition-all duration-200 backdrop-blur-md"
       >
         {/* Modifier tags line */}
         <div className="flex items-center flex-wrap gap-1 px-1">
@@ -151,7 +151,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
-              title="Голосовой ввод (демо)"
+              title="Голосовой ввод"
               onClick={() => setText("Хочу в Рас-эль-Хайму на 7 ночей в ноябре с ребёнком")}
               className="w-8 h-8 rounded-xl flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container transition-colors"
             >
@@ -162,7 +162,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               type="submit"
               disabled={!text.trim() || isLoading}
               title="Отправить (Enter)"
-              className="w-9 h-9 rounded-xl bg-primary-container hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95"
+              className="w-9 h-9 rounded-xl bg-header hover:bg-header-hover disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95"
             >
               <Send className="w-4 h-4" />
             </button>

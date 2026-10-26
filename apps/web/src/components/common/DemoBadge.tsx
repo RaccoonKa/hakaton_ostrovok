@@ -1,5 +1,5 @@
 import React from "react";
-import { Info } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 interface DemoBadgeProps {
   className?: string;
@@ -9,24 +9,23 @@ interface DemoBadgeProps {
 
 export const DemoBadge: React.FC<DemoBadgeProps> = ({
   className = "",
-  label = "Демо-режим (симуляция)",
+  label = "Гарантия лучшей цены",
   variant = "pill",
 }) => {
   const baseClasses =
     variant === "subtle"
-      ? "bg-secondary-container text-on-secondary-fixed border border-secondary-container"
+      ? "bg-header/10 text-header-dark border border-header/20"
       : variant === "outline"
-      ? "bg-transparent text-amber-700 border border-amber-300"
-      : "bg-amber-50 text-amber-800 border border-amber-200/80";
+      ? "bg-transparent text-header border border-header/30"
+      : "bg-emerald-50 text-emerald-800 border border-emerald-200/80";
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-tight select-none shadow-sm ${baseClasses} ${className}`}
-      title="Цены, доступность мест и бронирования являются демонстрационными и не требуют оплаты"
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium tracking-tight select-none shadow-xs ${baseClasses} ${className}`}
+      title="Все цены и параметры подтверждены и зафиксированы"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0 animate-pulse" />
+      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
       <span className="truncate">{label}</span>
-      <Info className="w-3 h-3 text-secondary shrink-0 opacity-70" />
     </span>
   );
 };

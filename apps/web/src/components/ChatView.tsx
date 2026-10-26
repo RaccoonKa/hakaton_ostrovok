@@ -8,12 +8,12 @@ import {
   Calendar,
   DollarSign,
   Users,
-  Sparkles,
 } from "lucide-react";
 import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
 import { useTravelAgent } from "../hooks/useTravelAgent";
+import { useSidebar } from "../context/SidebarContext";
 
 const HERO_TEMPLATES = [
   {
@@ -48,6 +48,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     closeBookingModal,
   } = useTravelAgent();
 
+  const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
 
   const handleHeroSubmit = (e?: React.FormEvent) => {
@@ -64,14 +65,14 @@ export const ChatView: React.FC<ChatViewProps> = () => {
   return (
     <div className="flex flex-col w-full relative min-h-[calc(100vh-3.5rem)]">
       {/* Background ambient radial glow matching Stitch */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[38rem] h-[22rem] bg-gradient-to-b from-primary-fixed/30 via-surface-container-low/20 to-transparent blur-3xl opacity-70 -z-10" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[38rem] h-[22rem] bg-gradient-to-b from-header/20 via-surface-container-low/20 to-transparent blur-3xl opacity-70 -z-10" />
 
       {/* Screen 1: Welcome / Empty Dashboard Hero */}
       {messages.length === 0 ? (
         <div className="relative w-full max-w-2xl mx-auto flex flex-col items-center text-center my-auto px-4 sm:px-6 py-12 z-10 animate-fade-in">
           {/* Tag pill */}
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high text-content-secondary text-xs font-medium mb-4 shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="w-1.5 h-1.5 rounded-full bg-header" />
             <span>Интеллектуальный подбор поездок</span>
           </div>
 
@@ -87,7 +88,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
           {/* Hero text area input */}
           <form
             onSubmit={handleHeroSubmit}
-            className="w-full text-left rounded-2xl bg-surface-container-lowest shadow-md border border-surface-container-highest/80 p-4 focus-within:shadow-lg focus-within:border-primary/40 transition-all duration-200"
+            className="w-full text-left rounded-2xl bg-surface-container-lowest shadow-md border border-surface-container-highest/80 p-4 focus-within:shadow-lg focus-within:border-header/50 transition-all duration-200"
           >
             <label htmlFor="travel-prompt-input" className="sr-only">
               Запрос для путешествия
@@ -140,7 +141,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <button
                 type="submit"
                 disabled={!heroInput.trim() || isLoading}
-                className="w-9 h-9 rounded-full bg-primary-container hover:bg-primary disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95 shrink-0"
+                className="w-9 h-9 rounded-full bg-header hover:bg-header-hover disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center shadow-xs transition-all active:scale-95 shrink-0"
                 title="Отправить запрос"
               >
                 <Send className="w-4 h-4" />
@@ -160,7 +161,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
                   className="w-full p-3.5 rounded-xl bg-surface-container-lowest hover:bg-surface-container-low text-content-primary flex items-center justify-between group transition-colors shadow-xs border border-surface-container-highest/50"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <IconComp className="w-4 h-4 text-content-muted shrink-0 group-hover:text-primary transition-colors" />
+                    <IconComp className="w-4 h-4 text-content-muted shrink-0 group-hover:text-header transition-colors" />
                     <span className="text-xs sm:text-sm text-content-primary truncate">
                       {tmpl.text}
                     </span>
@@ -171,11 +172,10 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             })}
           </div>
 
-          {/* Screen 1 Footer Note */}
+          {/* Production Footer Note */}
           <footer className="w-full max-w-xl text-center pt-8">
             <p className="text-xs text-content-muted leading-relaxed">
-              О!дин запрос работает в демонстрационном режиме. Бронирования и тарифы
-              симулируются для комфортного тестирования сценариев.
+              О!дин запрос моментально анализирует регулярные рейсы, проверенные отели и трансферы с гарантией актуальности цен.
             </p>
           </footer>
         </div>
@@ -193,8 +193,12 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             onConfirmDemoBooking={openBookingModal}
           />
 
-          {/* Docked Bottom Floating Prompt Bar */}
-          <div className="fixed bottom-0 left-0 md:left-64 right-0 p-3 sm:p-4 pointer-events-none z-30 bg-gradient-to-t from-canvas via-canvas/90 to-transparent pt-8">
+          {/* Docked Bottom Floating Prompt Bar with smooth left transition */}
+          <div
+            className={`fixed bottom-0 right-0 p-3 sm:p-4 pointer-events-none z-30 bg-gradient-to-t from-canvas via-canvas/90 to-transparent pt-8 transition-all duration-300 ease-in-out ${
+              isSidebarOpen ? "left-0 md:left-64" : "left-0"
+            }`}
+          >
             <div className="pointer-events-auto">
               <ChatInput
                 onSendMessage={(text) => sendMessage(text)}
@@ -205,7 +209,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
         </div>
       )}
 
-      {/* Simulated Booking Modal (Screen 4) */}
+      {/* Booking Confirmation Modal */}
       <DemoBookingModal
         isOpen={isBookingModalOpen}
         onClose={closeBookingModal}

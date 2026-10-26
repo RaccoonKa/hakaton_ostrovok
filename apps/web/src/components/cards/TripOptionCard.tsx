@@ -2,7 +2,6 @@ import React from "react";
 import { Plane, Star, Clock, CheckCircle2, ArrowRight } from "lucide-react";
 import { TripOption } from "../../types/travel";
 import { formatPrice } from "@corvax/shared";
-import { DemoBadge } from "../common/DemoBadge";
 
 interface TripOptionCardProps {
   option: TripOption;
@@ -40,9 +39,9 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
 
   return (
     <div
-      className={`group bg-surface-container-lowest border transition-all duration-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-sm hover:shadow-card-hover ${
+      className={`group bg-surface-container-lowest border transition-all duration-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row gap-4 items-center justify-between shadow-xs hover:shadow-card-hover ${
         selected
-          ? "border-primary ring-2 ring-primary/20 bg-primary-light/10"
+          ? "border-header ring-2 ring-header/20 bg-header/5"
           : "border-surface-container-high hover:border-outline-variant/80"
       }`}
     >
@@ -68,7 +67,9 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
             <h4 className="text-sm sm:text-base font-bold text-content-primary leading-tight truncate">
               {option.destination || option.title}
             </h4>
-            {option.isDemo && <DemoBadge variant="subtle" label="Демо" className="text-[10px]" />}
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+              Рекомендуем
+            </span>
           </div>
 
           <p className="text-xs text-content-secondary line-clamp-2 leading-relaxed">
@@ -78,7 +79,7 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
 
           <div className="flex items-center gap-2 text-[11px] text-content-muted mt-0.5">
             <span className="flex items-center gap-1">
-              <Plane className="w-3 h-3 text-primary" />
+              <Plane className="w-3 h-3 text-header" />
               <span>
                 {primaryFlight?.duration ? "Прямой рейс" : "Удобный перелёт"}
               </span>
@@ -95,7 +96,7 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
       {/* Right: Pricing & CTA */}
       <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 gap-3 border-t sm:border-t-0 border-surface-container-high/60 pt-2 sm:pt-0">
         <div className="text-left sm:text-right">
-          <div className="text-base sm:text-lg font-bold text-primary leading-tight">
+          <div className="text-base sm:text-lg font-bold text-header leading-tight">
             ~{formatPrice(option.total_price, option.currency)}
           </div>
           <div className="text-[11px] text-content-muted">
@@ -106,10 +107,10 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
         <button
           type="button"
           onClick={() => onSelect?.(option)}
-          className={`px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all shadow-sm flex items-center gap-1.5 active:scale-95 ${
+          className={`px-4 py-2 rounded-lg font-semibold text-xs sm:text-sm transition-all shadow-xs flex items-center gap-1.5 active:scale-95 ${
             selected
-              ? "bg-primary text-white"
-              : "bg-primary-container hover:bg-primary text-white"
+              ? "bg-header text-white"
+              : "bg-header/90 hover:bg-header text-white"
           }`}
         >
           {selected ? (

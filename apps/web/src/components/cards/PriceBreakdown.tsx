@@ -7,7 +7,6 @@ import {
   Car,
   ShieldCheck,
   ArrowRight,
-  ArrowRightLeft,
 } from "lucide-react";
 import { TripBudget, Currency } from "../../types/travel";
 import { formatPrice } from "@corvax/shared";
@@ -48,7 +47,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
   currency = Currency.RUB,
   optimizationDiff,
   onConfirmDemo,
-  confirmLabel = "Подтвердить демо-бронирование",
+  confirmLabel = "Забронировать тур",
 }) => {
   const flightsTotal = budget?.flights_total ?? 51400;
   const hotelsTotal = budget?.hotels_total ?? 68600;
@@ -56,7 +55,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
   const total = budget?.total ?? flightsTotal + hotelsTotal + transfersTotal;
 
   return (
-    <div className="flex flex-col gap-5 bg-surface-container-lowest rounded-2xl p-5 sm:p-6 border border-surface-container-highest/60 shadow-sm">
+    <div className="flex flex-col gap-5 bg-surface-container-lowest rounded-2xl p-5 sm:p-6 border border-surface-container-highest/60 shadow-xs">
       {/* Optional Optimization Diff Header (Screen 4) */}
       {optimizationDiff && (
         <div className="flex flex-col gap-3 pb-4 border-b border-surface-container-highest/60">
@@ -84,7 +83,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
             {optimizationDiff.dateChange && (
               <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-1.5 text-content-muted">
-                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  <Calendar className="w-3.5 h-3.5 text-header" />
                   <span>Даты вылета</span>
                 </div>
                 <div className="line-through text-content-muted">
@@ -104,7 +103,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
             {optimizationDiff.flightChange && (
               <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-1.5 text-content-muted">
-                  <Plane className="w-3.5 h-3.5 text-primary" />
+                  <Plane className="w-3.5 h-3.5 text-header" />
                   <span>Перелёт</span>
                 </div>
                 <div className="line-through text-content-muted">
@@ -124,7 +123,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
             {optimizationDiff.hotelChange && (
               <div className="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 text-xs">
                 <div className="flex items-center gap-1.5 text-content-muted">
-                  <Building2 className="w-3.5 h-3.5 text-primary" />
+                  <Building2 className="w-3.5 h-3.5 text-header" />
                   <span>Проживание (7 ночей)</span>
                 </div>
                 <div className="line-through text-content-muted truncate">
@@ -193,7 +192,7 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
               {formatPrice(optimizationDiff.previousTotal, currency)}
             </div>
           )}
-          <div className="text-2xl font-bold text-primary tracking-tight">
+          <div className="text-2xl font-bold text-header tracking-tight">
             {formatPrice(total, currency)}
           </div>
           <span className="text-xs text-content-muted block">за 7 ночей, семья</span>
@@ -206,14 +205,14 @@ export const PriceBreakdown: React.FC<PriceBreakdownProps> = ({
           <button
             type="button"
             onClick={onConfirmDemo}
-            className="w-full py-3.5 px-6 rounded-xl bg-primary hover:bg-primary-hover active:scale-[0.99] text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-6 rounded-xl bg-header hover:bg-header-hover active:scale-[0.99] text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2"
           >
             <span>{confirmLabel}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           <div className="flex items-center justify-center gap-1.5 text-xs text-content-muted">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Демо-режим (симуляция) — реальное списание средств не производится</span>
+            <span>Безопасная оплата • Моментальное подтверждение и электронные билеты</span>
           </div>
         </div>
       )}

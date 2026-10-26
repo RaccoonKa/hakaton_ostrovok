@@ -9,6 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Brand header color
+        header: {
+          DEFAULT: "#a758cc",
+          hover: "#9544b8",
+          dark: "#8433a5",
+        },
+
         // Stitch / Warm Tech Travel Workspace tokens
         "surface-container-low": "#f6f2f7",
         "surface-container": "#f0edf1",
@@ -67,7 +74,7 @@ const config: Config = {
       boxShadow: {
         card: "0 1px 3px rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.02)",
         "card-hover": "0 4px 12px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.03)",
-        focus: "0 0 0 3px rgba(84, 56, 220, 0.2)",
+        focus: "0 0 0 3px rgba(167, 88, 204, 0.25)",
       },
     },
   },
