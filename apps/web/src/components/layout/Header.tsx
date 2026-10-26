@@ -1,5 +1,6 @@
-import React from "react";
-import { PanelLeft, Share2, RefreshCw, Moon, Sun } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { PanelLeft, Share2, RefreshCw, Moon, Sun, Check } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -11,19 +12,44 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const { isDark, toggleTheme } = useTheme();
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator
-        .share({
-          title: "О!дин запрос — AI-планировщик путешествий",
-          url: window.location.href,
-        })
-        .catch(() => {});
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert("Ссылка на диалог скопирована в буфер обмена!");
+  const [isCopied, setIsCopied] = useState(false);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleShare = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(window.location.href);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = window.location.href;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
+    } catch {
+      // Fallback
     }
+
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setIsCopied(true);
+    toastTimeoutRef.current = setTimeout(() => {
+      setIsCopied(false);
+    }, 2500);
   };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <header
@@ -69,10 +95,18 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
         <button
           type="button"
           onClick={handleShare}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:bg-white/15 hover:text-white transition-colors"
-          title="Поделиться маршрутом"
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+            isCopied
+              ? "bg-white/20 text-emerald-300 shadow-xs"
+              : "text-white/90 hover:bg-white/15 hover:text-white"
+          }`}
+          title={isCopied ? "Ссылка скопирована!" : "Поделиться маршрутом"}
         >
-          <Share2 className="w-4 h-4" />
+          {isCopied ? (
+            <Check className="w-4 h-4 text-emerald-300 stroke-[2.5]" />
+          ) : (
+            <Share2 className="w-4 h-4" />
+          )}
         </button>
 
         {/* Theme Toggle Button: Moon for dark theme, Sun when dark is active */}
@@ -90,6 +124,25 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
           )}
         </button>
       </div>
+
+      {/* Floating Copied Toast Notification */}
+      {isCopied &&
+        createPortal(
+          <div
+            role="status"
+            aria-live="polite"
+            onClick={() => setIsCopied(false)}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-surface dark:bg-[#1c182c] text-content-primary dark:text-white border border-surface-border dark:border-[#383152] shadow-[0_16px_36px_-6px_rgba(0,0,0,0.35)] backdrop-blur-md cursor-pointer select-none animate-toast"
+          >
+            <div className="w-5 h-5 rounded-full bg-emerald-500/15 dark:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+            </div>
+            <span className="text-xs sm:text-sm font-medium pr-1">
+              Ссылка на маршрут скопирована
+            </span>
+          </div>,
+          document.body
+        )}
     </header>
   );
 };
