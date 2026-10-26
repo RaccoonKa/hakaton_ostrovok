@@ -55,8 +55,33 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Position state for draggable window in screen viewport coordinates
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  // Custom position if dragged by user; null = calculate dynamically from anchorRef
+  const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Synchronous calculation of position relative to anchorRef
+  const calculateDefaultPosition = () => {
+    const calendarWidth = 310;
+    const calendarHeight = 350;
+
+    if (anchorRef?.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      let x = rect.left - calendarWidth - 16;
+      let y = rect.top;
+
+      if (x < 16) {
+        x = 16;
+      }
+      if (y + calendarHeight > window.innerHeight - 16) {
+        y = Math.max(16, window.innerHeight - calendarHeight - 16);
+      }
+      if (y < 16) {
+        y = 16;
+      }
+      return { x, y };
+    }
+    return { x: 16, y: 100 };
+  };
+
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
     startX: 0,
@@ -77,40 +102,29 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   const [hoverDate, setHoverDate] = useState<Date | null>(null);
   const [flexDays, setFlexDays] = useState<number | null>(initialFlexDays);
 
-  // Calculate default position: to the left of the input container (anchorRef)
+  // Reset dragged position when closed
   useEffect(() => {
     if (!isOpen) {
-      setPos(null);
-      return;
+      setDraggedPos(null);
     }
+  }, [isOpen]);
 
-    const calendarWidth = 310;
-    const calendarHeight = 350;
-
-    if (anchorRef?.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      // Default position: to the left of the input box with a 16px gap
-      let x = rect.left - calendarWidth - 16;
-      let y = rect.top;
-
-      // If not enough room to the left of the input box, place at left margin of the screen
-      if (x < 16) {
-        x = 16;
+  // Window resize/scroll listener to update position when not manually dragged
+  const [, setRepositionTick] = useState(0);
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleReposition = () => {
+      if (!isDraggingRef.current && !draggedPos) {
+        setRepositionTick((t) => t + 1);
       }
-
-      // Check vertical viewport bounds
-      if (y + calendarHeight > window.innerHeight - 16) {
-        y = Math.max(16, window.innerHeight - calendarHeight - 16);
-      }
-      if (y < 16) {
-        y = 16;
-      }
-
-      setPos({ x, y });
-    } else {
-      setPos({ x: 16, y: 100 });
-    }
-  }, [isOpen, anchorRef]);
+    };
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+    return () => {
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [isOpen, draggedPos]);
 
   // Close on Escape or click outside (unless currently dragging)
   useEffect(() => {
@@ -143,13 +157,14 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const target = e.target as HTMLElement;
     if (target.closest("button") || target.closest("input")) return;
 
+    const current = draggedPos ?? calculateDefaultPosition();
     e.preventDefault();
     isDraggingRef.current = true;
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      initX: pos?.x ?? 16,
-      initY: pos?.y ?? 100,
+      initX: current.x,
+      initY: current.y,
     };
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
@@ -167,7 +182,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       const clampedX = Math.max(8, Math.min(window.innerWidth - calendarWidth - 8, nextX));
       const clampedY = Math.max(8, Math.min(window.innerHeight - calendarHeight - 8, nextY));
 
-      setPos({ x: clampedX, y: clampedY });
+      setDraggedPos({ x: clampedX, y: clampedY });
     };
 
     const handlePointerUp = () => {
@@ -183,6 +198,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const currentPos = draggedPos ?? calculateDefaultPosition();
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth();
@@ -270,8 +287,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
       onPointerDown={handleDragStart}
       className="fixed z-[100] w-[300px] sm:w-[315px] bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default"
       style={{
-        left: pos ? `${pos.x}px` : "16px",
-        top: pos ? `${pos.y}px` : "100px",
+        left: `${currentPos.x}px`,
+        top: `${currentPos.y}px`,
         boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0,0,0,0.1)",
       }}
     >
