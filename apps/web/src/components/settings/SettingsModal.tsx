@@ -125,47 +125,15 @@ export const SettingsModal: React.FC = () => {
         className="bg-white border border-slate-200/80 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden text-content-primary"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header & Tabs */}
-        <div className="border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center justify-between px-5 pt-4 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center text-primary">
-                {activeTab === "search" ? (
-                  <Sliders className="w-4.5 h-4.5" />
-                ) : (
-                  <User className="w-4.5 h-4.5" />
-                )}
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-content-primary leading-tight">
-                  {activeTab === "search" ? "Параметры поиска" : "Профиль и аккаунт"}
-                </h2>
-                <span className="text-xs text-content-muted leading-tight">
-                  {activeTab === "search"
-                    ? "Регион, валюта и фильтры по умолчанию"
-                    : "Личные данные, статус Премиум и документы"}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={closeSettingsModal}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-slate-200/60 transition-colors"
-              title="Закрыть"
-            >
-              <X className="w-4.5 h-4.5" />
-            </button>
-          </div>
-
-          {/* Tab Switcher Buttons */}
-          <div className="flex px-5 gap-2 pb-2">
+        {/* Header Tabs */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/70">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setActiveTab("search")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "search"
-                  ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                  ? "bg-white text-primary shadow-xs border border-slate-200/80 font-bold"
                   : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
               }`}
             >
@@ -178,14 +146,23 @@ export const SettingsModal: React.FC = () => {
               onClick={() => setActiveTab("account")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 activeTab === "account"
-                  ? "bg-white text-primary shadow-xs border border-slate-200/80"
+                  ? "bg-white text-primary shadow-xs border border-slate-200/80 font-bold"
                   : "text-content-secondary hover:text-content-primary hover:bg-slate-100/80"
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span>Профиль и аккаунт</span>
+              <span>Профиль</span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={closeSettingsModal}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-slate-200/60 transition-colors"
+            title="Закрыть"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
         </div>
 
         {/* Scrollable Form Body */}
@@ -399,9 +376,6 @@ export const SettingsModal: React.FC = () => {
                     </div>
                     <span className="text-xs text-white/80 block mt-0.5">
                       {draftProfile.email}
-                    </span>
-                    <span className="text-[11px] text-white/70 block mt-1">
-                      Доступ: персональный AI-консьерж 24/7, кешбэк 7% милями Ostrovok
                     </span>
                   </div>
                 </div>
