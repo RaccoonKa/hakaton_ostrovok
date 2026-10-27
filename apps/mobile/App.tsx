@@ -4,7 +4,6 @@ import {
   View,
   Text,
   ScrollView,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
@@ -48,7 +47,6 @@ function getSuggestionIcon(text: string): IconName {
 
 function MainApp() {
   const [inputText, setInputText] = useState("");
-  const [heroInputText, setHeroInputText] = useState("");
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
@@ -113,13 +111,6 @@ function MainApp() {
     sendMessage(text);
   };
 
-  const handleSendHero = () => {
-    if (!heroInputText.trim() || isThinking || isStreaming) return;
-    const text = heroInputText;
-    setHeroInputText("");
-    sendMessage(text);
-  };
-
   const handleSelectChip = (chipText: string) => {
     if (isThinking || isStreaming) return;
     sendMessage(chipText);
@@ -136,7 +127,7 @@ function MainApp() {
 
   const handleApplyFilters = (filterPrompt: string) => {
     if (messages.length === 0) {
-      setHeroInputText((prev) =>
+      setInputText((prev) =>
         prev.trim() ? `${prev.trim()} (${filterPrompt})` : filterPrompt
       );
     } else {
@@ -184,89 +175,14 @@ function MainApp() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Screen 1: Welcome & Prompt Card matching Web ChatView Hero */}
+          {/* Screen 1: Welcome matching Web ChatView Hero without compass icon */}
           {isInitialState ? (
             <View style={styles.welcomeHero}>
-              <View style={styles.heroIconBadge}>
-                <Icon name="compass" size={26} color={theme.colors.primary} />
-              </View>
-
               <Text style={styles.heroTitle}>Куда хотите поехать?</Text>
               <Text style={styles.heroDescription}>
                 Опишите поездку своими словами: даты, бюджет, пожелания к пляжу
                 или компании. ИИ подберёт честные варианты и соберёт готовый маршрут.
               </Text>
-
-              {/* Central Interactive Prompt Card */}
-              <View style={styles.heroPromptCard}>
-                <TextInput
-                  style={styles.heroTextInput}
-                  value={heroInputText}
-                  onChangeText={setHeroInputText}
-                  placeholder="Например: Хочу куда-нибудь к тёплому морю в ноябре, недорого, с ребёнком, без долгих перелётов..."
-                  placeholderTextColor={theme.colors.textMuted}
-                  multiline
-                  numberOfLines={3}
-                  editable={!isThinking && !isStreaming}
-                />
-
-                <View style={styles.heroCardFooter}>
-                  <TouchableOpacity
-                    style={styles.filterButton}
-                    onPress={() => setFiltersVisible(true)}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Параметры поиска"
-                  >
-                    <Icon name="sliders" size={17} color={theme.colors.textSecondary} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.heroSendButton,
-                      heroInputText.trim() && !isThinking
-                        ? styles.heroSendButtonActive
-                        : styles.heroSendButtonDisabled,
-                    ]}
-                    onPress={handleSendHero}
-                    disabled={!heroInputText.trim() || isThinking || isStreaming}
-                    activeOpacity={0.8}
-                    accessibilityLabel="Отправить запрос"
-                  >
-                    <Icon
-                      name="send"
-                      size={15}
-                      color={heroInputText.trim() && !isThinking ? "#FFFFFF" : theme.colors.textMuted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Starter Scenarios Chips from SHARED_SUGGESTIONS */}
-              <View style={styles.starterChipsContainer}>
-                {SHARED_SUGGESTIONS.slice(0, 4).map((suggestionText) => {
-                  const iconName = getSuggestionIcon(suggestionText);
-                  return (
-                    <TouchableOpacity
-                      key={suggestionText}
-                      style={styles.starterChip}
-                      onPress={() => handleSelectChip(suggestionText)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.starterChipIconBox}>
-                        <Icon name={iconName} size={16} color={theme.colors.primary} />
-                      </View>
-                      <Text style={styles.starterChipText} numberOfLines={2}>
-                        {suggestionText}
-                      </Text>
-                      <Icon
-                        name="arrow-up-right"
-                        size={15}
-                        color={theme.colors.textMuted}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
 
               {/* History Dialogs Action Link */}
               <TouchableOpacity
@@ -274,7 +190,7 @@ function MainApp() {
                 onPress={() => setHistoryVisible(true)}
                 activeOpacity={0.7}
               >
-                <Icon name="clock" size={14} color={theme.colors.textSecondary} />
+                <Icon name="clock" size={14} color={theme.colors.primary} />
                 <Text style={styles.historyLinkText}>История диалогов</Text>
               </TouchableOpacity>
             </View>
@@ -314,18 +230,51 @@ function MainApp() {
           )}
         </ScrollView>
 
-        {/* Bottom Chat Bar only in Active Chat (no floating mock clutter) */}
-        {!isInitialState && (
-          <View style={styles.dockedBottomContainer}>
-            <ChatInputBar
-              value={inputText}
-              onChangeText={setInputText}
-              onSend={handleSendActiveChat}
-              disabled={isThinking || isStreaming}
-              onFilterPress={() => setFiltersVisible(true)}
-            />
-          </View>
-        )}
+        {/* Docked Bottom Chat Bar with Prompt Suggestions directly above it */}
+        <View style={styles.dockedBottomContainer}>
+          {isInitialState && (
+            <View style={styles.dockedSuggestionsWrapper}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.dockedSuggestionsScroll}
+                keyboardShouldPersistTaps="handled"
+              >
+                {SHARED_SUGGESTIONS.map((suggestionText) => {
+                  const iconName = getSuggestionIcon(suggestionText);
+                  return (
+                    <TouchableOpacity
+                      key={suggestionText}
+                      style={styles.suggestionPill}
+                      onPress={() => handleSelectChip(suggestionText)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={styles.suggestionPillIconBox}>
+                        <Icon name={iconName} size={13} color={theme.colors.primary} />
+                      </View>
+                      <Text style={styles.suggestionPillText} numberOfLines={1}>
+                        {suggestionText}
+                      </Text>
+                      <Icon
+                        name="arrow-up-right"
+                        size={12}
+                        color={theme.colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          <ChatInputBar
+            value={inputText}
+            onChangeText={setInputText}
+            onSend={handleSendActiveChat}
+            disabled={isThinking || isStreaming}
+            onFilterPress={() => setFiltersVisible(true)}
+          />
+        </View>
 
         {/* Real Production-grade Booking Checkout Modal */}
         <BookingCheckoutModal
@@ -413,131 +362,42 @@ const styles = StyleSheet.create({
   },
   welcomeHero: {
     alignItems: "center",
-    paddingTop: theme.spacing.lg,
-    paddingBottom: theme.spacing.md,
-    paddingHorizontal: 4,
-  },
-  heroIconBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: theme.borderRadius.xl,
-    backgroundColor: theme.colors.primaryLight, // #FAF5FF
-    borderWidth: 1,
-    borderColor: "rgba(88, 28, 135, 0.15)",
-    alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
-    ...theme.shadows.sm,
+    paddingHorizontal: 20,
+    paddingTop: 48,
+    paddingBottom: 24,
   },
   heroTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "800",
     color: theme.colors.textPrimary,
     textAlign: "center",
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
   },
   heroDescription: {
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 20,
-    marginTop: 8,
-    maxWidth: 340,
-  },
-  heroPromptCard: {
-    width: "100%",
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.xl,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    padding: 14,
-    marginTop: 22,
-    ...theme.shadows.md,
-  },
-  heroTextInput: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    minHeight: 64,
-    textAlignVertical: "top",
     lineHeight: 22,
-    padding: 0,
-  },
-  heroCardFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: 10,
-    marginTop: 8,
-  },
-  filterButton: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.canvasMuted,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroSendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroSendButtonDisabled: {
-    backgroundColor: theme.colors.border,
-  },
-  heroSendButtonActive: {
-    backgroundColor: theme.colors.primary, // #581C87
-    ...theme.shadows.sm,
-  },
-  starterChipsContainer: {
-    width: "100%",
-    marginTop: 22,
-    gap: 10,
-  },
-  starterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.surface,
-    padding: 12,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: 12,
-    ...theme.shadows.sm,
-  },
-  starterChipIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainer,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  starterChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: theme.colors.textPrimary,
-    flex: 1,
-    lineHeight: 18,
+    marginTop: 10,
+    maxWidth: 320,
   },
   historyLink: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    marginTop: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    gap: 7,
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
   },
   historyLinkText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
   },
   activeChatWrapper: {
     width: "100%",
@@ -613,5 +473,42 @@ const styles = StyleSheet.create({
   },
   dockedBottomContainer: {
     backgroundColor: theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
+  },
+  dockedSuggestionsWrapper: {
+    paddingVertical: 10,
+    backgroundColor: theme.colors.background,
+  },
+  dockedSuggestionsScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: "center",
+  },
+  suggestionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 7,
+    ...theme.shadows.sm,
+  },
+  suggestionPillIconBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.surfaceContainer,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  suggestionPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+    maxWidth: 220,
   },
 });

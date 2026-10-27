@@ -211,7 +211,14 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Итого за весь тур:</Text>
-          <Text style={styles.totalValue}>{totalPriceFormatted}</Text>
+          <Text
+            style={styles.totalValue}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {totalPriceFormatted}
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -219,7 +226,12 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           onPress={() => onBookTour(option)}
           activeOpacity={0.85}
         >
-          <Text style={styles.bookButtonText}>
+          <Text
+            style={styles.bookButtonText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
             Забронировать тур • {totalPriceFormatted}
           </Text>
         </TouchableOpacity>

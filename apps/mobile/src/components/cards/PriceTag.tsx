@@ -40,6 +40,9 @@ const PriceTagComponent: React.FC<PriceTagProps> = ({
             styles[`price_${size}`],
             color ? { color } : { color: theme.colors.primary },
           ]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
         >
           {formatted}
         </Text>

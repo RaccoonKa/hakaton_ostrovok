@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { NativeModules } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   TripOption,
   TravelApiClient,
@@ -28,6 +29,8 @@ export interface UseMobileAgentOptions {
 }
 
 declare const process: any;
+
+const STORAGE_SESSIONS_KEY = "odin_mobile_sessions_v1";
 
 function getDefaultBackendUrl(): string {
   if (typeof process !== "undefined" && process?.env?.EXPO_PUBLIC_BACKEND_URL) {
@@ -68,6 +71,35 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   const threadIdRef = useRef<string | null>(null);
   const timer1Ref = useRef<any>(null);
   const timer2Ref = useRef<any>(null);
+
+  // Load saved sessions from persistent storage on mount
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(STORAGE_SESSIONS_KEY);
+        if (stored && isMounted) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSavedSessions(parsed);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to load saved mobile sessions from AsyncStorage:", err);
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(list));
+    } catch (err) {
+      console.warn("Failed to save mobile sessions to AsyncStorage:", err);
+    }
+  };
 
   const clearTimers = useCallback(() => {
     if (timer1Ref.current) {
@@ -134,12 +166,15 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
           tripOptions: options,
           selectedOption: selectedOpt,
         };
+        let next: SavedMobileSession[];
         if (existingIdx >= 0) {
-          const next = [...prev];
+          next = [...prev];
           next[existingIdx] = updated;
-          return next;
+        } else {
+          next = [updated, ...prev];
         }
-        return [updated, ...prev];
+        saveSessionsToStorage(next);
+        return next;
       });
     },
     []
@@ -181,7 +216,17 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         timestamp: timeStr,
       };
 
-      setMessages((prev) => [...prev, userMsg]);
+      if (!threadIdRef.current) {
+        threadIdRef.current = `mobile-session-${Date.now()}`;
+        setActiveSessionId(threadIdRef.current);
+      }
+      const currentThreadId = threadIdRef.current;
+
+      setMessages((prev) => {
+        const next = [...prev, userMsg];
+        persistSession(next, tripOptions, selectedOption, currentThreadId);
+        return next;
+      });
       setHistorySessions((prev) => {
         if (prev.some((h) => h.query === trimmed)) return prev;
         return [{ id: `h-${Date.now()}`, query: trimmed, timestamp: timeStr }, ...prev];
@@ -201,12 +246,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
           setThinkingText("Рассчитываю бюджет и оптимизацию...");
         }
       }, 1500);
-
-      if (!threadIdRef.current) {
-        threadIdRef.current = `mobile-session-${Date.now()}`;
-        setActiveSessionId(threadIdRef.current);
-      }
-      const currentThreadId = threadIdRef.current;
 
       let accumulatedContent = "";
 
@@ -348,6 +387,10 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               clearTimers();
               setIsThinking(false);
               setIsStreaming(false);
+              setMessages((latest) => {
+                persistSession(latest, tripOptions, selectedOption, currentThreadId);
+                return latest;
+              });
             },
             onError: (err) => {
               clearTimers();
@@ -394,9 +437,15 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     [cancelRequest, clearTimers, isThinking]
   );
 
-  const selectOption = useCallback((option: TripOption | null) => {
-    setSelectedOption(option);
-  }, []);
+  const selectOption = useCallback(
+    (option: TripOption | null) => {
+      setSelectedOption(option);
+      if (threadIdRef.current && messages.length > 0) {
+        persistSession(messages, tripOptions, option, threadIdRef.current);
+      }
+    },
+    [messages, persistSession, tripOptions]
+  );
 
   const openCheckout = useCallback(
     (option?: TripOption) => {
@@ -450,7 +499,11 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
   const deleteSession = useCallback(
     (sessionId: string) => {
-      setSavedSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      setSavedSessions((prev) => {
+        const next = prev.filter((s) => s.id !== sessionId);
+        saveSessionsToStorage(next);
+        return next;
+      });
       if (activeSessionId === sessionId) {
         resetChat();
       }

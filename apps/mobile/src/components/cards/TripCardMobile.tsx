@@ -246,8 +246,13 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
         <View style={styles.footerRow}>
           <View style={styles.priceCol}>
             <Text style={styles.priceLabel}>Итого за тур:</Text>
-            <Text style={styles.priceValue}>
-              ~{formatPrice(option.total_price, option.currency)}
+            <Text
+              style={styles.priceValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              ~{formatPrice(option.total_price, option.currency).replace(/ /g, "\u00A0")}
             </Text>
           </View>
 
@@ -262,13 +267,13 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             >
               {isSelected ? (
                 <>
-                  <Icon name="check" size={14} color="#FFFFFF" />
+                  <Icon name="check" size={13} color="#FFFFFF" />
                   <Text style={styles.selectButtonText}>Выбрано</Text>
                 </>
               ) : (
                 <>
-                  <Text style={styles.selectButtonText}>Выбрать тур</Text>
-                  <Icon name="arrow-right" size={14} color="#FFFFFF" />
+                  <Text style={styles.selectButtonText}>Выбрать</Text>
+                  <Icon name="arrow-right" size={13} color="#FFFFFF" />
                 </>
               )}
             </TouchableOpacity>
@@ -278,8 +283,9 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
                 style={styles.bookButton}
                 onPress={() => onBookDemo(option)}
                 activeOpacity={0.8}
+                accessibilityLabel="Забронировать тур"
               >
-                <Text style={styles.bookButtonText}>Забронировать</Text>
+                <Text style={styles.bookButtonText}>Бронь</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -489,51 +495,57 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderSubtle,
     paddingTop: 10,
-    marginTop: 2,
+    marginTop: 3,
+    gap: 8,
   },
   priceCol: {
     flex: 1,
+    minWidth: 105,
+    justifyContent: "center",
   },
   priceLabel: {
     fontSize: 11,
     color: theme.colors.textMuted,
+    lineHeight: 14,
   },
   priceValue: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
     color: theme.colors.primary,
     letterSpacing: -0.3,
+    marginTop: 1,
   },
   actionButtonsCol: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
   },
   selectButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: theme.borderRadius.lg,
-    gap: 6,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    gap: 5,
   },
   selectButtonActive: {
     backgroundColor: "#047857",
   },
   selectButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
   },
   bookButton: {
     backgroundColor: theme.colors.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: theme.borderRadius.lg,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
   },
   bookButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
   },

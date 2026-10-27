@@ -214,7 +214,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </span>
                   </div>
                 </div>
-                <span className="text-xs font-bold">Войти →</span>
               </button>
             )}
           </div>

@@ -5,12 +5,36 @@ const STORAGE_CURRENT_SESSION_KEY = "odin_current_session_v1";
 
 const DEFAULT_USERS: AuthUser[] = [];
 
+export interface StorageAdapter {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+  removeItem: (key: string) => void;
+}
+
+const memoryStore = new Map<string, string>();
+let customAdapter: StorageAdapter | null = null;
+
 export class ClientAuthManager {
-  private static getStorage(): Storage | null {
+  static setStorageAdapter(adapter: StorageAdapter | null): void {
+    customAdapter = adapter;
+  }
+
+  private static getStorage(): StorageAdapter | Storage {
+    if (customAdapter) {
+      return customAdapter;
+    }
     if (typeof window !== "undefined" && window.localStorage) {
       return window.localStorage;
     }
-    return null;
+    return {
+      getItem: (key: string) => memoryStore.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        memoryStore.set(key, value);
+      },
+      removeItem: (key: string) => {
+        memoryStore.delete(key);
+      },
+    };
   }
 
   static getUsers(): AuthUser[] {
