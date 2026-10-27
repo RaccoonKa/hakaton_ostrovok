@@ -89,7 +89,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     const panelWidth = 295;
     const panelHeight = 440;
     const headerHeight = 56;
-    const margin = isSidebarOpen ? 28 : 16;
+    const margin = isSidebarOpen ? 18 : 14;
 
     // 1. Determine the right boundary of the open sidebar
     let sidebarRight = 0;
@@ -103,8 +103,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         ? Math.max(8, (window.innerWidth - panelWidth) / 2)
         : sidebarRight + margin;
 
-    // 3. Vertical position (y): starts comfortably below header and clamps inside screen
-    const targetY = headerHeight + 16;
+    // 3. Vertical position (y): lowered slightly per user request and clamped
+    const targetY = headerHeight + 30;
     const maxY =
       typeof window !== "undefined"
         ? Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin)
@@ -153,7 +153,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   useEffect(() => {
     if (!isOpen || !draggedPos) return;
     if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
-      const minX = 256 + 28;
+      const minX = 256 + 18;
       if (draggedPos.x < minX) {
         setDraggedPos((prev) => (prev ? { ...prev, x: minX } : null));
       }
