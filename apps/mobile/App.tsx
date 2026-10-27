@@ -363,20 +363,6 @@ function MainApp() {
           }}
         />
 
-        {/* Animated Slide-out Sidebar Drawer matching Web layout */}
-        <SidebarDrawer
-          visible={historyVisible}
-          onClose={() => setHistoryVisible(false)}
-          savedSessions={savedSessions}
-          activeSessionId={activeSessionId}
-          onSelectSession={(session) => selectSession(session)}
-          onDeleteSession={(id) => deleteSession(id)}
-          onNewChat={resetChat}
-          activeAccount={headerAccount}
-          onOpenProfileOrAuth={handleOpenProfileOrAuth}
-          isDark={isDark}
-        />
-
         {/* Traveler Profile & Settings Modal */}
         <ProfileModal
           visible={profileVisible}
@@ -401,15 +387,29 @@ function MainApp() {
           }}
           isDark={isDark}
         />
-
-        {/* Travel Search Filters Modal */}
-        <TravelFiltersModal
-          visible={filtersVisible}
-          onClose={() => setFiltersVisible(false)}
-          onApplyFilters={handleApplyFilters}
-          isDark={isDark}
-        />
       </KeyboardAvoidingView>
+
+      {/* Animated Slide-out Sidebar Drawer (in-tree root overlay, 0ms status bar flicker) */}
+      <SidebarDrawer
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        savedSessions={savedSessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={(session) => selectSession(session)}
+        onDeleteSession={(id) => deleteSession(id)}
+        onNewChat={resetChat}
+        activeAccount={headerAccount}
+        onOpenProfileOrAuth={handleOpenProfileOrAuth}
+        isDark={isDark}
+      />
+
+      {/* Travel Search Filters Overlay (1:1 Web Parity, 0ms opening lag) */}
+      <TravelFiltersModal
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+        onApplyFilters={handleApplyFilters}
+        isDark={isDark}
+      />
     </View>
   );
 }

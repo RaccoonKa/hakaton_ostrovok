@@ -1,24 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   Text,
   View,
-  Modal,
-  ScrollView,
   TouchableOpacity,
-  Switch,
+  ScrollView,
+  Animated,
+  Dimensions,
+  BackHandler,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme, getTheme } from "../../theme";
+import { formatFilterQuery } from "@corvax/shared";
+import { getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
-import {
-  ORIGIN_CITIES,
-  DESTINATION_DIRECTIONS,
-  DURATION_OPTIONS,
-  BUDGET_OPTIONS,
-  MEAL_OPTIONS,
-  buildFilterPrompt,
-} from "../../utils/filters";
 
 export {
   ORIGIN_CITIES,
@@ -30,6 +23,8 @@ export {
   buildFilterPrompt,
 } from "../../utils/filters";
 
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
 export interface TravelFiltersModalProps {
   visible: boolean;
   onClose: () => void;
@@ -38,16 +33,45 @@ export interface TravelFiltersModalProps {
 }
 
 const MONTH_NAMES = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
 ];
 
 const MONTH_NAMES_GENITIVE = [
-  "января", "февраля", "марта", "апреля", "мая", "июня",
-  "июля", "августа", "сентября", "октября", "ноября", "декабря",
+  "января",
+  "февраля",
+  "марта",
+  "апреля",
+  "мая",
+  "июня",
+  "июля",
+  "августа",
+  "сентября",
+  "октября",
+  "ноября",
+  "декабря",
 ];
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+const MIN_POSSIBLE_BUDGET = 20000;
+const MAX_POSSIBLE_BUDGET = 1000000;
+const BUDGET_STEP_MIN = 10000;
+const BUDGET_STEP_MAX = 20000;
+
+function formatRubles(amount: number): string {
+  return amount.toLocaleString("ru-RU") + " ₽";
+}
 
 export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
   visible,
@@ -55,58 +79,75 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
   onApplyFilters,
   isDark = false,
 }) => {
-  const insets = useSafeAreaInsets();
   const currentTheme = getTheme(isDark);
   const colors = currentTheme.colors;
 
-  const today = new Date();
+  const today = useRef(new Date()).current;
   today.setHours(0, 0, 0, 0);
 
-  // Calendar dates state
+  // Dates state (matching Web SearchFiltersPopover)
   const [viewDate, setViewDate] = useState<Date>(() => new Date(today));
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // Other travel options state
-  const [originCity, setOriginCity] = useState("Москва");
-  const [destination, setDestination] = useState("");
-  const [directFlightsOnly, setDirectFlightsOnly] = useState(true);
-  const [duration, setDuration] = useState("7");
-  const [budget, setBudget] = useState("200000");
-  const [mealPlan, setMealPlan] = useState("all_inclusive");
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
+  // Budget state (matching Web SearchFiltersPopover defaults)
+  const [minBudget, setMinBudget] = useState<number>(40000);
+  const [maxBudget, setMaxBudget] = useState<number>(180000);
 
-  const handleReset = () => {
-    setStartDate(null);
-    setEndDate(null);
-    setViewDate(new Date(today));
-    setOriginCity("Москва");
-    setDestination("");
-    setDirectFlightsOnly(true);
-    setDuration("7");
-    setBudget("200000");
-    setMealPlan("all_inclusive");
-    setAdults(2);
-    setChildren(0);
-  };
+  // Guests state (matching Web SearchFiltersPopover defaults)
+  const [adults, setAdults] = useState<number>(2);
+  const [children, setChildren] = useState<number>(0);
 
-  const handleApply = () => {
-    const promptSummary = buildFilterPrompt({
-      originCity,
-      destination,
-      directFlightsOnly,
-      duration,
-      budget,
-      mealPlan,
-      adults,
-      children,
-      startDate,
-      endDate,
+  // Smooth in-tree animation state
+  const [isMounted, setIsMounted] = useState(visible);
+  const fadeAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const scaleAnim = useRef(new Animated.Value(visible ? 1 : 0.95)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setIsMounted(true);
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 65,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else if (isMounted) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.95,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsMounted(false);
+      });
+    }
+  }, [visible, isMounted, fadeAnim, scaleAnim]);
+
+  // Android hardware back button handler
+  useEffect(() => {
+    if (!visible) return;
+    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose();
+      return true;
     });
-    onApplyFilters(promptSummary);
-    onClose();
-  };
+    return () => backSub.remove();
+  }, [visible, onClose]);
+
+  if (!visible && !isMounted) return null;
 
   // Calendar calculations
   const currentYear = viewDate.getFullYear();
@@ -156,6 +197,21 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
     }
   };
 
+  const handleApply = () => {
+    const formattedText = formatFilterQuery({
+      startDate,
+      endDate,
+      minBudget,
+      maxBudget,
+      adults,
+      children,
+    });
+
+    onApplyFilters(formattedText);
+    onClose();
+  };
+
+  // Calendar cells
   const calendarCells = [];
   for (let i = firstDayOfWeek - 1; i >= 0; i--) {
     const day = daysInPrevMonth - i;
@@ -174,937 +230,941 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
     calendarCells.push({ day: i, isCurrentMonth: false, isPast: true, date: null });
   }
 
+  // Budget progress percentage
+  const trackMinPct = Math.max(
+    0,
+    Math.min(
+      100,
+      ((minBudget - MIN_POSSIBLE_BUDGET) / (MAX_POSSIBLE_BUDGET - MIN_POSSIBLE_BUDGET)) * 100
+    )
+  );
+  const trackMaxPct = Math.max(
+    0,
+    Math.min(
+      100,
+      ((maxBudget - MIN_POSSIBLE_BUDGET) / (MAX_POSSIBLE_BUDGET - MIN_POSSIBLE_BUDGET)) * 100
+    )
+  );
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent
-      onRequestClose={onClose}
+    <View
+      style={[StyleSheet.absoluteFill, styles.rootOverlay]}
+      pointerEvents={visible ? "auto" : "none"}
     >
-      <View style={styles.overlay}>
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.background,
-              paddingBottom: Math.max(insets.bottom, 16),
-            },
-          ]}
+      {/* Backdrop */}
+      <Animated.View
+        style={[
+          styles.backdrop,
+          {
+            opacity: fadeAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 0.5],
+            }),
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backdropTouch}
+          activeOpacity={1}
+          onPress={onClose}
+          accessibilityLabel="Закрыть параметры поездки"
+        />
+      </Animated.View>
+
+      {/* Popover Card (matching Web SearchFiltersPopover 1:1) */}
+      <Animated.View
+        style={[
+          styles.cardContainer,
+          {
+            backgroundColor: isDark ? "#1C182C" : "#FFFFFF",
+            borderColor: isDark ? "#383152" : "#E2E8F0",
+            opacity: fadeAnim,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          {/* Header */}
+          {/* 1. Header matching Web 1:1 */}
           <View
             style={[
-              styles.header,
+              styles.cardHeader,
+              { borderBottomColor: isDark ? "#2D2744" : "rgba(0, 0, 0, 0.06)" },
+            ]}
+          >
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: isDark ? "#FFFFFF" : colors.textPrimary },
+              ]}
+            >
+              ПАРАМЕТРЫ ПОЕЗДКИ
+            </Text>
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                {
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(0, 0, 0, 0.05)",
+                },
+              ]}
+              onPress={onClose}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityLabel="Закрыть"
+            >
+              <Icon name="close" size={14} color={isDark ? "#D8B4FE" : colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
+          {/* 2. Top Block: Mini-Calendar matching Web 1:1 */}
+          <View
+            style={[
+              styles.sectionBox,
               {
-                backgroundColor: colors.surface,
-                borderBottomColor: colors.borderSubtle,
+                backgroundColor: isDark ? "#231E38" : "rgba(241, 245, 249, 0.65)",
+                borderColor: isDark ? "#322A4D" : "rgba(226, 232, 240, 0.8)",
               },
             ]}
           >
-            <View>
-              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-                Параметры поездки
-              </Text>
-              <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
-                Фильтры перелёта, отеля и состава туристов
-              </Text>
+            {/* Month & Navigation */}
+            <View style={styles.calendarHeaderRow}>
+              <View style={styles.monthTitleBox}>
+                <Icon name="calendar" size={14} color="#7C3AED" />
+                <Text
+                  style={[
+                    styles.monthTitleText,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  {MONTH_NAMES[currentMonth]} {currentYear}
+                </Text>
+              </View>
+
+              <View style={styles.monthNavActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.monthNavBtn,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "#FFFFFF",
+                    },
+                  ]}
+                  onPress={handlePrevMonth}
+                  accessibilityLabel="Предыдущий месяц"
+                >
+                  <Icon
+                    name="chevron-left"
+                    size={13}
+                    color={isDark ? "#D8B4FE" : colors.textMuted}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.monthNavBtn,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.08)"
+                        : "#FFFFFF",
+                    },
+                  ]}
+                  onPress={handleNextMonth}
+                  accessibilityLabel="Следующий месяц"
+                >
+                  <Icon
+                    name="chevron-right"
+                    size={13}
+                    color={isDark ? "#D8B4FE" : colors.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-            <View style={styles.headerActions}>
-              <TouchableOpacity
-                onPress={handleReset}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                style={styles.resetBtn}
-              >
-                <Text style={styles.resetBtnText}>Сброс</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+
+            {/* Weekdays */}
+            <View style={styles.weekdaysRow}>
+              {WEEKDAYS.map((wd) => (
+                <Text key={wd} style={styles.weekdayText}>
+                  {wd}
+                </Text>
+              ))}
+            </View>
+
+            {/* Calendar Grid (7 columns) */}
+            <View style={styles.calendarGrid}>
+              {calendarCells.map((cell, idx) => {
+                if (!cell.isCurrentMonth || !cell.date) {
+                  return (
+                    <View key={`empty-${idx}`} style={styles.cellEmpty}>
+                      <Text style={styles.cellEmptyText}>{cell.day}</Text>
+                    </View>
+                  );
+                }
+
+                const dayDate = cell.date;
+                const isStart = isSameDay(dayDate, startDate);
+                const isEnd = isSameDay(dayDate, endDate);
+                const inRange = isBetween(dayDate, startDate, endDate);
+                const isToday = isSameDay(dayDate, today);
+
+                return (
+                  <TouchableOpacity
+                    key={`day-${cell.day}`}
+                    disabled={cell.isPast}
+                    onPress={() => handleDateClick(dayDate)}
+                    style={[
+                      styles.cellButton,
+                      cell.isPast && styles.cellPast,
+                      (isStart || isEnd) && styles.cellSelected,
+                      inRange && (isDark ? styles.cellRangeDark : styles.cellRangeLight),
+                      isToday && !isStart && !isEnd && styles.cellToday,
+                    ]}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.cellText,
+                        { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                        cell.isPast && styles.cellTextPast,
+                        (isStart || isEnd) && styles.cellTextSelected,
+                        inRange && (isDark ? styles.cellTextRangeDark : styles.cellTextRangeLight),
+                      ]}
+                    >
+                      {cell.day}
+                    </Text>
+
+                    {isStart && (
+                      <View style={styles.badgeLabel}>
+                        <Text style={styles.badgeText}>от</Text>
+                      </View>
+                    )}
+                    {isEnd && (
+                      <View style={styles.badgeLabel}>
+                        <Text style={styles.badgeText}>до</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Date Summary Row matching Web 1:1 */}
+            <View style={styles.dateSummaryRow}>
+              <Text
                 style={[
-                  styles.closeBtn,
-                  { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted },
+                  styles.dateSummaryText,
+                  { color: isDark ? "#C084FC" : colors.textSecondary },
                 ]}
-                onPress={onClose}
-                accessibilityLabel="Закрыть"
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                numberOfLines={1}
               >
-                <Icon name="close" size={18} color={colors.textSecondary} />
-              </TouchableOpacity>
+                {startDate && endDate
+                  ? `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} — ${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`
+                  : startDate
+                  ? `с ${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`
+                  : "Даты не выбраны"}
+              </Text>
+              {startDate && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setStartDate(null);
+                    setEndDate(null);
+                  }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={styles.clearDateText}>Очистить</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
+          {/* 3. Middle Block: Budget matching Web 1:1 */}
+          <View
+            style={[
+              styles.sectionBox,
+              {
+                backgroundColor: isDark ? "#231E38" : "rgba(241, 245, 249, 0.65)",
+                borderColor: isDark ? "#322A4D" : "rgba(226, 232, 240, 0.8)",
+              },
+            ]}
           >
-            {/* 1. Dates (Mini Calendar) */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="calendar" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Даты вылета и возвращения
+            <View style={styles.budgetHeaderRow}>
+              <View style={styles.sectionHeaderLeft}>
+                <Icon name="dollar" size={13} color="#7C3AED" />
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  Бюджет
                 </Text>
               </View>
-
-              {/* Month navigation header */}
-              <View style={styles.monthNavRow}>
-                <Text style={[styles.monthNavTitle, { color: colors.textPrimary }]}>
-                  {MONTH_NAMES[currentMonth]} {currentYear}
-                </Text>
-                <View style={styles.monthNavButtons}>
-                  <TouchableOpacity
-                    onPress={handlePrevMonth}
-                    style={[
-                      styles.monthNavBtn,
-                      { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted },
-                    ]}
-                    accessibilityLabel="Предыдущий месяц"
-                  >
-                    <Icon name="chevron-left" size={14} color={colors.textPrimary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleNextMonth}
-                    style={[
-                      styles.monthNavBtn,
-                      { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted },
-                    ]}
-                    accessibilityLabel="Следующий месяц"
-                  >
-                    <Icon name="chevron-right" size={14} color={colors.textPrimary} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Weekdays */}
-              <View style={styles.weekdaysRow}>
-                {WEEKDAYS.map((wd) => (
-                  <Text
-                    key={wd}
-                    style={[styles.weekdayText, { color: colors.textMuted }]}
-                  >
-                    {wd}
-                  </Text>
-                ))}
-              </View>
-
-              {/* Day cells grid */}
-              <View style={styles.calendarGrid}>
-                {calendarCells.map((cell, idx) => {
-                  if (!cell.isCurrentMonth || !cell.date) {
-                    return (
-                      <View key={`empty-${idx}`} style={styles.calendarDayCell}>
-                        <Text style={[styles.dayTextInactive, { color: isDark ? "#4B4668" : "#D1D5DB" }]}>
-                          {cell.day}
-                        </Text>
-                      </View>
-                    );
-                  }
-
-                  const dayDate = cell.date;
-                  const isStart = isSameDay(dayDate, startDate);
-                  const isEnd = isSameDay(dayDate, endDate);
-                  const inRange = isBetween(dayDate, startDate, endDate);
-                  const isToday = isSameDay(dayDate, today);
-
-                  return (
-                    <TouchableOpacity
-                      key={`day-${cell.day}`}
-                      disabled={cell.isPast}
-                      onPress={() => handleDateClick(dayDate)}
-                      style={[
-                        styles.calendarDayCell,
-                        isStart && styles.dayCellStart,
-                        isEnd && styles.dayCellEnd,
-                        inRange && [
-                          styles.dayCellRange,
-                          { backgroundColor: isDark ? "rgba(107, 70, 193, 0.3)" : "#EDE9FE" },
-                        ],
-                        isToday && !isStart && !isEnd && [
-                          styles.dayCellToday,
-                          { borderColor: theme.colors.primary },
-                        ],
-                      ]}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          { color: colors.textPrimary },
-                          cell.isPast && { color: isDark ? "#4B4668" : "#9CA3AF" },
-                          (isStart || isEnd) && styles.dayTextSelected,
-                          inRange && { color: theme.colors.primary, fontWeight: "700" },
-                        ]}
-                      >
-                        {cell.day}
-                      </Text>
-                      {isStart && <Text style={styles.dayBadge}>от</Text>}
-                      {isEnd && <Text style={styles.dayBadge}>до</Text>}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* Date Summary / Clear Row */}
-              <View style={styles.dateSummaryRow}>
-                <Text style={[styles.dateSummaryText, { color: colors.textSecondary }]}>
-                  {startDate && endDate
-                    ? `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} — ${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`
-                    : startDate
-                    ? `с ${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`
-                    : "Точные даты не выбраны (выберите на календаре или укажите длительность)"}
-                </Text>
-                {startDate && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      setStartDate(null);
-                      setEndDate(null);
-                    }}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <Text style={styles.clearDateText}>Очистить</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-
-            {/* 2. Origin City (Откуда) */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="plane" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Откуда (город вылета)
-                </Text>
-              </View>
-              <View style={styles.chipsRow}>
-                {ORIGIN_CITIES.map((c) => {
-                  const isSelected = originCity === c.val;
-                  return (
-                    <TouchableOpacity
-                      key={c.label}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
-                            : isDark ? colors.surfaceContainer : colors.surface,
-                          borderColor: isSelected ? theme.colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setOriginCity(c.val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.colors.primary : colors.textPrimary },
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {c.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* 3. Destination (Куда) */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="compass" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Куда (направление)
-                </Text>
-              </View>
-              <View style={styles.chipsRow}>
-                {DESTINATION_DIRECTIONS.map((d) => {
-                  const isSelected = destination === d.val;
-                  return (
-                    <TouchableOpacity
-                      key={d.label}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
-                            : isDark ? colors.surfaceContainer : colors.surface,
-                          borderColor: isSelected ? theme.colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setDestination(d.val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.colors.primary : colors.textPrimary },
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {d.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* 4. Direct Flight Toggle */}
-            <View
-              style={[
-                styles.cardRow,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.cardRowTextCol}>
-                <Text style={[styles.cardRowTitle, { color: colors.textPrimary }]}>
-                  Только прямые авиарейсы
-                </Text>
-                <Text style={[styles.cardRowSub, { color: colors.textMuted }]}>
-                  Исключить рейсы со стыковками и пересадками
-                </Text>
-              </View>
-              <Switch
-                value={directFlightsOnly}
-                onValueChange={setDirectFlightsOnly}
-                trackColor={{
-                  false: isDark ? "#3A3552" : "#D1D5DB",
-                  true: isDark ? "#6B46C1" : "#E9D5FF",
-                }}
-                thumbColor={directFlightsOnly ? theme.colors.primary : (isDark ? "#A09BB8" : "#F3F4F6")}
-              />
-            </View>
-
-            {/* 5. Guests (Adults and Children with +/- counters) */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="user" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Состав туристов
-                </Text>
-              </View>
-
-              {/* Adults counter */}
-              <View style={styles.counterRow}>
-                <View style={styles.counterLabelCol}>
-                  <Text style={[styles.counterMainLabel, { color: colors.textPrimary }]}>
-                    Взрослые
-                  </Text>
-                  <Text style={[styles.counterSubLabel, { color: colors.textMuted }]}>
-                    (от 12 лет)
-                  </Text>
-                </View>
-                <View style={styles.counterControls}>
-                  <TouchableOpacity
-                    style={[
-                      styles.counterBtn,
-                      {
-                        backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
-                        borderColor: colors.border,
-                      },
-                      adults <= 1 && styles.counterBtnDisabled,
-                    ]}
-                    disabled={adults <= 1}
-                    onPress={() => setAdults((prev) => Math.max(1, prev - 1))}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Уменьшить количество взрослых"
-                  >
-                    <Icon
-                      name="minus"
-                      size={14}
-                      color={adults <= 1 ? colors.textMuted : colors.textPrimary}
-                    />
-                  </TouchableOpacity>
-                  <Text style={[styles.counterValue, { color: colors.textPrimary }]}>
-                    {adults}
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.counterBtn,
-                      {
-                        backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
-                        borderColor: colors.border,
-                      },
-                      adults >= 8 && styles.counterBtnDisabled,
-                    ]}
-                    disabled={adults >= 8}
-                    onPress={() => setAdults((prev) => Math.min(8, prev + 1))}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Увеличить количество взрослых"
-                  >
-                    <Icon
-                      name="plus"
-                      size={14}
-                      color={adults >= 8 ? colors.textMuted : colors.textPrimary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Children counter */}
-              <View
+              <Text
                 style={[
-                  styles.counterRow,
-                  styles.counterRowDivider,
-                  { borderTopColor: colors.borderSubtle },
+                  styles.budgetAmountText,
+                  { color: isDark ? "#C084FC" : "#581C87" },
                 ]}
               >
-                <View style={styles.counterLabelCol}>
-                  <Text style={[styles.counterMainLabel, { color: colors.textPrimary }]}>
-                    Дети
-                  </Text>
-                  <Text style={[styles.counterSubLabel, { color: colors.textMuted }]}>
-                    (до 11 лет)
-                  </Text>
-                </View>
-                <View style={styles.counterControls}>
+                {formatRubles(minBudget)} — {formatRubles(maxBudget)}
+              </Text>
+            </View>
+
+            {/* Interactive Visual Range Track */}
+            <View style={styles.rangeTrackContainer}>
+              <View
+                style={[
+                  styles.rangeTrackBg,
+                  { backgroundColor: isDark ? "#342B52" : "#E2E8F0" },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.rangeTrackFill,
+                    {
+                      left: `${trackMinPct}%`,
+                      width: `${Math.max(4, trackMaxPct - trackMinPct)}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+
+            {/* Steppers for fine-tuning */}
+            <View style={styles.budgetSteppersRow}>
+              {/* Min budget stepper */}
+              <View style={styles.stepperSubGroup}>
+                <Text style={styles.stepperSubLabel}>От:</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.stepperBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                    },
+                  ]}
+                  disabled={minBudget <= MIN_POSSIBLE_BUDGET}
+                  onPress={() =>
+                    setMinBudget((prev) => Math.max(MIN_POSSIBLE_BUDGET, prev - BUDGET_STEP_MIN))
+                  }
+                >
+                  <Icon name="minus" size={10} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.stepperBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                    },
+                  ]}
+                  disabled={minBudget >= maxBudget - BUDGET_STEP_MIN}
+                  onPress={() =>
+                    setMinBudget((prev) => Math.min(maxBudget - BUDGET_STEP_MIN, prev + BUDGET_STEP_MIN))
+                  }
+                >
+                  <Icon name="plus" size={10} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Max budget stepper */}
+              <View style={styles.stepperSubGroup}>
+                <Text style={styles.stepperSubLabel}>До:</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.stepperBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                    },
+                  ]}
+                  disabled={maxBudget <= minBudget + BUDGET_STEP_MAX}
+                  onPress={() =>
+                    setMaxBudget((prev) => Math.max(minBudget + BUDGET_STEP_MAX, prev - BUDGET_STEP_MAX))
+                  }
+                >
+                  <Icon name="minus" size={10} color={colors.textPrimary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.stepperBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                    },
+                  ]}
+                  disabled={maxBudget >= MAX_POSSIBLE_BUDGET}
+                  onPress={() =>
+                    setMaxBudget((prev) => Math.min(MAX_POSSIBLE_BUDGET, prev + BUDGET_STEP_MAX))
+                  }
+                >
+                  <Icon name="plus" size={10} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick budget chips matching Web 1:1 */}
+            <View style={styles.chipsScrollRow}>
+              {[
+                { label: "до 150 тыс.", min: 20000, max: 150000 },
+                { label: "до 300 тыс.", min: 40000, max: 300000 },
+                { label: "до 500 тыс.", min: 50000, max: 500000 },
+                { label: "до 1 млн", min: 100000, max: 1000000 },
+              ].map((chip) => {
+                const isActive = minBudget === chip.min && maxBudget === chip.max;
+                return (
                   <TouchableOpacity
+                    key={chip.label}
+                    onPress={() => {
+                      setMinBudget(chip.min);
+                      setMaxBudget(chip.max);
+                    }}
                     style={[
-                      styles.counterBtn,
+                      styles.chipButton,
                       {
-                        backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
-                        borderColor: colors.border,
+                        backgroundColor: isActive
+                          ? isDark
+                            ? "rgba(192, 132, 252, 0.25)"
+                            : "rgba(88, 28, 135, 0.12)"
+                          : isDark
+                          ? "#2B2542"
+                          : "#FFFFFF",
+                        borderColor: isActive
+                          ? isDark
+                            ? "#C084FC"
+                            : "#581C87"
+                          : isDark
+                          ? "#3D345A"
+                          : "#E2E8F0",
                       },
-                      children <= 0 && styles.counterBtnDisabled,
                     ]}
-                    disabled={children <= 0}
-                    onPress={() => setChildren((prev) => Math.max(0, prev - 1))}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Уменьшить количество детей"
                   >
-                    <Icon
-                      name="minus"
-                      size={14}
-                      color={children <= 0 ? colors.textMuted : colors.textPrimary}
-                    />
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: isActive
+                            ? isDark
+                              ? "#FFFFFF"
+                              : "#581C87"
+                            : isDark
+                            ? "#D8B4FE"
+                            : colors.textSecondary,
+                          fontWeight: isActive ? "700" : "600",
+                        },
+                      ]}
+                    >
+                      {chip.label}
+                    </Text>
                   </TouchableOpacity>
-                  <Text style={[styles.counterValue, { color: colors.textPrimary }]}>
-                    {children}
-                  </Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.counterBtn,
-                      {
-                        backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
-                        borderColor: colors.border,
-                      },
-                      children >= 6 && styles.counterBtnDisabled,
-                    ]}
-                    disabled={children >= 6}
-                    onPress={() => setChildren((prev) => Math.min(6, prev + 1))}
-                    activeOpacity={0.7}
-                    accessibilityLabel="Увеличить количество детей"
-                  >
-                    <Icon
-                      name="plus"
-                      size={14}
-                      color={children >= 6 ? colors.textMuted : colors.textPrimary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* 4. Bottom Block: Guests matching Web 1:1 */}
+          <View
+            style={[
+              styles.sectionBox,
+              {
+                backgroundColor: isDark ? "#231E38" : "rgba(241, 245, 249, 0.65)",
+                borderColor: isDark ? "#322A4D" : "rgba(226, 232, 240, 0.8)",
+              },
+            ]}
+          >
+            <View style={styles.sectionHeaderLeft}>
+              <Icon name="users" size={13} color="#7C3AED" />
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                ]}
+              >
+                Гости
+              </Text>
             </View>
 
-            {/* 6. Budget Chips */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="sparkles" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Бюджет поездки
+            {/* Adults Row */}
+            <View style={styles.guestRow}>
+              <View style={styles.guestLabelCol}>
+                <Text
+                  style={[
+                    styles.guestTitle,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  Взрослые
+                </Text>
+                <Text
+                  style={[
+                    styles.guestSubtitle,
+                    { color: isDark ? "rgba(216, 180, 254, 0.7)" : colors.textMuted },
+                  ]}
+                >
+                  (от 12 лет)
                 </Text>
               </View>
-              <View style={styles.chipsRow}>
-                {BUDGET_OPTIONS.map((b) => {
-                  const isSelected = budget === b.val;
-                  return (
-                    <TouchableOpacity
-                      key={b.label}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
-                            : isDark ? colors.surfaceContainer : colors.surface,
-                          borderColor: isSelected ? theme.colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setBudget(b.val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.colors.primary : colors.textPrimary },
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {b.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+
+              <View style={styles.counterRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.counterBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                      opacity: adults <= 1 ? 0.35 : 1,
+                    },
+                  ]}
+                  disabled={adults <= 1}
+                  onPress={() => setAdults((prev) => Math.max(1, prev - 1))}
+                >
+                  <Icon name="minus" size={11} color={colors.textPrimary} />
+                </TouchableOpacity>
+
+                <Text
+                  style={[
+                    styles.counterValue,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  {adults}
+                </Text>
+
+                <TouchableOpacity
+                  style={[
+                    styles.counterBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                      opacity: adults >= 8 ? 0.35 : 1,
+                    },
+                  ]}
+                  disabled={adults >= 8}
+                  onPress={() => setAdults((prev) => Math.min(8, prev + 1))}
+                >
+                  <Icon name="plus" size={11} color={colors.textPrimary} />
+                </TouchableOpacity>
               </View>
             </View>
 
-            {/* 7. Duration Chips */}
+            {/* Children Row */}
             <View
               style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
+                styles.guestRow,
+                styles.guestRowBorderTop,
+                { borderTopColor: isDark ? "#2D2744" : "rgba(0,0,0,0.06)" },
               ]}
             >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="calendar" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Длительность тура
+              <View style={styles.guestLabelCol}>
+                <Text
+                  style={[
+                    styles.guestTitle,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  Дети
+                </Text>
+                <Text
+                  style={[
+                    styles.guestSubtitle,
+                    { color: isDark ? "rgba(216, 180, 254, 0.7)" : colors.textMuted },
+                  ]}
+                >
+                  (до 11 лет)
                 </Text>
               </View>
-              <View style={styles.chipsRow}>
-                {DURATION_OPTIONS.map((d) => {
-                  const isSelected = duration === d.val;
-                  return (
-                    <TouchableOpacity
-                      key={d.label}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
-                            : isDark ? colors.surfaceContainer : colors.surface,
-                          borderColor: isSelected ? theme.colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setDuration(d.val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.colors.primary : colors.textPrimary },
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {d.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
 
-            {/* 8. Meal Plan */}
-            <View
-              style={[
-                styles.sectionCard,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                },
-              ]}
-            >
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="restaurant" size={14} color={theme.colors.primary} />
-                <Text style={[styles.sectionCaption, { color: colors.textMuted }]}>
-                  Тип питания в отеле
+              <View style={styles.counterRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.counterBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                      opacity: children <= 0 ? 0.35 : 1,
+                    },
+                  ]}
+                  disabled={children <= 0}
+                  onPress={() => setChildren((prev) => Math.max(0, prev - 1))}
+                >
+                  <Icon name="minus" size={11} color={colors.textPrimary} />
+                </TouchableOpacity>
+
+                <Text
+                  style={[
+                    styles.counterValue,
+                    { color: isDark ? "#FFFFFF" : colors.textPrimary },
+                  ]}
+                >
+                  {children}
                 </Text>
-              </View>
-              <View style={styles.chipsRow}>
-                {MEAL_OPTIONS.map((m) => {
-                  const isSelected = mealPlan === m.val;
-                  return (
-                    <TouchableOpacity
-                      key={m.label}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: isSelected
-                            ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
-                            : isDark ? colors.surfaceContainer : colors.surface,
-                          borderColor: isSelected ? theme.colors.primary : colors.border,
-                        },
-                      ]}
-                      onPress={() => setMealPlan(m.val)}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          { color: isSelected ? theme.colors.primary : colors.textPrimary },
-                          isSelected && styles.chipTextSelected,
-                        ]}
-                      >
-                        {m.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+
+                <TouchableOpacity
+                  style={[
+                    styles.counterBtn,
+                    {
+                      backgroundColor: isDark ? "#2E2747" : "#FFFFFF",
+                      borderColor: isDark ? "#3D345A" : "#E2E8F0",
+                      opacity: children >= 6 ? 0.35 : 1,
+                    },
+                  ]}
+                  disabled={children >= 6}
+                  onPress={() => setChildren((prev) => Math.min(6, prev + 1))}
+                >
+                  <Icon name="plus" size={11} color={colors.textPrimary} />
+                </TouchableOpacity>
               </View>
             </View>
+          </View>
 
-            {/* Submit Button */}
+          {/* 5. Footer Action matching Web 1:1 */}
+          <View style={styles.footerActionBox}>
             <TouchableOpacity
               style={styles.applyButton}
               onPress={handleApply}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Icon name="check" size={17} color="#FFFFFF" />
+              <Icon name="check" size={14} color="#FFFFFF" />
               <Text style={styles.applyButtonText}>Применить параметры</Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  rootOverlay: {
+    zIndex: 9999,
+    elevation: 9999,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "#000000",
+  },
+  backdropTouch: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.65)",
-    justifyContent: "flex-end",
   },
-  sheet: {
-    backgroundColor: theme.colors.background,
-    borderTopLeftRadius: theme.borderRadius.xl,
-    borderTopRightRadius: theme.borderRadius.xl,
+  cardContainer: {
+    width: Math.min(340, SCREEN_WIDTH - 24),
+    maxHeight: "86%",
+    borderRadius: 20,
+    borderWidth: 1,
     overflow: "hidden",
-    maxHeight: "90%",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 20,
   },
-  header: {
+  scrollArea: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    padding: 12,
+    gap: 8,
+  },
+  cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 14,
+    paddingBottom: 6,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
   },
   headerTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  headerSubtitle: {
     fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 1,
+    fontWeight: "800",
+    letterSpacing: 0.8,
   },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  resetBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  resetBtnText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainer,
+  closeButton: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
-  scroll: {
-    maxHeight: "100%",
-  },
-  scrollContent: {
-    padding: theme.spacing.md,
-    gap: 12,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  sectionCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: 14,
+  sectionBox: {
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: 8,
-    ...theme.shadows.sm,
+    padding: 9,
+    gap: 6,
   },
-  sectionCaption: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  monthNavRow: {
+  calendarHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 4,
   },
-  monthNavTitle: {
-    fontSize: 13,
+  monthTitleBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  monthTitleText: {
+    fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
   },
-  monthNavButtons: {
+  monthNavActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
   },
   monthNavBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 5,
     alignItems: "center",
     justifyContent: "center",
   },
   weekdaysRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 4,
+    justifyContent: "space-around",
+    paddingVertical: 2,
   },
   weekdayText: {
+    width: 28,
+    textAlign: "center",
     fontSize: 10,
     fontWeight: "600",
-    color: theme.colors.textMuted,
-    width: "14%",
-    textAlign: "center",
+    color: "#94A3B8",
   },
   calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
+    rowGap: 3,
   },
-  calendarDayCell: {
+  cellEmpty: {
     width: "14.28%",
-    height: 32,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellEmptyText: {
+    fontSize: 10,
+    color: "rgba(148, 163, 184, 0.3)",
+  },
+  cellButton: {
+    width: "14.28%",
+    height: 26,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
-    borderRadius: 6,
   },
-  dayCellStart: {
-    backgroundColor: theme.colors.primary,
+  cellPast: {
+    opacity: 0.3,
   },
-  dayCellEnd: {
-    backgroundColor: theme.colors.primary,
+  cellSelected: {
+    backgroundColor: "#581C87",
   },
-  dayCellRange: {
-    backgroundColor: "rgba(107, 70, 193, 0.2)",
+  cellRangeLight: {
+    backgroundColor: "rgba(88, 28, 135, 0.15)",
     borderRadius: 0,
   },
-  dayCellToday: {
+  cellRangeDark: {
+    backgroundColor: "rgba(168, 85, 247, 0.25)",
+    borderRadius: 0,
+  },
+  cellToday: {
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: "rgba(124, 58, 237, 0.5)",
   },
-  dayText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: theme.colors.textPrimary,
+  cellText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
-  dayTextSelected: {
+  cellTextPast: {
+    color: "#94A3B8",
+  },
+  cellTextSelected: {
     color: "#FFFFFF",
+    fontWeight: "800",
+  },
+  cellTextRangeLight: {
+    color: "#581C87",
     fontWeight: "700",
   },
-  dayTextInactive: {
-    fontSize: 11,
-    color: "#D1D5DB",
+  cellTextRangeDark: {
+    color: "#C084FC",
+    fontWeight: "700",
   },
-  dayBadge: {
+  badgeLabel: {
     position: "absolute",
     top: -2,
-    right: 2,
-    fontSize: 7,
+    right: -1,
+    backgroundColor: "#3B0764",
+    paddingHorizontal: 2.5,
+    borderRadius: 4,
+  },
+  badgeText: {
+    fontSize: 6.5,
     fontWeight: "800",
     color: "#FFFFFF",
-    backgroundColor: "#3B0764",
-    paddingHorizontal: 2,
-    borderRadius: 3,
+    lineHeight: 8,
   },
   dateSummaryRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 4,
-    borderTopWidth: 0.5,
-    borderTopColor: "rgba(150, 150, 150, 0.2)",
+    paddingTop: 2,
   },
   dateSummaryText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "500",
-    color: theme.colors.textSecondary,
     flex: 1,
     marginRight: 6,
   },
   clearDateText: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: "#7C3AED",
   },
-  chipsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  chipText: {
-    fontSize: 12,
-    color: theme.colors.textPrimary,
-    fontWeight: "500",
-  },
-  chipTextSelected: {
-    color: theme.colors.primary,
-    fontWeight: "700",
-  },
-  cardRow: {
+  budgetHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.sm,
   },
-  cardRowTextCol: {
-    flex: 1,
-    paddingRight: 10,
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
   },
-  cardRowTitle: {
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  budgetAmountText: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  rangeTrackContainer: {
+    width: "100%",
+    paddingVertical: 4,
+  },
+  rangeTrackBg: {
+    width: "100%",
+    height: 5,
+    borderRadius: 3,
+    position: "relative",
+    overflow: "hidden",
+  },
+  rangeTrackFill: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    backgroundColor: "#7C3AED",
+    borderRadius: 3,
+  },
+  budgetSteppersRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 1,
+  },
+  stepperSubGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  stepperSubLabel: {
+    fontSize: 10,
     fontWeight: "600",
-    color: theme.colors.textPrimary,
+    color: "#94A3B8",
   },
-  cardRowSub: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
+  stepperBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  chipsScrollRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingTop: 3,
+  },
+  chipButton: {
+    paddingHorizontal: 7,
+    paddingVertical: 3.5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 9.5,
+  },
+  guestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 3,
+  },
+  guestRowBorderTop: {
+    borderTopWidth: 1,
+    paddingTop: 6,
     marginTop: 2,
+  },
+  guestLabelCol: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 4,
+  },
+  guestTitle: {
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+  guestSubtitle: {
+    fontSize: 10,
+    fontWeight: "500",
   },
   counterRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 6,
-  },
-  counterRowDivider: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    marginTop: 4,
-    paddingTop: 8,
-  },
-  counterLabelCol: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
-  },
-  counterMainLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  counterSubLabel: {
-    fontSize: 11,
-    fontWeight: "500",
-    color: theme.colors.textMuted,
-  },
-  counterControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    gap: 7,
   },
   counterBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: theme.colors.surfaceContainer,
+    width: 24,
+    height: 24,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  counterBtnDisabled: {
-    opacity: 0.35,
-  },
   counterValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-    minWidth: 18,
+    width: 16,
     textAlign: "center",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  footerActionBox: {
+    paddingTop: 4,
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-    ...theme.shadows.md,
+    gap: 6,
+    backgroundColor: "#581C87",
+    paddingVertical: 9,
+    borderRadius: 12,
+    shadowColor: "#581C87",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   applyButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
     color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

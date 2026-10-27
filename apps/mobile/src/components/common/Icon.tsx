@@ -46,7 +46,9 @@ export type IconName =
   | "edit"
   | "trash"
   | "history"
-  | "alert-circle";
+  | "alert-circle"
+  | "dollar"
+  | "users";
 
 export interface IconProps {
   name: IconName;
@@ -156,6 +158,10 @@ export const Icon: React.FC<IconProps> = ({
       return <Feather name="clock" size={size} color={color} />;
     case "alert-circle":
       return <Feather name="alert-circle" size={size} color={color} />;
+    case "dollar":
+      return <Feather name="dollar-sign" size={size} color={color} />;
+    case "users":
+      return <Feather name="users" size={size} color={color} />;
     default:
       return <Feather name="help-circle" size={size} color={color} />;
   }

@@ -7,8 +7,8 @@ import {
   ScrollView,
   Animated,
   Dimensions,
-  Modal,
   TextInput,
+  BackHandler,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -54,12 +54,14 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(visible);
 
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(visible ? 0 : -DRAWER_WIDTH)).current;
+  const fadeAnim = useRef(new Animated.Value(visible ? 1 : 0)).current;
 
   useEffect(() => {
     if (visible) {
+      setIsMounted(true);
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
@@ -72,29 +74,38 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-    } else {
-      slideAnim.setValue(-DRAWER_WIDTH);
-      fadeAnim.setValue(0);
-      setSearchOpen(false);
-      setSearchQuery("");
+    } else if (isMounted) {
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: -DRAWER_WIDTH,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setIsMounted(false);
+        setSearchOpen(false);
+        setSearchQuery("");
+      });
     }
-  }, [visible, slideAnim, fadeAnim]);
+  }, [visible, isMounted, slideAnim, fadeAnim]);
+
+  // Handle hardware back button on Android to close the in-tree drawer
+  useEffect(() => {
+    if (!visible) return;
+    const backSub = BackHandler.addEventListener("hardwareBackPress", () => {
+      onClose();
+      return true;
+    });
+    return () => backSub.remove();
+  }, [visible, onClose]);
 
   const handleClose = () => {
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: -DRAWER_WIDTH,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onClose();
-    });
+    onClose();
   };
 
   const handleSelect = (session: SavedMobileSession) => {
@@ -118,17 +129,17 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     return savedSessions.filter((s) => s.title.toLowerCase().includes(lower));
   }, [savedSessions, searchQuery]);
 
-  if (!visible) return null;
+  if (!visible && !isMounted) return null;
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="none"
-      onRequestClose={handleClose}
-      statusBarTranslucent
+    <View
+      style={[
+        StyleSheet.absoluteFill,
+        styles.container,
+      ]}
+      pointerEvents={visible ? "auto" : "none"}
     >
-      <View style={styles.container}>
+      <View style={styles.innerWrapper}>
         {/* Mobile backdrop with smooth fade (matching Web's data-sidebar-backdrop) */}
         <Animated.View
           style={[
@@ -464,12 +475,16 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           </View>
         </Animated.View>
       </View>
-    </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    zIndex: 9999,
+    elevation: 9999,
+  },
+  innerWrapper: {
     flex: 1,
   },
   backdrop: {

@@ -91,3 +91,22 @@ test("constants and clarification chips are well-formed and non-empty", () => {
   assert.equal(DEFAULT_CLARIFICATION_CHIPS.length, 3);
   assert.ok(DEFAULT_CLARIFICATION_CHIPS.some((c) => c.includes("All Inclusive")));
 });
+
+test("formatFilterQuery matches Web SearchFiltersPopover output format exactly", () => {
+  const { formatFilterQuery } = require("@corvax/shared");
+  const startDate = new Date(2026, 9, 15);
+  const endDate = new Date(2026, 9, 22);
+
+  const query = formatFilterQuery({
+    startDate,
+    endDate,
+    minBudget: 40000,
+    maxBudget: 180000,
+    adults: 2,
+    children: 1,
+  });
+
+  assert.ok(query.includes("даты: с 15 октября по 22 октября (7 ноч.)"));
+  assert.ok(/бюджет от 40[\s\u00A0\u202F]000 до 180[\s\u00A0\u202F]000 руб/.test(query));
+  assert.ok(query.includes("2 взрослых, 1 ребёнок"));
+});
