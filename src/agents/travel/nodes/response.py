@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from langchain_core.messages import AIMessage
 
+from agents.travel.nodes.ask import _city_name
 from agents.travel.state import TravelState
 
 
@@ -56,7 +57,7 @@ def generate_response(state: TravelState | dict) -> dict:
     dest = getattr(request, "destination", None) if request else None
     lines = []
     if dest:
-        lines.append(f"Я подобрал для вас варианты поездки в {dest}:\n")
+        lines.append(f"Я подобрал для вас варианты поездки в {_city_name(dest)}:\n")
     else:
         lines.append("Я подобрал для вас варианты поездки:\n")
 

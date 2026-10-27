@@ -90,16 +90,42 @@ class ValidationResult(BaseModel):
 
     Это основной защитный барьер перед вызовом агрегатора. Реализуется
     кодом, а не LLM.
+
+    Различаются два рубежа:
+
+    * ``ready_for_confirmation`` — все обязательные данные собраны, можно
+      показать итоговую сверку;
+    * ``ready_for_search`` — сверка подтверждена пользователем, агрегатор
+      разрешён.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     ready: bool = Field(
-        description="Готов ли запрос к агрегации.",
+        description="Готов ли запрос к агрегации (== ready_for_search, оставлено для совместимости).",
         default=False,
+    )
+    ready_for_confirmation: bool = Field(
+        description="Все обязательные данные собраны — можно показывать сверку.",
+        default=False,
+    )
+    ready_for_search: bool = Field(
+        description="Сверка подтверждена пользователем — можно вызывать агрегатор.",
+        default=False,
+    )
+    stage: str = Field(
+        description=(
+            "Текущий этап диалога: preferences | destination | dates | details | "
+            "confirmation | ready."
+        ),
+        default="details",
     )
     missing: list[str] = Field(
         description="Обязательные поля, значения которых отсутствуют.",
+        default=[],
+    )
+    missing_fields: list[str] = Field(
+        description="Синоним missing для нового API проверки готовности.",
         default=[],
     )
     decisions_required: list[str] = Field(
@@ -111,8 +137,16 @@ class ValidationResult(BaseModel):
         default=[],
     )
     budget_scenarios: list[float] = Field(
-        description="Если бюджет не задан — набор бюджетных сценариев для поиска.",
+        description="Устаревшее поле: бюджетные сценарии больше не генерируются неявно.",
         default=[],
+    )
+    budget_mode: str = Field(
+        description="Актуальный режим бюджета: unknown | specified | no_limit | flexible_scenarios.",
+        default="unknown",
+    )
+    preference_status: str = Field(
+        description="Статус предпочтений: unknown | specified | no_preference.",
+        default="unknown",
     )
     reason: str = Field(
         description="Человекочитаемое пояснение результата проверки.",
@@ -123,8 +157,10 @@ class ValidationResult(BaseModel):
 # Явные состояния процесса планирования.
 TravelPlanningStatus = Literal[
     "collecting",
+    "awaiting_preferences",
     "awaiting_destination_selection",
     "awaiting_date_selection",
+    "awaiting_request_confirmation",
     "ready_for_search",
     "searching",
     "results_ready",
@@ -146,19 +182,28 @@ class UserRequestPatch(BaseModel):
     origin: str | None = None
     destination: str | None = None
     destination_country: str | None = None
+    destination_ambiguous: bool | None = None
     duration: int | None = None
     travelers: int | None = None
     traveler_range: tuple[int, int] | None = None
+    adults: int | None = None
+    children: int | None = None
     budget: float | None = None
     budget_range: tuple[float, float] | None = None
+    budget_mode: Literal["unknown", "specified", "no_limit", "flexible_scenarios"] | None = None
     currency: Currency | None = None
     exact_dates: list[date] | None = None
     month: list[Month] | None = None
     season: list[Season] | None = None
     preferences: list[Preference] | None = None
+    preference_status: Literal["unknown", "specified", "no_preference"] | None = None
     constraints: list[Constraint] | None = None
     preferred_transport: TransportType | None = None
     hotel_requirements: list[str] | None = None
+    # Явная замена/отмена ранее заданных значений.
+    removed_preferences: list[str] | None = None
+    removed_constraints: list[str] | None = None
+    removed_hotel_requirements: list[str] | None = None
     # Семантическое удаление значений.
     clear_fields: list[str] = Field(
         default_factory=list,

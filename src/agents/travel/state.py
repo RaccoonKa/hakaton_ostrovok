@@ -45,6 +45,26 @@ class TravelState(BaseModel):
         description="Указал ли пользователь количество путешественников явно.",
         default=False,
     )
+    request_confirmed: bool = Field(
+        description="Пользователь подтвердил итоговую сверку полного запроса.",
+        default=False,
+    )
+    awaiting_request_confirmation: bool = Field(
+        description="Агенту нужно показать итоговую сверку и дождаться подтверждения.",
+        default=False,
+    )
+    last_search_key: str | None = Field(
+        description="Нормализованный ключ последнего запуска агрегатора.",
+        default=None,
+    )
+    search_diagnostics: dict = Field(
+        description="Диагностика последнего запуска агрегатора (причина, ключ, счётчики).",
+        default_factory=dict,
+    )
+    aggregate_calls: int = Field(
+        description="Количество реальных вызовов search_and_package_trip в текущем запросе.",
+        default=0,
+    )
     pending_questions: list[str] = Field(
         description="Сгруппированные вопросы, ожидающие ответа пользователя.",
         default=[],

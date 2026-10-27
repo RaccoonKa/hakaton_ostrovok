@@ -49,8 +49,14 @@ def assert_aggregator_ready(
 
 
 def _budget_to_rub(budget_limit: float | None, currency: Currency | str | None) -> float | None:
+    """Перевести бюджет в рубли ровно один раз.
+
+    Если валюта не указана, сумма трактуется как рублёвая.
+    """
     if budget_limit is None:
         return None
+    if currency is None:
+        return float(budget_limit)
     return ds.to_rub(budget_limit, currency)
 
 
@@ -74,10 +80,15 @@ def search_and_package_trip(
     return_date: str | None = None,
     passengers: int = 1,
     budget_limit: float | None = None,
+    currency: str | None = None,
 ) -> list[dict]:
     """
     Ищет авиабилеты и отели в mock dataset, агрегирует их и возвращает 3 варианта
     поездки: 'Эконом', 'Оптимальный' и 'Комфорт'.
+
+    :param budget_limit: лимит бюджета в валюте ``currency`` (не в рублях).
+    :param currency: валюта бюджета (RUB по умолчанию), переводится в рубли
+        ровно один раз для сравнения.
 
     Вызывать ТОЛЬКО после успешной проверки validate_travel_request.
     Направление должно существовать в mock dataset (иначе будет ошибка).
@@ -92,7 +103,7 @@ def search_and_package_trip(
     hotels = ds.HOTELS.get(city, [])
     nights = _nights(departure_date, return_date)
 
-    budget_rub = _budget_to_rub(budget_limit, Currency.RUB)
+    budget_rub = _budget_to_rub(budget_limit, currency)
 
     # Сопоставляем: эконом→самый дешёвый билет+budget отель,
     # оптимальный→средний билет+comfort отель,
@@ -129,12 +140,14 @@ def search_and_package_trip(
             "passengers": passengers,
             "nights": nights,
             "flight": {
+                "offer_id": flight["offer_id"],
                 "airline": flight["airline_name"],
                 "transfers": flight["transfers_count"],
                 "price_per_person": flight["price_per_person"],
                 "price_total": round(flight_total, 2),
             },
             "hotel": {
+                "hotel_id": hotel["hotel_id"],
                 "name": hotel["name"],
                 "stars": hotel["stars"],
                 "rating": hotel["rating"],

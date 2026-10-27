@@ -8,13 +8,15 @@
 
     START
       ↓
-    extract  (извлечь + слить с UserRequest)
+    extract  (извлечь + слить + инвалидировать/подтвердить)
       ↓
     decide   (deterministic validate)
-      ├── ready ─────────────→ aggregate → response → END
-      ├── нужен выбор города → suggest_destinations → ask(interrupt) → extract
-      ├── нужен выбор дат ───→ suggest_dates ───────→ ask(interrupt) → extract
-      └── нужны вопросы ─────→ ask(interrupt) ──────→ extract
+      ├── stage=preferences ─────→ ask (только вопрос о вайбе)
+      ├── нужен выбор города ────→ suggest_destinations → ask
+      ├── нужен выбор дат ───────→ suggest_dates ───────→ ask
+      ├── нужна сверка ──────────→ ask (summary) → extract
+      ├── нужны вопросы ─────────→ ask → extract
+      └── ready_for_search ──────→ aggregate → response → END
 """
 
 from langgraph.graph import END, START, StateGraph
@@ -28,6 +30,14 @@ from agents.travel.nodes.suggest import call_suggest_dates, call_suggest_destina
 from agents.travel.state import TravelState
 
 
+def _validation_field(validation, name: str, default=None):
+    if validation is None:
+        return default
+    if isinstance(validation, dict):
+        return validation.get(name, default)
+    return getattr(validation, name, default)
+
+
 def route_after_decide(state: TravelState | dict) -> str:
     """Маршрутизация на основании deterministic-результата проверки."""
     if isinstance(state, dict):
@@ -38,10 +48,15 @@ def route_after_decide(state: TravelState | dict) -> str:
     if validation is None:
         return "ask"
 
-    if validation.ready:
+    # Агрегатор разрешён только после подтверждения сверки.
+    if _validation_field(validation, "ready_for_search", False):
         return "aggregate"
 
-    decisions = validation.decisions_required or []
+    stage = _validation_field(validation, "stage", "")
+    if stage == "preferences":
+        return "ask"
+
+    decisions = _validation_field(validation, "decisions_required", []) or []
     if "destination_selection" in decisions:
         return "suggest_destinations"
     if "date_selection" in decisions:
@@ -81,6 +96,7 @@ workflow.add_edge("ask", "extract")
 
 workflow.add_edge("aggregate", "response")
 workflow.add_edge("response", END)
+
 
 def build_travel_graph(checkpointer=None):
     """Скомпилировать граф (для приложения — без checkpointer, для тестов — с ним)."""

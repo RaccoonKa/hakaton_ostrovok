@@ -46,8 +46,10 @@ def validate_travel_request_tool(
         req.destination = destination
     if travelers:
         req.travelers = travelers
+        req.travelers_provided = True
     if budget:
         req.budget = budget
+        req.budget_mode = "specified"
     if duration:
         req.duration = duration
     if month:

@@ -11,25 +11,38 @@ from agents.travel.logic.decision import suggest_date_ranges, suggest_destinatio
 from agents.travel.state import TravelState
 
 
-def call_suggest_destinations(state: TravelState | dict) -> dict:
+def _get(state, key, default=None):
     if isinstance(state, dict):
-        request = state.get("user_request")
-    else:
-        request = getattr(state, "user_request", None)
+        return state.get(key, default)
+    return getattr(state, key, default)
 
+
+def call_suggest_destinations(state: TravelState | dict) -> dict:
+    request = _get(state, "user_request")
     candidates = suggest_destinations(request)
-    return {
+
+    updates: dict = {
         "candidate_destinations": candidates,
         "planning_status": "awaiting_destination_selection",
     }
 
+    # Если месяц и длительность известны, но точных дат нет — сразу
+    # показываем варианты периодов, чтобы пользователь мог ответить одним
+    # сообщением и про город, и про даты.
+    if (
+        request is not None
+        and request.date_preferences.month
+        and request.duration
+        and not request.date_preferences.exact_dates
+    ):
+        ranges = suggest_date_ranges(request)
+        if ranges:
+            updates["date_options"] = ranges
+    return updates
+
 
 def call_suggest_dates(state: TravelState | dict) -> dict:
-    if isinstance(state, dict):
-        request = state.get("user_request")
-    else:
-        request = getattr(state, "user_request", None)
-
+    request = _get(state, "user_request")
     ranges = suggest_date_ranges(request) if request is not None else []
     return {
         "date_options": ranges,

@@ -22,8 +22,10 @@ def next_step_from_validation(validation) -> str:
     """Определить следующий шаг по результату проверки готовности."""
     if validation is None:
         return "ask"
-    if validation.ready:
+    if validation.ready_for_search:
         return "aggregate"
+    if validation.stage == "preferences":
+        return "ask"
     decisions = validation.decisions_required or []
     if "destination_selection" in decisions:
         return "suggest_destinations"
@@ -51,11 +53,14 @@ def call_planner(state: TravelState | dict) -> dict:
         confirmed_range = extracted["confirmed_date_range"]
     request = extracted.get("user_request")
 
+    request_confirmed = bool(extracted.get("request_confirmed", False))
+
     validation = validate_travel_request(
         request,
         destination_selected=destination_confirmed,
         confirmed_date_range=confirmed_range,
         travelers_provided=travelers_provided,
+        request_confirmed=request_confirmed,
     )
 
     step = next_step_from_validation(validation)
@@ -65,6 +70,10 @@ def call_planner(state: TravelState | dict) -> dict:
         "aggregate": "ready_for_search",
         "ask": "collecting",
     }
+    if step == "ask" and validation.stage == "confirmation":
+        status_map["ask"] = "awaiting_request_confirmation"
+    elif step == "ask" and validation.stage == "preferences":
+        status_map["ask"] = "awaiting_preferences"
 
     return {
         **extracted,
