@@ -164,6 +164,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <div className="flex items-center gap-2 px-1">
           <button
             type="button"
+            data-filters-toggle="true"
             title="Параметры поиска"
             onClick={() => setIsFiltersOpen((prev) => !prev)}
             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${

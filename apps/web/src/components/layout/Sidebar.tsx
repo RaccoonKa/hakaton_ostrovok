@@ -84,6 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile backdrop with smooth fade */}
       <div
+        data-sidebar-backdrop="true"
         className={`fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300 ${
           isSidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}

@@ -137,6 +137,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <div className="relative">
                 <button
                   type="button"
+                  data-filters-toggle="true"
                   title="Параметры поиска"
                   onClick={() => setIsFiltersOpen((prev) => !prev)}
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${

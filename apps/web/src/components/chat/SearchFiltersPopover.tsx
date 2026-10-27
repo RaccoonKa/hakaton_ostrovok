@@ -11,6 +11,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+import { useSidebar } from "../../context/SidebarContext";
 
 export interface SearchFilters {
   startDate: Date | null;
@@ -77,9 +78,11 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   initialFilters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { isSidebarOpen } = useSidebar();
 
   // Custom position if dragged by user
   const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Synchronous position calculation: compact sizing so it fits 100% zoom screens
   const calculateDefaultPosition = () => {
@@ -90,13 +93,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     // 1. Determine the right boundary of the open sidebar
     let sidebarRight = 0;
-    const asideEl = document.getElementById("main-sidebar") || document.querySelector("aside");
-    if (asideEl) {
-      const asideRect = asideEl.getBoundingClientRect();
-      if (asideRect.right > 0 && asideRect.left >= 0) {
-        sidebarRight = asideRect.right;
-      }
-    } else if (window.innerWidth >= 768) {
+    if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
       sidebarRight = 256;
     }
 
@@ -163,8 +160,20 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setDraggedPos(null);
+      setIsDragging(false);
     }
   }, [isOpen]);
+
+  // If sidebar opens on desktop and custom dragged pos overlaps it, clamp to safe area
+  useEffect(() => {
+    if (!isOpen || !draggedPos) return;
+    if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
+      const minX = 256 + 10;
+      if (draggedPos.x < minX) {
+        setDraggedPos((prev) => (prev ? { ...prev, x: minX } : null));
+      }
+    }
+  }, [isSidebarOpen, isOpen, draggedPos]);
 
   // Window resize/scroll listener to update position when not manually dragged
   const [, setRepositionTick] = useState(0);
@@ -183,15 +192,47 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     };
   }, [isOpen, draggedPos]);
 
-  // Close on Escape or click outside
+  // Close on Escape or click outside (ignoring sidebar toggle, sidebar aside, and filters toggle)
   useEffect(() => {
     if (!isOpen) return;
 
     const handleClickOutside = (e: MouseEvent) => {
       if (isDraggingRef.current) return;
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClose();
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+
+      // 1. Click inside popover -> do not close
+      if (containerRef.current && containerRef.current.contains(target)) {
+        return;
       }
+
+      // 2. Click on sidebar toggle button -> DO NOT close
+      if (
+        target.closest("[data-sidebar-toggle]") ||
+        target.closest("button[title*='боковую панель']")
+      ) {
+        return;
+      }
+
+      // 3. Click inside sidebar aside -> DO NOT close
+      if (target.closest("#main-sidebar") || target.closest("aside")) {
+        return;
+      }
+
+      // 4. Click on mobile sidebar backdrop -> DO NOT close
+      if (target.closest("[data-sidebar-backdrop]")) {
+        return;
+      }
+
+      // 5. Click on filter toggle button -> DO NOT close (button handles its own toggle)
+      if (
+        target.closest("[data-filters-toggle]") ||
+        target.closest("button[title*='Параметры']")
+      ) {
+        return;
+      }
+
+      onClose();
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -217,6 +258,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     const current = draggedPos ?? calculateDefaultPosition();
     e.preventDefault();
     isDraggingRef.current = true;
+    setIsDragging(true);
     dragStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -244,6 +286,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     const handlePointerUp = () => {
       setTimeout(() => {
         isDraggingRef.current = false;
+        setIsDragging(false);
       }, 50);
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
@@ -377,7 +420,9 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className="fixed z-[100] w-[295px] sm:w-[305px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in"
+      className={`fixed z-[100] w-[295px] sm:w-[305px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in ${
+        isDragging ? "transition-none" : "transition-[left,top] duration-300 ease-in-out"
+      }`}
       style={{
         left: `${currentPos.x}px`,
         top: `${currentPos.y}px`,
