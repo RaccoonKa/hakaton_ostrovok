@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -78,6 +78,7 @@ dependencies = [
     { name = "langchain-chroma" },
     { name = "langchain-community" },
     { name = "langchain-core" },
+    { name = "langchain-gigachat" },
     { name = "langchain-google-genai" },
     { name = "langchain-google-vertexai" },
     { name = "langchain-groq" },
@@ -102,6 +103,7 @@ dependencies = [
     { name = "pyowm" },
     { name = "pypdf" },
     { name = "python-dotenv" },
+    { name = "qrcode" },
     { name = "setuptools" },
     { name = "streamlit" },
     { name = "tiktoken" },
@@ -144,6 +146,7 @@ requires-dist = [
     { name = "langchain-chroma", specifier = "~=1.1.0" },
     { name = "langchain-community", specifier = "~=0.4.2" },
     { name = "langchain-core", specifier = "~=1.4.8" },
+    { name = "langchain-gigachat", specifier = ">=0.5.1" },
     { name = "langchain-google-genai", specifier = "~=4.2.6" },
     { name = "langchain-google-vertexai", specifier = ">=3.2.4" },
     { name = "langchain-groq", specifier = "~=1.1.3" },
@@ -168,6 +171,7 @@ requires-dist = [
     { name = "pyowm", specifier = "~=3.5.0" },
     { name = "pypdf", specifier = ">=6.14.2,<6.20.0" },
     { name = "python-dotenv", specifier = "~=1.2.2" },
+    { name = "qrcode", specifier = ">=8.2" },
     { name = "setuptools", specifier = "~=84.0.0" },
     { name = "streamlit", specifier = "~=1.59.1" },
     { name = "tiktoken", specifier = ">=0.13.0" },
@@ -1323,6 +1327,20 @@ wheels = [
 ]
 
 [[package]]
+name = "gigachat"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/3e/42105fe7be2aa33907349fd177a2d8a97e14f434cfc1b8cbf3ba7b4a03f8/gigachat-0.2.3.tar.gz", hash = "sha256:b298dc70d28153e83780cdb7f40ec7273462ce497daafb1bee7e08509126aab3", size = 42631, upload-time = "2026-07-31T14:30:32.776Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/c6/cea9fd75f06c4c5a3f00a96c157c183146cb42b20e58b7580cd723c359bb/gigachat-0.2.3-py3-none-any.whl", hash = "sha256:61a51bcb9c3888c7643a9ffabe191695279f7cfca6b9d9d639e60c073a2385da", size = 55335, upload-time = "2026-07-31T14:30:34.101Z" },
+]
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
@@ -2266,6 +2284,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2a/b9/e937d0a90b26540bff07e7a7c64349f3b29c2dcc36257cd1cd3fdce17f2a/langchain_core-1.4.9.tar.gz", hash = "sha256:f8078901145bed0466755277500a5a22822a7b628808c4c0a28d4fc88895fcf2", size = 967294, upload-time = "2026-07-08T20:06:54.191Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/70/ade2fada52772798ef815b6352b59e71b116aa0c32c3aef5be3dc2cbed12/langchain_core-1.4.9-py3-none-any.whl", hash = "sha256:28e3909e2a10cc81504952d795ac0a9e014c0018121ef89d48dd396fa09ec624", size = 558293, upload-time = "2026-07-08T20:06:52.382Z" },
+]
+
+[[package]]
+name = "langchain-gigachat"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gigachat" },
+    { name = "langchain-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/bb/efea48f87376d5e5332391b8acc4fe2e8d9946232a76006e122b97ccef1b/langchain_gigachat-0.5.1.tar.gz", hash = "sha256:0979813e391fb66fb356990dce36d8db23e4634b78914b03ffdade96ada718a7", size = 25920, upload-time = "2026-05-04T14:04:25.328Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/c7/7a33997b4e5bea202732128759cd8be13a5b8863161dcb2b2f843da833d5/langchain_gigachat-0.5.1-py3-none-any.whl", hash = "sha256:900a44a4c36926118974e3cddc689b23547d3cd21d1d7649b1e979a434e66a00", size = 28562, upload-time = "2026-05-04T14:04:26.246Z" },
 ]
 
 [[package]]
@@ -4523,6 +4554,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/da/92/1446574745d74df0c92e6aa4a7b0b3130706a4142b2d1a5869f2eaa423c6/pyyaml-6.0.3-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:16249ee61e95f858e83976573de0f5b2893b3677ba71c9dd36b9cf8be9ac6d65", size = 829923, upload-time = "2025-09-25T21:32:54.537Z" },
     { url = "https://files.pythonhosted.org/packages/f0/7a/1c7270340330e575b92f397352af856a8c06f230aa3e76f86b39d01b416a/pyyaml-6.0.3-cp314-cp314t-win_amd64.whl", hash = "sha256:4ad1906908f2f5ae4e5a8ddfce73c320c2a1429ec52eafd27138b7f1cbe341c9", size = 174062, upload-time = "2025-09-25T21:32:55.767Z" },
     { url = "https://files.pythonhosted.org/packages/f1/12/de94a39c2ef588c7e6455cfbe7343d3b2dc9d6b6b2f40c4c6565744c873d/pyyaml-6.0.3-cp314-cp314t-win_arm64.whl", hash = "sha256:ebc55a14a21cb14062aa4162f906cd962b28e2e9ea38f9b4391244cd8de4ae0b", size = 149341, upload-time = "2025-09-25T21:32:56.828Z" },
+]
+
+[[package]]
+name = "qrcode"
+version = "8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/b2/7fc2931bfae0af02d5f53b174e9cf701adbb35f39d69c2af63d4a39f81a9/qrcode-8.2.tar.gz", hash = "sha256:35c3f2a4172b33136ab9f6b3ef1c00260dd2f66f858f24d88418a015f446506c", size = 43317, upload-time = "2025-05-01T15:44:24.726Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/b8/d2d6d731733f51684bbf76bf34dab3b70a9148e8f2cef2bb544fccec681a/qrcode-8.2-py3-none-any.whl", hash = "sha256:16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f", size = 45986, upload-time = "2025-05-01T15:44:22.781Z" },
 ]
 
 [[package]]
