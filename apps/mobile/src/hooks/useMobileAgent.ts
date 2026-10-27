@@ -32,6 +32,27 @@ declare const process: any;
 
 const STORAGE_SESSIONS_KEY = "odin_mobile_sessions_v1";
 
+const memoryStorage = new Map<string, string>();
+
+async function safeStorageGet(key: string): Promise<string | null> {
+  try {
+    const val = await AsyncStorage.getItem(key);
+    if (val !== null && val !== undefined) return val;
+    return memoryStorage.get(key) ?? null;
+  } catch {
+    return memoryStorage.get(key) ?? null;
+  }
+}
+
+async function safeStorageSet(key: string, value: string): Promise<void> {
+  memoryStorage.set(key, value);
+  try {
+    await AsyncStorage.setItem(key, value);
+  } catch {
+    // In-memory fallback is active
+  }
+}
+
 function getDefaultBackendUrl(): string {
   if (typeof process !== "undefined" && process?.env?.EXPO_PUBLIC_BACKEND_URL) {
     return process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -77,15 +98,15 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     let isMounted = true;
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_SESSIONS_KEY);
+        const stored = await safeStorageGet(STORAGE_SESSIONS_KEY);
         if (stored && isMounted) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setSavedSessions(parsed);
           }
         }
-      } catch (err) {
-        console.warn("Failed to load saved mobile sessions from AsyncStorage:", err);
+      } catch {
+        // Fallback safely handled
       }
     })();
     return () => {
@@ -95,9 +116,9 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
   const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
     try {
-      await AsyncStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(list));
-    } catch (err) {
-      console.warn("Failed to save mobile sessions to AsyncStorage:", err);
+      await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(list));
+    } catch {
+      // Fallback safely handled
     }
   };
 
