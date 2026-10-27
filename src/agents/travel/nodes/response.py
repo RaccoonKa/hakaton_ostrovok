@@ -1,50 +1,73 @@
-import json
+"""
+Узел формирования итогового ответа.
 
-from langchain_core.messages import AIMessage, ToolMessage
+Полностью deterministic: не зависит от LLM и использует только
+``trip_options`` из mock aggregator. Формирует сообщение для сценария
+«результаты поиска». Сценарии «уточнение», «выбор города», «выбор дат»
+обрабатываются узлом ``ask`` через interrupt.
+"""
 
+from __future__ import annotations
+
+from langchain_core.messages import AIMessage
+
+from agents.travel.nodes.ask import _city_name
 from agents.travel.state import TravelState
 
 
-def generate_response(state: TravelState | dict):
+def _format_package(pkg: dict) -> str:
+    pkg_type = pkg.get("package_type", "Вариант")
+    total = pkg.get("grand_total", 0)
+    desc = pkg.get("description", "")
+    scenario = pkg.get("budget_scenario")
+    within = pkg.get("is_within_budget", True)
+
+    header = f"**{pkg_type}**"
+    if scenario:
+        header += f" ({scenario})"
+    status = "✅ в бюджете" if within else "⚠️ превышает бюджет"
+    lines = [
+        f"{header} — {status}",
+        desc,
+        f"Общая стоимость: **{total:,.0f} ₽**".replace(",", " "),
+    ]
+    if not within and pkg.get("over_budget_amount"):
+        over = pkg["over_budget_amount"]
+        lines.append(f"Превышение: {over:,.0f} ₽".replace(",", " "))
+    return "\n".join(lines)
+
+
+def generate_response(state: TravelState | dict) -> dict:
     if isinstance(state, dict):
-        messages = state.get("messages", [])
+        trip_options = state.get("trip_options", []) or []
+        request = state.get("user_request")
     else:
-        messages = getattr(state, "messages", [])
+        trip_options = getattr(state, "trip_options", []) or []
+        request = getattr(state, "user_request", None)
 
-    packages_data = []
-    for msg in reversed(messages):
-        if isinstance(msg, ToolMessage):
-            try:
-                packages_data = json.loads(msg.content)
-                break
-            except Exception:
-                pass
+    if not trip_options:
+        return {
+            "messages": [
+                AIMessage(
+                    content="Не удалось подобрать варианты. Попробуйте изменить параметры поиска."
+                )
+            ]
+        }
 
-    if not packages_data:
-        for msg in reversed(messages):
-            if isinstance(msg, AIMessage) and msg.content:
-                return {"messages": [msg]}
-        return {"messages": [AIMessage(content="Не удалось подобрать варианты. Попробуйте изменить параметры поиска.")]}
+    dest = getattr(request, "destination", None) if request else None
+    lines = []
+    if dest:
+        lines.append(f"Я подобрал для вас варианты поездки в {_city_name(dest)}:\n")
+    else:
+        lines.append("Я подобрал для вас варианты поездки:\n")
 
-    text_lines = ["Я подобрал для вас варианты поездки:\n"]
-    for p in packages_data:
-        pkg_type = p.get("package_type", "Вариант")
-        desc = p.get("description", "")
-        total = p.get("grand_total", 0)
-        within = p.get("is_within_budget", True)
+    for pkg in trip_options:
+        lines.append(_format_package(pkg))
 
-        status_mark = "✅" if within else "⚠️ (превышает бюджет)"
-        text_lines.append(f"**{pkg_type}** {status_mark}\n{desc}\nОбщая стоимость: **{total:,.0f} руб.**\n".replace(",", " "))
+    lines.append("Какой из вариантов вам больше подходит?")
+    final_text = "\n\n".join(lines)
 
-    text_lines.append("Какой из вариантов вам больше подходит, или скорректируем даты/бюджет?")
-    final_text = "\n".join(text_lines)
+    return {"messages": [AIMessage(content=final_text)]}
 
-    ai_message = AIMessage(
-        content=final_text,
-        additional_kwargs={"trip_options": packages_data},
-    )
 
-    return {
-        "messages": [ai_message],
-        "trip_options": packages_data,
-    }
+__all__ = ["generate_response"]
