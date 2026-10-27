@@ -37,7 +37,10 @@ export type IconName =
   | "water"
   | "plus"
   | "minus"
-  | "edit";
+  | "edit"
+  | "trash"
+  | "history"
+  | "alert-circle";
 
 export interface IconProps {
   name: IconName;
@@ -129,6 +132,12 @@ export const Icon: React.FC<IconProps> = ({
       return <Feather name="minus" size={size} color={color} />;
     case "edit":
       return <Feather name="edit-2" size={size} color={color} />;
+    case "trash":
+      return <Feather name="trash-2" size={size} color={color} />;
+    case "history":
+      return <Feather name="clock" size={size} color={color} />;
+    case "alert-circle":
+      return <Feather name="alert-circle" size={size} color={color} />;
     default:
       return <Feather name="help-circle" size={size} color={color} />;
   }

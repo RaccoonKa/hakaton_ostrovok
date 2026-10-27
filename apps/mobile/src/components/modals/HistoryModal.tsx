@@ -10,7 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
-import { HistorySessionRecord } from "../../hooks/useMobileAgent";
+import { SavedMobileSession } from "../../hooks/useMobileAgent";
 
 export interface HistoryTripItem {
   id: string;
@@ -25,65 +25,29 @@ export interface HistoryTripItem {
 export interface HistoryModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectSession: (item: HistoryTripItem) => void;
+  onSelectSession?: (item: HistoryTripItem) => void;
   onStartNewChat: () => void;
-  recentSessions?: HistorySessionRecord[];
+  savedSessions?: SavedMobileSession[];
+  activeSessionId?: string | null;
+  onSelectSavedSession?: (session: SavedMobileSession) => void;
+  onDeleteSession?: (sessionId: string) => void;
 }
-
-export const POPULAR_SCENARIOS: HistoryTripItem[] = [
-  {
-    id: "pop-1",
-    title: "Тёплое море в ноябре",
-    destination: "ОАЭ, Рас-эль-Хайма / Дубай",
-    dates: "7 ночей",
-    price: "от 145 000 ₽",
-    previewPrompt: "Хочу к тёплому морю в ноябре с ребёнком, прямой рейс, бюджет до 200 000 ₽",
-    iconName: "sun",
-  },
-  {
-    id: "pop-2",
-    title: "Горнолыжный отдых",
-    destination: "Сочи, Красная Поляна",
-    dates: "5 ночей",
-    price: "от 89 000 ₽",
-    previewPrompt: "Горные лыжи в Сочи на двоих в январе без очередей на подъёмники",
-    iconName: "mountain",
-  },
-  {
-    id: "pop-3",
-    title: "Уикенд в Стамбуле",
-    destination: "Турция, Стамбул (Бейоглу)",
-    dates: "3 ночи",
-    price: "от 64 000 ₽",
-    previewPrompt: "Уикенд в Стамбуле на двоих с уютным отелем возле достопримечательностей",
-    iconName: "building",
-  },
-];
 
 export const HistoryModal: React.FC<HistoryModalProps> = ({
   visible,
   onClose,
-  onSelectSession,
   onStartNewChat,
-  recentSessions = [],
+  savedSessions = [],
+  activeSessionId,
+  onSelectSavedSession,
+  onDeleteSession,
 }) => {
   const insets = useSafeAreaInsets();
 
-  const handleSelectRecent = (session: HistorySessionRecord) => {
-    onSelectSession({
-      id: session.id,
-      title: session.query,
-      destination: "Поиск",
-      dates: session.timestamp,
-      price: "",
-      previewPrompt: session.query,
-      iconName: "sun",
-    });
-    onClose();
-  };
-
-  const handleSelectPopular = (item: HistoryTripItem) => {
-    onSelectSession(item);
+  const handleSelect = (session: SavedMobileSession) => {
+    if (onSelectSavedSession) {
+      onSelectSavedSession(session);
+    }
     onClose();
   };
 
@@ -100,23 +64,30 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View
-          style={[
-            styles.sheet,
-            { paddingBottom: Math.max(insets.bottom, 16) },
-          ]}
-        >
-          {/* Header */}
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+
+        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          {/* Handle */}
+          <View style={styles.handleContainer}>
+            <View style={styles.handle} />
+          </View>
+
+          {/* Title Header */}
           <View style={styles.header}>
-            <View style={styles.headerTitleCol}>
+            <View style={styles.headerTitleRow}>
+              <View style={styles.headerIconBox}>
+                <Icon name="history" size={16} color={theme.colors.primary} />
+              </View>
               <Text style={styles.headerTitle}>История диалогов</Text>
-              <Text style={styles.headerSub}>Предыдущие поиски и популярные туры</Text>
             </View>
 
             <TouchableOpacity
-              style={styles.closeBtn}
               onPress={onClose}
-              accessibilityLabel="Закрыть"
+              style={styles.closeBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Icon name="close" size={18} color={theme.colors.textSecondary} />
@@ -135,68 +106,80 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               activeOpacity={0.8}
             >
               <Icon name="refresh" size={16} color="#FFFFFF" />
-              <Text style={styles.newChatButtonText}>Начать новый поиск</Text>
+              <Text style={styles.newChatButtonText}>Новый маршрут</Text>
             </TouchableOpacity>
 
-            {/* Recent Sessions in Current App Runtime */}
-            {recentSessions.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionCaption}>Недавние запросы</Text>
-                <View style={styles.list}>
-                  {recentSessions.map((session) => (
-                    <TouchableOpacity
-                      key={session.id}
-                      style={styles.recentItem}
-                      onPress={() => handleSelectRecent(session)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.recentItemIconBox}>
-                        <Icon name="sparkles" size={14} color={theme.colors.primary} />
-                      </View>
-                      <View style={styles.recentItemTextCol}>
-                        <Text style={styles.recentItemTitle} numberOfLines={2}>
-                          {session.query}
-                        </Text>
-                        <Text style={styles.recentItemTime}>{session.timestamp}</Text>
-                      </View>
-                      <Icon name="arrow-up-right" size={14} color={theme.colors.textMuted} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
-
-            {/* Popular Scenarios */}
+            {/* Saved Chat Sessions */}
             <View style={styles.section}>
-              <Text style={styles.sectionCaption}>Популярные сценарии</Text>
-              <View style={styles.list}>
-                {POPULAR_SCENARIOS.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.popularCard}
-                    onPress={() => handleSelectPopular(item)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.popularIconBox}>
-                      <Icon
-                        name={item.iconName || "sun"}
-                        size={18}
-                        color={theme.colors.primary}
-                      />
-                    </View>
-                    <View style={styles.popularContent}>
-                      <View style={styles.popularHeaderRow}>
-                        <Text style={styles.popularTitle}>{item.title}</Text>
-                        <Text style={styles.popularPrice}>{item.price}</Text>
+              <Text style={styles.sectionCaption}>Сохранённые маршруты</Text>
+
+              {savedSessions.length === 0 ? (
+                <View style={styles.emptyContainer}>
+                  <View style={styles.emptyIconBox}>
+                    <Icon name="history" size={24} color={theme.colors.textMuted} />
+                  </View>
+                  <Text style={styles.emptyTitle}>История диалогов пуста</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Задайте пожелания ассистенту, и маршруты автоматически сохранятся здесь.
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {savedSessions.map((session) => {
+                    const isActive = activeSessionId === session.id;
+                    const optionsCount = session.tripOptions?.length || 0;
+
+                    return (
+                      <View
+                        key={session.id}
+                        style={[styles.sessionCard, isActive && styles.sessionCardActive]}
+                      >
+                        <TouchableOpacity
+                          style={styles.sessionCardBody}
+                          onPress={() => handleSelect(session)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.sessionIconBox}>
+                            <Icon name="sparkles" size={16} color={theme.colors.primary} />
+                          </View>
+                          <View style={styles.sessionTextCol}>
+                            <Text
+                              style={[
+                                styles.sessionTitle,
+                                isActive && styles.sessionTitleActive,
+                              ]}
+                              numberOfLines={2}
+                            >
+                              {session.title}
+                            </Text>
+                            <View style={styles.sessionMetaRow}>
+                              <Text style={styles.sessionTime}>{session.timestamp}</Text>
+                              {optionsCount > 0 && (
+                                <View style={styles.optionsBadge}>
+                                  <Text style={styles.optionsBadgeText}>
+                                    {optionsCount}{" "}
+                                    {optionsCount === 1 ? "вариант" : "варианта"}
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+
+                        {onDeleteSession && (
+                          <TouchableOpacity
+                            style={styles.deleteButton}
+                            onPress={() => onDeleteSession(session.id)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Icon name="trash" size={16} color={theme.colors.textMuted} />
+                          </TouchableOpacity>
+                        )}
                       </View>
-                      <Text style={styles.popularDestination}>{item.destination}</Text>
-                      <Text style={styles.popularPrompt} numberOfLines={1}>
-                        «{item.previewPrompt}»
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
+                    );
+                  })}
+                </View>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -205,44 +188,57 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   );
 };
 
-export const INITIAL_HISTORY = POPULAR_SCENARIOS;
-
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.55)",
     justifyContent: "flex-end",
   },
+  backdrop: {
+    flex: 1,
+  },
   sheet: {
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     maxHeight: "88%",
-    overflow: "hidden",
+  },
+  handleContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    backgroundColor: theme.colors.border,
+    borderRadius: 2,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: theme.colors.borderSubtle,
   },
-  headerTitleCol: {
-    flex: 1,
-    marginRight: 10,
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
   closeBtn: {
     width: 32,
@@ -253,29 +249,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   scroll: {
-    maxHeight: "100%",
+    flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.md,
+    padding: 20,
     gap: 16,
   },
   newChatButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 13,
-    borderRadius: theme.borderRadius.lg,
     gap: 8,
-    ...theme.shadows.sm,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 14,
+    paddingVertical: 13,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
   },
   newChatButtonText: {
+    color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
   section: {
-    gap: 8,
+    gap: 10,
   },
   sectionCaption: {
     fontSize: 12,
@@ -284,86 +284,103 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  list: {
-    gap: 8,
-  },
-  recentItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.surface,
-    padding: 12,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: 10,
-  },
-  recentItemIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primaryLight,
+  emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
+    paddingVertical: 36,
+    paddingHorizontal: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 8,
   },
-  recentItemTextCol: {
-    flex: 1,
+  emptyIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.surfaceContainerLow,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
   },
-  recentItemTitle: {
-    fontSize: 13,
-    fontWeight: "600",
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  recentItemTime: {
-    fontSize: 11,
+  emptySubtitle: {
+    fontSize: 12,
     color: theme.colors.textMuted,
-    marginTop: 2,
+    textAlign: "center",
+    lineHeight: 18,
   },
-  popularCard: {
+  list: {
+    gap: 10,
+  },
+  sessionCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.surface,
-    padding: 12,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    gap: 12,
-    ...theme.shadows.sm,
+    padding: 12,
   },
-  popularIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.borderRadius.md,
+  sessionCardActive: {
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  sessionCardBody: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sessionIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: theme.colors.surfaceContainerLow,
     alignItems: "center",
     justifyContent: "center",
   },
-  popularContent: {
+  sessionTextCol: {
     flex: 1,
   },
-  popularHeaderRow: {
+  sessionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+    lineHeight: 18,
+  },
+  sessionTitleActive: {
+    color: theme.colors.primary,
+    fontWeight: "700",
+  },
+  sessionMetaRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
+    marginTop: 4,
   },
-  popularTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  popularPrice: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.primary,
-  },
-  popularDestination: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  popularPrompt: {
+  sessionTime: {
     fontSize: 11,
     color: theme.colors.textMuted,
-    marginTop: 3,
-    fontStyle: "italic",
+  },
+  optionsBadge: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  optionsBadgeText: {
+    fontSize: 10,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 6,
   },
 });

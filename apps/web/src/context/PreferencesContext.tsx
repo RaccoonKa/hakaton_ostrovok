@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { ClientAuthManager } from "@corvax/shared";
 
 export type CurrencyCode =
   | "RUB"
@@ -50,13 +51,13 @@ const DEFAULT_PREFERENCES: TravelPreferences = {
 };
 
 const DEFAULT_PROFILE: UserProfile = {
-  fullName: "Алексей Смирнов",
-  email: "alexey.smirnov@example.com",
-  phone: "+7 (999) 123-45-67",
-  tier: "Премиум",
-  domesticPassport: "4512 789123",
-  intlPassport: "75 1234567",
-  telegramNotifications: true,
+  fullName: "",
+  email: "",
+  phone: "",
+  tier: "Путешественник",
+  domesticPassport: "",
+  intlPassport: "",
+  telegramNotifications: false,
 };
 
 const STORAGE_PREFS_KEY = "odin_travel_preferences_v1";
@@ -92,6 +93,16 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const [profile, setProfile] = useState<UserProfile>(() => {
     try {
+      const session = ClientAuthManager.getCurrentSession();
+      if (session?.user) {
+        return {
+          ...DEFAULT_PROFILE,
+          fullName: session.user.fullName,
+          email: session.user.email,
+          phone: session.user.phone || "",
+          tier: session.user.tier || "Путешественник",
+        };
+      }
       const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
       if (saved) {
         return { ...DEFAULT_PROFILE, ...JSON.parse(saved) };
@@ -101,6 +112,27 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     return DEFAULT_PROFILE;
   });
+
+  // Keep profile synchronized if session changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const session = ClientAuthManager.getCurrentSession();
+      if (session?.user) {
+        setProfile((prev) => ({
+          ...prev,
+          fullName: session.user.fullName,
+          email: session.user.email,
+          phone: session.user.phone || prev.phone,
+          tier: session.user.tier || "Путешественник",
+        }));
+      } else {
+        setProfile(DEFAULT_PROFILE);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>("search");

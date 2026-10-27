@@ -14,6 +14,15 @@ export interface HistorySessionRecord {
   timestamp: string;
 }
 
+export interface SavedMobileSession {
+  id: string;
+  title: string;
+  timestamp: string;
+  messages: UnifiedChatMessage[];
+  tripOptions: TripOption[];
+  selectedOption: TripOption | null;
+}
+
 export interface UseMobileAgentOptions {
   baseUrl?: string;
 }
@@ -41,6 +50,8 @@ function getDefaultBackendUrl(): string {
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   const [messages, setMessages] = useState<UnifiedChatMessage[]>([]);
   const [historySessions, setHistorySessions] = useState<HistorySessionRecord[]>([]);
+  const [savedSessions, setSavedSessions] = useState<SavedMobileSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   const [tripOptions, setTripOptions] = useState<TripOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<TripOption | null>(null);
@@ -97,6 +108,42 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       .toString()
       .padStart(2, "0")}`;
   };
+
+  const persistSession = useCallback(
+    (
+      msgs: UnifiedChatMessage[],
+      options: TripOption[],
+      selectedOpt: TripOption | null,
+      customId?: string
+    ) => {
+      const activeId = customId || threadIdRef.current;
+      if (!activeId || msgs.length === 0) return;
+
+      const firstUserMsg = msgs.find((m) => m.role === "user" || (m as any).type === "human");
+      const title = firstUserMsg
+        ? firstUserMsg.content.slice(0, 36) + (firstUserMsg.content.length > 36 ? "..." : "")
+        : "Маршрут путешествия";
+
+      setSavedSessions((prev) => {
+        const existingIdx = prev.findIndex((s) => s.id === activeId);
+        const updated: SavedMobileSession = {
+          id: activeId,
+          title: existingIdx >= 0 ? prev[existingIdx].title : title,
+          timestamp: formatCurrentTime(),
+          messages: msgs,
+          tripOptions: options,
+          selectedOption: selectedOpt,
+        };
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = updated;
+          return next;
+        }
+        return [updated, ...prev];
+      });
+    },
+    []
+  );
 
   const cancelRequest = useCallback(() => {
     clearTimers();
@@ -189,7 +236,9 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
       if (!threadIdRef.current) {
         threadIdRef.current = `mobile-session-${Date.now()}`;
+        setActiveSessionId(threadIdRef.current);
       }
+      const currentThreadId = threadIdRef.current;
 
       let accumulatedContent = "";
 
@@ -238,8 +287,8 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                 accumulatedContent = content;
               }
 
-              setMessages((prev) =>
-                prev.map((m) =>
+              setMessages((prev) => {
+                const next = prev.map((m) =>
                   m.id === assistantMsgId
                     ? {
                         ...m,
@@ -251,8 +300,10 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                           suggestions.length > 0 ? suggestions : m.suggestions,
                       }
                     : m
-                )
-              );
+                );
+                persistSession(next, normalized || tripOptions, selectedOption, currentThreadId);
+                return next;
+              });
             },
             onTripOptions: (options: TripOption[]) => {
               const normalized = normalizeTripOptions(options);
@@ -369,9 +420,24 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setMessages((prev) => [...prev, successMsg]);
   }, []);
 
+  const selectSession = useCallback(
+    (session: SavedMobileSession) => {
+      cancelRequest();
+      threadIdRef.current = session.id;
+      setActiveSessionId(session.id);
+      setMessages(session.messages || []);
+      setTripOptions(session.tripOptions || []);
+      setSelectedOption(session.selectedOption || null);
+      setIsThinking(false);
+      setIsStreaming(false);
+    },
+    [cancelRequest]
+  );
+
   const resetChat = useCallback(() => {
     cancelRequest();
     threadIdRef.current = null;
+    setActiveSessionId(null);
     setMessages([]);
     setTripOptions([]);
     setSelectedOption(null);
@@ -379,6 +445,16 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setIsStreaming(false);
     setConfirmedBookingId(null);
   }, [cancelRequest]);
+
+  const deleteSession = useCallback(
+    (sessionId: string) => {
+      setSavedSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      if (activeSessionId === sessionId) {
+        resetChat();
+      }
+    },
+    [activeSessionId, resetChat]
+  );
 
   return {
     messages,
@@ -391,10 +467,14 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     checkoutOption,
     confirmedBookingId,
     historySessions,
+    savedSessions,
+    activeSessionId,
     backendUrl,
     setBackendUrl,
     sendMessage,
     selectOption,
+    selectSession,
+    deleteSession,
     openCheckout,
     closeCheckout,
     handleBookingConfirmed,

@@ -28,6 +28,7 @@ import {
   TravelPreferences,
   UserProfile,
 } from "../../context/PreferencesContext";
+import { useAuth } from "../../context/AuthContext";
 
 const POPULAR_CITIES = [
   "Москва (MOW)",
@@ -69,6 +70,7 @@ export const SettingsModal: React.FC = () => {
     setActiveTab,
     closeSettingsModal,
   } = usePreferences();
+  const { isAuthenticated, logout, openAuthModal } = useAuth();
 
   const [draftPrefs, setDraftPrefs] = useState<TravelPreferences>(preferences);
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
@@ -216,9 +218,8 @@ export const SettingsModal: React.FC = () => {
   };
 
   const handleLogout = () => {
-    if (confirm("Вы уверены, что хотите выйти из аккаунта?")) {
-      closeSettingsModal();
-    }
+    logout();
+    closeSettingsModal();
   };
 
   return (
@@ -633,6 +634,29 @@ export const SettingsModal: React.FC = () => {
                 </div>
               </div>
             </>
+          ) : !isAuthenticated ? (
+            /* Unauthenticated Account State */
+            <div className="p-8 rounded-2xl bg-surface-muted/50 dark:bg-white/5 border border-surface-border text-center flex flex-col items-center justify-center my-4">
+              <div className="w-14 h-14 rounded-full bg-[#581c87]/15 dark:bg-purple-900/30 text-[#581c87] dark:text-purple-300 flex items-center justify-center mb-3.5 shadow-xs">
+                <User className="w-7 h-7" />
+              </div>
+              <h4 className="text-base font-bold text-content-primary mb-1">
+                Личный кабинет путешественника
+              </h4>
+              <p className="text-xs text-content-muted mb-5 max-w-sm">
+                Войдите или зарегистрируйтесь, чтобы сохранять историю маршрутов, управлять бронированиями и быстро оформлять билеты.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  closeSettingsModal();
+                  openAuthModal();
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#581c87] to-[#7e22ce] hover:from-[#4a1674] hover:to-[#6b21a8] text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-900/20 transition-all cursor-pointer"
+              >
+                Войти в аккаунт
+              </button>
+            </div>
           ) : (
             /* TAB 2: User Profile & Account Settings */
             <>

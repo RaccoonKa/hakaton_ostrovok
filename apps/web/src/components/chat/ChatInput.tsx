@@ -14,18 +14,10 @@ interface ChatInputProps {
   onToggleFilters?: () => void;
 }
 
-const DEFAULT_SUGGESTIONS = [
-  "«Сравни отели Rixos в ОАЭ и Турции»",
-  "«Сделай вылет на 2 дня позже»",
-  "«Уложись до 130 000 ₽»",
-  "«Нужна ли виза в ОАЭ для ребёнка?»",
-  "«Покажи только отели с подогреваемым бассейном»",
-];
-
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading = false,
-  suggestions = DEFAULT_SUGGESTIONS,
+  suggestions = [],
   placeholder = "Спросите что угодно или уточните параметры путешествия...",
   isFiltersOpen: externalIsFiltersOpen,
   onToggleFilters,

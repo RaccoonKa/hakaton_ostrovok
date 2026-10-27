@@ -3,7 +3,7 @@ import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
 import { SearchFiltersPopover } from "./chat/SearchFiltersPopover";
-import { useTravelAgent } from "../hooks/useTravelAgent";
+import { useChat } from "../context/ChatContext";
 import { useSidebar } from "../context/SidebarContext";
 import {
   Send,
@@ -14,7 +14,7 @@ import {
   Building,
   ArrowUpRight,
 } from "lucide-react";
-import { SHARED_SUGGESTIONS, SHARED_QUICK_CHIPS } from "@corvax/shared";
+import { SHARED_SUGGESTIONS } from "@corvax/shared";
 
 interface ChatViewProps {
   externalHistoryTrigger?: string | null;
@@ -32,7 +32,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     selectOption,
     openBookingModal,
     closeBookingModal,
-  } = useTravelAgent();
+  } = useChat();
 
   const { isSidebarOpen } = useSidebar();
   const [heroInput, setHeroInput] = useState("");
@@ -211,7 +211,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               <ChatInput
                 onSendMessage={(text) => sendMessage(text)}
                 isLoading={isLoading}
-                suggestions={SHARED_QUICK_CHIPS as unknown as string[]}
                 isFiltersOpen={isFiltersOpen}
                 onToggleFilters={() => setIsFiltersOpen((prev) => !prev)}
               />

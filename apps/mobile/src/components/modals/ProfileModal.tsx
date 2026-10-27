@@ -8,21 +8,18 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
-import { UserAccount } from "../../types/account";
+import { AuthUser } from "@corvax/shared";
 
 export interface ProfileModalProps {
   visible: boolean;
   onClose: () => void;
-  accounts?: UserAccount[];
-  activeAccountId?: string;
-  onSelectAccount?: (id: string) => void;
-  onUpdateAccount?: (account: UserAccount) => void;
-  onCreateAccount?: (account: UserAccount) => void;
+  currentUser?: AuthUser | null;
+  onOpenAuth?: () => void;
+  onLogout?: () => void;
   onSavePreferences?: (city: string, currency: string) => void;
   backendUrl?: string;
   onUpdateBackendUrl?: (url: string) => void;
@@ -60,11 +57,9 @@ export const SERVER_PRESETS = [
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   visible,
   onClose,
-  accounts = [],
-  activeAccountId = "acc-1",
-  onSelectAccount,
-  onUpdateAccount,
-  onCreateAccount,
+  currentUser,
+  onOpenAuth,
+  onLogout,
   onSavePreferences,
   backendUrl,
   onUpdateBackendUrl,
@@ -73,28 +68,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [selectedCity, setSelectedCity] = useState("MOW");
   const [selectedCurrency, setSelectedCurrency] = useState("RUB");
 
-  const currentAcc = accounts.find((a) => a.id === activeAccountId) || accounts[0];
-
-  const [editName, setEditName] = useState(currentAcc?.name || "Алексей Смирнов");
-  const [editPhone, setEditPhone] = useState(currentAcc?.phone || "+7 (999) 123-45-67");
-  const [editEmail, setEditEmail] = useState(currentAcc?.email || "alexey.smirnov@example.com");
-  const [editPassport, setEditPassport] = useState(currentAcc?.passportNumber || "4512 789123");
-  const [editIntlPassport, setEditIntlPassport] = useState(currentAcc?.intlPassport || "75 №1234567");
+  const [editPassport, setEditPassport] = useState(currentUser?.passportNumber || "");
+  const [editIntlPassport, setEditIntlPassport] = useState(currentUser?.intlPassport || "");
 
   const [serverUrl, setServerUrl] = useState(backendUrl || "http://192.168.1.79:8000");
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
-
-  useEffect(() => {
-    if (currentAcc) {
-      setEditName(currentAcc.name);
-      setEditPhone(currentAcc.phone);
-      setEditEmail(currentAcc.email);
-      setEditPassport(currentAcc.passportNumber || "");
-      setEditIntlPassport(currentAcc.intlPassport || "");
-    }
-  }, [currentAcc?.id, visible]);
 
   useEffect(() => {
     if (backendUrl) {
@@ -132,25 +112,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   };
 
   const handleSave = () => {
-    if (currentAcc && onUpdateAccount) {
-      onUpdateAccount({
-        ...currentAcc,
-        name: editName.trim() || currentAcc.name,
-        phone: editPhone.trim() || currentAcc.phone,
-        email: editEmail.trim() || currentAcc.email,
-        passportNumber: editPassport.trim() || currentAcc.passportNumber,
-        intlPassport: editIntlPassport.trim() || currentAcc.intlPassport,
-        avatarInitials:
-          editName
-            .trim()
-            .split(" ")
-            .map((w) => w[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase() || currentAcc.avatarInitials,
-      });
-    }
-
     const cityName = POPULAR_CITIES.find((c) => c.id === selectedCity)?.name || "Москва";
     onSavePreferences?.(cityName, selectedCurrency);
 
@@ -162,39 +123,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setTimeout(() => {
       setSavedSuccess(false);
       onClose();
-    }, 400);
-  };
-
-  const handleAddNewAccount = () => {
-    if (!onCreateAccount) return;
-    const newId = `acc-${Date.now()}`;
-    const newAcc: UserAccount = {
-      id: newId,
-      name: "Новый путешественник",
-      email: "guest@example.com",
-      phone: "+7 (999) 000-00-00",
-      tier: "Базовый",
-      bonusMiles: 1000,
-      avatarInitials: "НП",
-      badgeColor: "#6B7280",
-    };
-    onCreateAccount(newAcc);
+    }, 600);
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          {/* Header */}
+          {/* Header handle */}
+          <View style={styles.handleContainer}>
+            <View style={styles.handle} />
+          </View>
+
+          {/* Modal Header */}
           <View style={styles.header}>
-            <View style={styles.headerTitleCol}>
-              <Text style={styles.headerTitle}>Аккаунт и настройки</Text>
-              <Text style={styles.headerSub}>Управление профилями и сервером ИИ</Text>
+            <View style={styles.headerTitleRow}>
+              <View style={styles.headerIconBox}>
+                <Icon name="user" size={16} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.headerTitle}>Профиль и настройки</Text>
             </View>
+
             <TouchableOpacity
-              style={styles.closeBtn}
               onPress={onClose}
-              accessibilityLabel="Закрыть"
+              style={styles.closeBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Icon name="close" size={18} color={theme.colors.textSecondary} />
@@ -206,147 +169,126 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Accounts Manager Card */}
-            <View style={styles.sectionCard}>
-              <View style={styles.sectionHeaderRow}>
-                <Icon name="user" size={15} color={theme.colors.primary} />
-                <Text style={styles.sectionTitle}>Рабочие аккаунты</Text>
+            {/* Account Card */}
+            {currentUser ? (
+              <View style={styles.profileCard}>
+                <View style={styles.profileHeader}>
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarInitials}>
+                      {currentUser.fullName
+                        ? currentUser.fullName
+                            .split(" ")
+                            .map((w) => w[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()
+                        : "ПУ"}
+                    </Text>
+                  </View>
+                  <View style={styles.profileInfoCol}>
+                    <View style={styles.profileNameRow}>
+                      <Text style={styles.profileName}>{currentUser.fullName}</Text>
+                      <View style={styles.tierBadge}>
+                        <Text style={styles.tierBadgeText}>{currentUser.tier}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.profileEmail}>{currentUser.email}</Text>
+                    {currentUser.phone ? (
+                      <Text style={styles.profilePhone}>{currentUser.phone}</Text>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Passport details for fast checkout */}
+                <View style={styles.passportSection}>
+                  <Text style={styles.passportSectionTitle}>Документы для бронирования</Text>
+                  <View style={styles.passportInputsRow}>
+                    <View style={styles.passportInputCol}>
+                      <Text style={styles.passportInputLabel}>Паспорт РФ</Text>
+                      <TextInput
+                        style={styles.passportInput}
+                        value={editPassport}
+                        onChangeText={setEditPassport}
+                        placeholder="Серия и номер"
+                        placeholderTextColor={theme.colors.textMuted}
+                      />
+                    </View>
+                    <View style={styles.passportInputCol}>
+                      <Text style={styles.passportInputLabel}>Загранпаспорт</Text>
+                      <TextInput
+                        style={styles.passportInput}
+                        value={editIntlPassport}
+                        onChangeText={setEditIntlPassport}
+                        placeholder="Серия и номер"
+                        placeholderTextColor={theme.colors.textMuted}
+                      />
+                    </View>
+                  </View>
+                </View>
+
+                {onLogout && (
+                  <TouchableOpacity
+                    style={styles.logoutButton}
+                    onPress={() => {
+                      onLogout();
+                      onClose();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Icon name="arrow-left" size={15} color="#DC2626" />
+                    <Text style={styles.logoutButtonText}>Выйти из аккаунта</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-
-              {/* Account Switcher Carousel */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.accountListScroll}
-              >
-                {accounts.map((acc) => {
-                  const isActive = acc.id === (currentAcc?.id || activeAccountId);
-                  return (
-                    <TouchableOpacity
-                      key={acc.id}
-                      style={[
-                        styles.accountCard,
-                        isActive && styles.accountCardActive,
-                      ]}
-                      onPress={() => onSelectAccount?.(acc.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View
-                        style={[
-                          styles.avatarBadge,
-                          { backgroundColor: acc.badgeColor || theme.colors.primary },
-                        ]}
-                      >
-                        <Text style={styles.avatarInitials}>{acc.avatarInitials}</Text>
-                      </View>
-                      <Text style={styles.accountCardName} numberOfLines={1}>
-                        {acc.name}
-                      </Text>
-                      <View style={styles.accountBadgeRow}>
-                        <Text style={styles.accountTierText}>{acc.tier}</Text>
-                        <Text style={styles.accountMilesText}>
-                          {acc.bonusMiles.toLocaleString("ru-RU")} миль
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-
+            ) : (
+              <View style={styles.unauthCard}>
+                <View style={styles.unauthIconBox}>
+                  <Icon name="user" size={28} color={theme.colors.primary} />
+                </View>
+                <Text style={styles.unauthTitle}>Личный кабинет путешественника</Text>
+                <Text style={styles.unauthSubtitle}>
+                  Авторизуйтесь, чтобы сохранять историю диалогов и быстрее бронировать найденные туры.
+                </Text>
                 <TouchableOpacity
-                  style={styles.addAccountButton}
-                  onPress={handleAddNewAccount}
-                  activeOpacity={0.7}
+                  style={styles.loginActionBtn}
+                  onPress={() => {
+                    onClose();
+                    onOpenAuth?.();
+                  }}
+                  activeOpacity={0.8}
                 >
-                  <Icon name="sparkles" size={16} color={theme.colors.primary} />
-                  <Text style={styles.addAccountText}>+ Профиль</Text>
+                  <Text style={styles.loginActionBtnText}>Войти или зарегистрироваться</Text>
                 </TouchableOpacity>
-              </ScrollView>
-
-              {/* Active Profile Fields */}
-              <View style={styles.formGroup}>
-                <Text style={styles.fieldLabel}>Имя и фамилия</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Имя Фамилия"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
               </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.fieldLabel}>Номер телефона</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editPhone}
-                  onChangeText={setEditPhone}
-                  placeholder="+7 (999) 000-00-00"
-                  keyboardType="phone-pad"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
-              </View>
-
-              <View style={styles.formGroup}>
-                <Text style={styles.fieldLabel}>Электронная почта</Text>
-                <TextInput
-                  style={styles.fieldInput}
-                  value={editEmail}
-                  onChangeText={setEditEmail}
-                  placeholder="email@example.com"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
-              </View>
-
-              <View style={styles.formRow}>
-                <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Паспорт РФ</Text>
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editPassport}
-                    onChangeText={setEditPassport}
-                    placeholder="Серия и номер"
-                    placeholderTextColor={theme.colors.textMuted}
-                  />
-                </View>
-                <View style={[styles.formGroup, { flex: 1 }]}>
-                  <Text style={styles.fieldLabel}>Загранпаспорт</Text>
-                  <TextInput
-                    style={styles.fieldInput}
-                    value={editIntlPassport}
-                    onChangeText={setEditIntlPassport}
-                    placeholder="Номер паспорта"
-                    placeholderTextColor={theme.colors.textMuted}
-                  />
-                </View>
-              </View>
-            </View>
+            )}
 
             {/* Backend Connection */}
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeaderRow}>
-                <Icon name="compass" size={15} color={theme.colors.primary} />
-                <Text style={styles.sectionTitle}>Сервер планирования (ИИ)</Text>
+                <Icon name="refresh" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>Подключение к серверу ИИ</Text>
               </View>
-
-              <Text style={styles.serverHintText}>
-                Выберите быстрый пресет подключения или укажите свой адрес:
+              <Text style={styles.sectionHint}>
+                Выберите пресет или введите адрес FastAPI бэкенда:
               </Text>
 
-              {/* Preset Buttons */}
-              <View style={styles.presetsRow}>
-                {SERVER_PRESETS.map((preset) => {
-                  const isCurrent = serverUrl.includes(preset.url.replace(/^https?:\/\//, ""));
+              <View style={styles.presetButtonsRow}>
+                {SERVER_PRESETS.map((p) => {
+                  const isActive = serverUrl === p.url;
                   return (
                     <TouchableOpacity
-                      key={preset.label}
-                      style={[styles.presetChip, isCurrent && styles.presetChipActive]}
-                      onPress={() => handleSelectPreset(preset.url)}
+                      key={p.label}
+                      style={[styles.presetButton, isActive && styles.presetButtonActive]}
+                      onPress={() => handleSelectPreset(p.url)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.presetChipText, isCurrent && styles.presetChipTextActive]}>
-                        {preset.label}
+                      <Text
+                        style={[
+                          styles.presetButtonText,
+                          isActive && styles.presetButtonTextActive,
+                        ]}
+                      >
+                        {p.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -376,7 +318,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   {connectionStatus === "testing" ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.testButtonText}>Проверить</Text>
+                    <Text style={styles.testButtonText}>Тест</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -398,7 +340,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeaderRow}>
                 <Icon name="plane" size={14} color={theme.colors.primary} />
-                <Text style={styles.sectionTitle}>Город вылета</Text>
+                <Text style={styles.sectionTitle}>Город вылета по умолчанию</Text>
               </View>
               <View style={styles.chipsGrid}>
                 {POPULAR_CITIES.map((c) => {
@@ -426,7 +368,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <Text style={styles.sectionTitle}>Валюта цен</Text>
               </View>
               <View style={styles.currencyList}>
-                {POPULAR_CURRENCIES.map((cur) => {
+                {POPULAR_CURRENCIES.slice(0, 5).map((cur) => {
                   const isSelected = selectedCurrency === cur.code;
                   return (
                     <TouchableOpacity
@@ -449,25 +391,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 })}
               </View>
             </View>
-          </ScrollView>
 
-          {/* Footer Save Button */}
-          <View style={styles.footer}>
+            {/* Save Button */}
             <TouchableOpacity
-              style={[styles.saveBtn, savedSuccess && styles.saveBtnSuccess]}
+              style={[styles.saveButton, savedSuccess && styles.saveButtonSuccess]}
               onPress={handleSave}
               activeOpacity={0.8}
             >
-              <Icon
-                name={savedSuccess ? "check" : "check"}
-                size={16}
-                color="#FFFFFF"
-              />
-              <Text style={styles.saveBtnText}>
-                {savedSuccess ? "Сохранено" : "Сохранить параметры"}
+              <Text style={styles.saveButtonText}>
+                {savedSuccess ? "✓ Настройки сохранены" : "Сохранить параметры"}
               </Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -477,62 +412,225 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    backgroundColor: "rgba(0, 0, 0, 0.55)",
     justifyContent: "flex-end",
   },
+  backdrop: {
+    flex: 1,
+  },
   sheet: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     maxHeight: "90%",
-    ...theme.shadows.md,
+  },
+  handleContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    backgroundColor: theme.colors.border,
+    borderRadius: 2,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderSubtle,
   },
-  headerTitleCol: {
-    flex: 1,
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    marginTop: 2,
   },
   closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: theme.borderRadius.full,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
   scroll: {
-    maxHeight: 520,
+    flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
     gap: 16,
   },
-  sectionCard: {
-    backgroundColor: theme.colors.surfaceContainerLow,
-    borderRadius: theme.borderRadius.lg,
+  profileCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
+    gap: 14,
+  },
+  profileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
+  },
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarInitials: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  profileInfoCol: {
+    flex: 1,
+  },
+  profileNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  profileName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  tierBadge: {
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  tierBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  profileEmail: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  profilePhone: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  passportSection: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
+    paddingTop: 12,
+    gap: 8,
+  },
+  passportSectionTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+  passportInputsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  passportInputCol: {
+    flex: 1,
+    gap: 4,
+  },
+  passportInputLabel: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  passportInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.surfaceContainerLow,
+  },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: "#FEE2E2",
+  },
+  logoutButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#DC2626",
+  },
+  unauthCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 8,
+  },
+  unauthIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: theme.colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  unauthTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  unauthSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  loginActionBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  loginActionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  sectionCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 10,
   },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -544,157 +642,76 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  accountListScroll: {
-    flexDirection: "row",
-    gap: 10,
-    paddingVertical: 4,
-  },
-  accountCard: {
-    width: 140,
-    padding: 12,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainer,
-    borderWidth: 1.5,
-    borderColor: theme.colors.borderSubtle,
-    gap: 6,
-  },
-  accountCardActive: {
-    backgroundColor: theme.colors.surfaceContainerHigh,
-    borderColor: theme.colors.primary,
-  },
-  avatarBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarInitials: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  accountCardName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  accountBadgeRow: {
-    flexDirection: "column",
-    gap: 2,
-  },
-  accountTierText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  accountMilesText: {
-    fontSize: 10,
-    color: theme.colors.textMuted,
-  },
-  addAccountButton: {
-    width: 90,
-    padding: 12,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderColor: theme.colors.borderSubtle,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  addAccountText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  formRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  formGroup: {
-    gap: 5,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-  },
-  fieldInput: {
-    height: 42,
-    backgroundColor: theme.colors.surfaceContainer,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-  },
-  serverHintText: {
+  sectionHint: {
     fontSize: 12,
     color: theme.colors.textMuted,
-    lineHeight: 16,
   },
-  presetsRow: {
+  presetButtonsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+    gap: 8,
   },
-  presetChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceContainer,
+  presetButton: {
+    flex: 1,
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: "center",
+  },
+  presetButtonActive: {
+    backgroundColor: theme.colors.primaryLight,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-  },
-  presetChipActive: {
-    backgroundColor: theme.colors.primary,
     borderColor: theme.colors.primary,
   },
-  presetChipText: {
+  presetButtonText: {
     fontSize: 11,
     fontWeight: "600",
     color: theme.colors.textSecondary,
   },
-  presetChipTextActive: {
-    color: "#FFFFFF",
+  presetButtonTextActive: {
+    color: theme.colors.primary,
+    fontWeight: "700",
   },
   serverInputRow: {
     flexDirection: "row",
     gap: 8,
   },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.surfaceContainerLow,
+  },
   serverInput: {
     flex: 1,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    fontSize: 12,
   },
   testButton: {
-    height: 42,
-    paddingHorizontal: 14,
-    borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.primary,
-    alignItems: "center",
+    borderRadius: 10,
+    paddingHorizontal: 14,
     justifyContent: "center",
+    alignItems: "center",
   },
   testButtonOk: {
-    backgroundColor: "#059669",
+    backgroundColor: "#16A34A",
   },
   testButtonError: {
     backgroundColor: "#DC2626",
   },
   testButtonText: {
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
-    color: "#FFFFFF",
   },
   statusMessageText: {
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: 11,
     color: theme.colors.textMuted,
   },
   statusMessageOk: {
-    color: "#059669",
+    color: "#16A34A",
   },
   statusMessageError: {
     color: "#DC2626",
@@ -706,39 +723,36 @@ const styles = StyleSheet.create({
   },
   cityChip: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainer,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   cityChipActive: {
-    backgroundColor: theme.colors.headerBg,
-    borderColor: theme.colors.headerBg,
+    backgroundColor: theme.colors.primary,
   },
   cityChipText: {
     fontSize: 12,
+    color: theme.colors.textSecondary,
     fontWeight: "500",
-    color: theme.colors.textPrimary,
   },
   cityChipTextActive: {
     color: "#FFFFFF",
-    fontWeight: "600",
+    fontWeight: "700",
   },
   currencyList: {
-    gap: 8,
+    gap: 6,
   },
   currencyRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainer,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surfaceContainerLow,
   },
   currencyRowActive: {
-    backgroundColor: theme.colors.surfaceContainerHigh,
+    backgroundColor: theme.colors.primaryLight,
   },
   currencyCodeCol: {
     flexDirection: "row",
@@ -746,18 +760,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   currencySymbol: {
-    width: 28,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: theme.colors.primary,
-    textAlign: "center",
+    width: 24,
   },
   currencyName: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    fontWeight: "500",
+    fontSize: 12,
+    color: theme.colors.textSecondary,
   },
   currencyNameActive: {
+    color: theme.colors.primary,
     fontWeight: "700",
   },
   radioCircle: {
@@ -765,7 +778,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -773,32 +786,25 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
   },
   radioInner: {
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: theme.colors.primary,
   },
-  footer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-  },
-  saveBtn: {
-    height: 48,
-    borderRadius: theme.borderRadius.md,
+  saveButton: {
     backgroundColor: theme.colors.primary,
-    flexDirection: "row",
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    marginTop: 4,
   },
-  saveBtnSuccess: {
-    backgroundColor: "#059669",
+  saveButtonSuccess: {
+    backgroundColor: "#16A34A",
   },
-  saveBtnText: {
-    fontSize: 15,
-    fontWeight: "600",
+  saveButtonText: {
     color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

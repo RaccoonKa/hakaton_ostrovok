@@ -13,23 +13,23 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   SHARED_SUGGESTIONS,
-  SHARED_QUICK_CHIPS,
   TripOption,
+  ClientAuthManager,
+  AuthSession,
 } from "@corvax/shared";
 import { theme } from "./src/theme";
 import { Icon, IconName } from "./src/components/common/Icon";
 import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
 import { ChatInputBar } from "./src/components/chat/ChatInputBar";
-import { QuickReplyChips } from "./src/components/chat/QuickReplyChips";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
-import { HistoryModal, HistoryTripItem } from "./src/components/modals/HistoryModal";
+import { HistoryModal } from "./src/components/modals/HistoryModal";
 import { ProfileModal } from "./src/components/modals/ProfileModal";
+import { AuthModal } from "./src/components/modals/AuthModal";
 import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
-import { UserAccount, INITIAL_ACCOUNTS } from "./src/types/account";
 
 function getSuggestionIcon(text: string): IconName {
   const lower = text.toLowerCase();
@@ -50,18 +50,34 @@ function MainApp() {
   const [heroInputText, setHeroInputText] = useState("");
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [accounts, setAccounts] = useState<UserAccount[]>(INITIAL_ACCOUNTS);
-  const [activeAccountId, setActiveAccountId] = useState<string>("acc-1");
-  const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0];
 
-  const handleUpdateAccount = (updated: UserAccount) => {
-    setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
-  };
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() =>
+    ClientAuthManager.getCurrentSession()
+  );
 
-  const handleCreateAccount = (newAcc: UserAccount) => {
-    setAccounts((prev) => [...prev, newAcc]);
-    setActiveAccountId(newAcc.id);
+  const headerAccount = authSession?.user
+    ? {
+        name: authSession.user.fullName,
+        avatarInitials: authSession.user.fullName
+          ? authSession.user.fullName
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+          : "ПУ",
+        tier: authSession.user.tier,
+      }
+    : undefined;
+
+  const handleOpenProfileOrAuth = () => {
+    if (authSession?.user) {
+      setProfileVisible(true);
+    } else {
+      setAuthModalVisible(true);
+    }
   };
 
   const scrollViewRef = useRef<any>(null);
@@ -79,6 +95,10 @@ function MainApp() {
     setBackendUrl,
     sendMessage,
     selectOption,
+    selectSession,
+    deleteSession,
+    savedSessions,
+    activeSessionId,
     openCheckout,
     closeCheckout,
     handleBookingConfirmed,
@@ -102,10 +122,6 @@ function MainApp() {
   const handleSelectChip = (chipText: string) => {
     if (isThinking || isStreaming) return;
     sendMessage(chipText);
-  };
-
-  const handleSelectHistorySession = (session: HistoryTripItem) => {
-    sendMessage(session.previewPrompt);
   };
 
   const handleSelectOption = (opt: TripOption | null) => {
@@ -146,10 +162,10 @@ function MainApp() {
       <Header
         title="О!дин запрос"
         subtitle="Ассистент путешествий"
-        activeAccount={activeAccount}
+        activeAccount={headerAccount}
         onMenuPress={() => setHistoryVisible(true)}
         onNewChatPress={resetChat}
-        onSettingsPress={() => setProfileVisible(true)}
+        onSettingsPress={handleOpenProfileOrAuth}
       />
 
       <KeyboardAvoidingView
@@ -302,14 +318,9 @@ function MainApp() {
           )}
         </ScrollView>
 
-        {/* Floating Quick Chips & Bottom Chat Bar only in Active Chat */}
+        {/* Bottom Chat Bar only in Active Chat (no floating mock clutter) */}
         {!isInitialState && (
           <View style={styles.dockedBottomContainer}>
-            <QuickReplyChips
-              chips={SHARED_QUICK_CHIPS as unknown as string[]}
-              onSelectChip={handleSelectChip}
-            />
-
             <ChatInputBar
               value={inputText}
               onChangeText={setInputText}
@@ -327,31 +338,44 @@ function MainApp() {
           onClose={closeCheckout}
           onConfirmSuccess={handleBookingConfirmed}
           initialTraveler={{
-            name: activeAccount.name,
-            phone: activeAccount.phone,
-            email: activeAccount.email,
+            name: authSession?.user?.fullName || "",
+            phone: authSession?.user?.phone || "",
+            email: authSession?.user?.email || "",
           }}
         />
 
-        {/* History Sessions Modal */}
+        {/* History Sessions Modal with real saved chats */}
         <HistoryModal
           visible={historyVisible}
           onClose={() => setHistoryVisible(false)}
-          onSelectSession={handleSelectHistorySession}
+          savedSessions={savedSessions}
+          activeSessionId={activeSessionId}
+          onSelectSavedSession={(session) => selectSession(session)}
+          onDeleteSession={(id) => deleteSession(id)}
           onStartNewChat={resetChat}
         />
 
-        {/* Traveler Profile & Settings Modal with Accounts Management */}
+        {/* Traveler Profile & Settings Modal */}
         <ProfileModal
           visible={profileVisible}
           onClose={() => setProfileVisible(false)}
-          accounts={accounts}
-          activeAccountId={activeAccountId}
-          onSelectAccount={setActiveAccountId}
-          onUpdateAccount={handleUpdateAccount}
-          onCreateAccount={handleCreateAccount}
+          currentUser={authSession?.user || null}
+          onOpenAuth={() => setAuthModalVisible(true)}
+          onLogout={() => {
+            ClientAuthManager.logout();
+            setAuthSession(null);
+          }}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
+        />
+
+        {/* Real Authentication Modal (Login & Registration) */}
+        <AuthModal
+          visible={authModalVisible}
+          onClose={() => setAuthModalVisible(false)}
+          onAuthSuccess={(session) => {
+            setAuthSession(session);
+          }}
         />
 
         {/* Travel Search Filters Modal */}

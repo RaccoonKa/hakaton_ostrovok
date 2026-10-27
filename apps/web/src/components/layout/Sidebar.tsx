@@ -5,38 +5,44 @@ import {
   Settings,
   User,
   MessageSquare,
+  Trash2,
+  LogIn,
 } from "lucide-react";
-import { HistorySessionItem } from "../../types/travel";
 import { useSidebar } from "../../context/SidebarContext";
 import { usePreferences } from "../../context/PreferencesContext";
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
 
 interface SidebarProps {
-  onNewChat: () => void;
-  onSelectHistoryItem: (query: string) => void;
+  onNewChat?: () => void;
+  onSelectHistoryItem?: (query: string) => void;
   activeHistoryId?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
-  onSelectHistoryItem,
-  activeHistoryId,
 }) => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
-  const { openSettingsModal, profile } = usePreferences();
-  const [historyItems] = React.useState<HistorySessionItem[]>(() => {
-    try {
-      const stored = localStorage.getItem("travel_chat_history");
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch {
-      // fallback
-    }
-    return [];
-  });
+  const { openSettingsModal } = usePreferences();
+  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const {
+    sessions,
+    activeSessionId,
+    selectSession,
+    deleteSession,
+    startNewChat,
+  } = useChat();
 
-  const handleSelect = (query: string) => {
-    onSelectHistoryItem(query);
+  const handleStartNew = () => {
+    startNewChat();
+    if (onNewChat) onNewChat();
+    if (window.innerWidth < 768) {
+      closeSidebar();
+    }
+  };
+
+  const handleSelectSession = (id: string) => {
+    selectSession(id);
     if (window.innerWidth < 768) {
       closeSidebar();
     }
@@ -62,7 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden relative">
-          {/* SINGLE continuous frosted purple gradient background (no separate rectangle, no seam, identical shade throughout!) */}
+          {/* SINGLE continuous frosted purple gradient background */}
           <div
             className="absolute top-0 left-0 right-0 h-24 pointer-events-none z-0"
             style={{
@@ -72,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             aria-hidden="true"
           />
 
-          {/* Top Brand Bar (transparent background — sits over the single continuous gradient) */}
+          {/* Top Brand Bar */}
           <div className="relative h-14 px-4 text-white flex items-center justify-between shrink-0 z-10">
             {/* Brand Logo & Title */}
             <div className="flex items-center gap-2.5">
@@ -103,10 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="px-3 pt-2.5 pb-1 relative z-10">
             <button
               type="button"
-              onClick={() => {
-                onNewChat();
-                if (window.innerWidth < 768) closeSidebar();
-              }}
+              onClick={handleStartNew}
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white/95 dark:hover:bg-white/15 backdrop-blur-md text-content-primary border border-black/[0.06] dark:border-white/[0.08] transition-all shadow-xs group cursor-pointer"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
@@ -117,27 +120,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Dialog history feed */}
-          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-3">
-            {historyItems.length === 0 ? (
+          <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+            {sessions.length === 0 ? (
               <div className="px-3 py-8 text-center text-xs text-content-muted">
                 История диалогов пуста
               </div>
             ) : (
-              <div className="flex flex-col gap-0.5">
-                {historyItems.map((item) => (
-                  <button
+              <div className="flex flex-col gap-1">
+                {sessions.map((item) => (
+                  <div
                     key={item.id}
-                    type="button"
-                    onClick={() => handleSelect(item.query)}
-                    className={`w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2 ${
-                      activeHistoryId === item.id
-                        ? "bg-white/90 dark:bg-white/15 text-content-primary font-medium shadow-2xs border border-black/[0.04] dark:border-white/[0.08]"
+                    className={`group/session relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all ${
+                      activeSessionId === item.id
+                        ? "bg-white/90 dark:bg-white/15 text-content-primary font-medium shadow-xs border border-black/[0.04] dark:border-white/[0.08]"
                         : "text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary"
                     }`}
                   >
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60 text-primary" />
-                    <span className="truncate">{item.title}</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectSession(item.id)}
+                      className="flex items-center gap-2 truncate text-left flex-1 min-w-0 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-70 text-primary" />
+                      <span className="truncate">{item.title}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteSession(item.id);
+                      }}
+                      className="opacity-0 group-hover/session:opacity-100 hover:text-red-500 p-1 transition-opacity shrink-0 cursor-pointer text-content-muted"
+                      title="Удалить диалог"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -145,31 +163,60 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Footer User & Settings — frosted glass footer */}
           <div className="p-3 bg-white/60 dark:bg-[#151221]/80 backdrop-blur-xl border-t border-black/[0.06] dark:border-white/[0.08]">
-            {/* User Profile bar with enlarged typography */}
-            <div onClick={() => openSettingsModal("account")} className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 dark:hover:bg-white/10 transition-colors cursor-pointer group" title="Открыть профиль путешественника">
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-10 h-10 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
-                  <User className="w-5 h-5" />
+            {isAuthenticated && user ? (
+              /* User Profile bar with authenticated user data */
+              <div
+                onClick={() => openSettingsModal("account")}
+                className="flex items-center justify-between p-2 rounded-xl hover:bg-white/80 dark:hover:bg-white/10 transition-colors cursor-pointer group"
+                title="Открыть профиль путешественника"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-9 h-9 rounded-full bg-[#581c87] flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
+                    {user.fullName ? user.fullName.slice(0, 1).toUpperCase() : <User className="w-4 h-4" />}
+                  </div>
+                  <div className="flex flex-col truncate">
+                    <span className="text-sm font-bold text-content-primary truncate leading-tight">
+                      {user.fullName}
+                    </span>
+                    <span className="text-[11px] font-medium text-content-secondary truncate leading-tight mt-0.5">
+                      {user.tier || "Путешественник"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col truncate">
-                  <span className="text-base font-bold text-content-primary truncate leading-tight">
-                    {profile?.fullName || "Путешественник"}
-                  </span>
-                  <span className="text-[13px] font-medium text-content-secondary truncate leading-tight mt-0.5">
-                    {profile?.tier || "Личный кабинет"}
-                  </span>
-                </div>
-              </div>
 
+                <button
+                  type="button"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openSettingsModal("account");
+                  }}
+                  title="Настройки профиля и аккаунта"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              /* Unauthenticated: inviting login button */
               <button
                 type="button"
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0"
-                onClick={(e) => { e.stopPropagation(); openSettingsModal("account"); }}
-                title="Настройки профиля и аккаунта"
+                onClick={openAuthModal}
+                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#581c87]/10 dark:bg-purple-950/40 hover:bg-[#581c87]/20 border border-[#581c87]/20 text-[#581c87] dark:text-purple-300 transition-colors cursor-pointer group"
               >
-                <Settings className="w-4.5 h-4.5" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
+                    <LogIn className="w-4 h-4" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-xs font-bold leading-tight">Вход в аккаунт</span>
+                    <span className="text-[10px] text-content-muted leading-tight mt-0.5">
+                      Сохранение маршрутов
+                    </span>
+                  </div>
+                </div>
+                <span className="text-xs font-bold">Войти →</span>
               </button>
-            </div>
+            )}
           </div>
         </div>
       </aside>
