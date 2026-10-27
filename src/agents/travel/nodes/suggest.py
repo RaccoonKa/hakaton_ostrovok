@@ -5,9 +5,10 @@
 город или дату за пользователя — выбор делает пользователь через interrupt.
 """
 
-from __future__ import annotations
 
+from __future__ import annotations
 from agents.travel.logic.decision import suggest_date_ranges, suggest_destinations
+from agents.travel.tools import mock_dataset as ds
 from agents.travel.state import TravelState
 
 
@@ -26,11 +27,11 @@ def call_suggest_destinations(state: TravelState | dict) -> dict:
         "planning_status": "awaiting_destination_selection",
     }
 
-    # Если месяц и длительность известны, но точных дат нет — сразу
-    # показываем варианты периодов, чтобы пользователь мог ответить одним
-    # сообщением и про город, и про даты.
+    # Варианты дат генерируем ТОЛЬКО если город уже определён и известен
+    known_city = ds.get_destination_by_city(request.destination) if request and request.destination else None
     if (
         request is not None
+        and known_city is not None
         and request.date_preferences.month
         and request.duration
         and not request.date_preferences.exact_dates

@@ -140,6 +140,11 @@ def call_aggregate(state: TravelState | dict) -> dict:
                 "passengers": max(1, request.travelers),
                 "budget_limit": budget_limit,
                 "currency": currency,
+                "preferred_transport": getattr(request.preferred_transport, "value", None),
+                "require_baggage": any(c.name == "with_baggage" for c in request.constraints),
+                "require_refundable": any(c.name == "refundable_ticket" for c in request.constraints),
+                "free_cancellation": "free_cancellation" in request.hotel_requirements,
+                "pet_friendly": "pet_friendly" in request.hotel_requirements,
             }
         )
         calls += 1
