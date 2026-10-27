@@ -42,12 +42,12 @@ function getDefaultBackendUrl(): string {
     if (match && match[1]) {
       const host = match[1];
       if (host.includes("exp.direct") || host.includes("ngrok")) {
-        return "https://strong-colts-own.loca.lt";
+        return "https://old-zebra-29.loca.lt";
       }
-      return `http://${host}:8000`;
+      return `http://${host}:8080`;
     }
   }
-  return "https://strong-colts-own.loca.lt";
+  return "https://old-zebra-29.loca.lt";
 }
 
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {

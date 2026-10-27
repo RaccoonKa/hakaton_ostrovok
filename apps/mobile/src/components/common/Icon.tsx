@@ -21,6 +21,8 @@ export type IconName =
   | "arrow-up-right"
   | "arrow-left"
   | "sun"
+  | "moon"
+  | "settings"
   | "mountain"
   | "building"
   | "compass"
@@ -98,6 +100,10 @@ export const Icon: React.FC<IconProps> = ({
       return <Feather name="arrow-left" size={size} color={color} />;
     case "sun":
       return <Feather name="sun" size={size} color={color} />;
+    case "moon":
+      return <Feather name="moon" size={size} color={color} />;
+    case "settings":
+      return <Feather name="settings" size={size} color={color} />;
     case "mountain":
       return <Ionicons name="trail-sign-outline" size={size} color={color} />;
     case "building":

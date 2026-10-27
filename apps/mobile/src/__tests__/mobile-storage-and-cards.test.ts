@@ -77,3 +77,25 @@ test("ClientAuthManager supports custom storage adapter fallback", () => {
   // Reset adapter
   ClientAuthManager.setStorageAdapter(null);
 });
+
+test("dark theme tokens provide high contrast dark palette", () => {
+  const { getTheme, setAppTheme, theme } = require("../theme");
+  const dark = getTheme(true);
+  const light = getTheme(false);
+
+  assert.equal(dark.isDark, true);
+  assert.equal(light.isDark, false);
+  assert.notEqual(dark.colors.background, light.colors.background);
+  assert.equal(dark.colors.background, "#0F0E17");
+  assert.equal(dark.colors.surface, "#181726");
+  assert.equal(dark.colors.textPrimary, "#F4F4F6");
+
+  // Dynamic theme proxy
+  setAppTheme(true);
+  assert.equal(theme.isDark, true);
+  assert.equal(theme.colors.background, "#0F0E17");
+
+  setAppTheme(false);
+  assert.equal(theme.isDark, false);
+  assert.equal(theme.colors.background, "#FBFBFD");
+});

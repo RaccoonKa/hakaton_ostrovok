@@ -16,7 +16,8 @@ import {
   ClientAuthManager,
   AuthSession,
 } from "@corvax/shared";
-import { theme } from "./src/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { theme, lightColors, darkColors, getTheme, setAppTheme } from "./src/theme";
 import { Icon, IconName } from "./src/components/common/Icon";
 import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
@@ -25,11 +26,13 @@ import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
-import { HistoryModal } from "./src/components/modals/HistoryModal";
+import { SidebarDrawer } from "./src/components/drawer/SidebarDrawer";
 import { ProfileModal } from "./src/components/modals/ProfileModal";
 import { AuthModal } from "./src/components/modals/AuthModal";
 import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
+
+const STORAGE_THEME_KEY = "odin_mobile_theme_v1";
 
 function getSuggestionIcon(text: string): IconName {
   const lower = text.toLowerCase();
@@ -51,6 +54,34 @@ function MainApp() {
   const [profileVisible, setProfileVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_THEME_KEY);
+        if (saved !== null) {
+          const dark = saved === "dark";
+          setIsDark(dark);
+          setAppTheme(dark);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      setAppTheme(next);
+      AsyncStorage.setItem(STORAGE_THEME_KEY, next ? "dark" : "light").catch(() => {});
+      return next;
+    });
+  };
+
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
 
   const [authSession, setAuthSession] = useState<AuthSession | null>(() =>
     ClientAuthManager.getCurrentSession()
@@ -147,7 +178,7 @@ function MainApp() {
   const isInitialState = messages.length === 0;
 
   return (
-    <View style={styles.rootContainer}>
+    <View style={[styles.rootContainer, isDark && styles.rootContainerDark]}>
       <StatusBar style="light" />
 
       {/* Top Header matching Web Stitch Purple #581C87 */}
@@ -167,7 +198,7 @@ function MainApp() {
         {/* Messages and Content Feed */}
         <ScrollView
           ref={scrollViewRef}
-          style={styles.feed}
+          style={[styles.feed, isDark && styles.feedDark]}
           contentContainerStyle={[
             styles.feedContent,
             isInitialState && styles.feedContentInitial,
@@ -175,24 +206,57 @@ function MainApp() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Screen 1: Welcome matching Web ChatView Hero without compass icon */}
+          {/* Screen 1: Welcome matching Web ChatView Hero with raised cards */}
           {isInitialState ? (
             <View style={styles.welcomeHero}>
-              <Text style={styles.heroTitle}>Куда хотите поехать?</Text>
-              <Text style={styles.heroDescription}>
+              <Text style={[styles.heroTitle, isDark && styles.textPrimaryDark]}>
+                Куда хотите поехать?
+              </Text>
+              <Text style={[styles.heroDescription, isDark && styles.textSecondaryDark]}>
                 Опишите поездку своими словами: даты, бюджет, пожелания к пляжу
                 или компании. ИИ подберёт честные варианты и соберёт готовый маршрут.
               </Text>
 
-              {/* History Dialogs Action Link */}
-              <TouchableOpacity
-                style={styles.historyLink}
-                onPress={() => setHistoryVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Icon name="clock" size={14} color={theme.colors.primary} />
-                <Text style={styles.historyLinkText}>История диалогов</Text>
-              </TouchableOpacity>
+              {/* Starter Scenarios Cards raised up, filling screen space beautifully */}
+              <View style={styles.starterCardsContainer}>
+                {SHARED_SUGGESTIONS.slice(0, 4).map((suggestionText) => {
+                  const iconName = getSuggestionIcon(suggestionText);
+                  return (
+                    <TouchableOpacity
+                      key={suggestionText}
+                      style={[
+                        styles.starterCard,
+                        isDark && styles.starterCardDark,
+                      ]}
+                      onPress={() => handleSelectChip(suggestionText)}
+                      activeOpacity={0.75}
+                    >
+                      <View
+                        style={[
+                          styles.starterCardIconBox,
+                          isDark && styles.starterCardIconBoxDark,
+                        ]}
+                      >
+                        <Icon name={iconName} size={16} color={colors.primary} />
+                      </View>
+                      <Text
+                        style={[
+                          styles.starterCardText,
+                          isDark && styles.textPrimaryDark,
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {suggestionText}
+                      </Text>
+                      <Icon
+                        name="arrow-up-right"
+                        size={15}
+                        color={colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           ) : (
             /* Screen 2, 3, 4: Active Chat & Recommendations Flow */
@@ -230,43 +294,13 @@ function MainApp() {
           )}
         </ScrollView>
 
-        {/* Docked Bottom Chat Bar with Prompt Suggestions directly above it */}
-        <View style={styles.dockedBottomContainer}>
-          {isInitialState && (
-            <View style={styles.dockedSuggestionsWrapper}>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.dockedSuggestionsScroll}
-                keyboardShouldPersistTaps="handled"
-              >
-                {SHARED_SUGGESTIONS.map((suggestionText) => {
-                  const iconName = getSuggestionIcon(suggestionText);
-                  return (
-                    <TouchableOpacity
-                      key={suggestionText}
-                      style={styles.suggestionPill}
-                      onPress={() => handleSelectChip(suggestionText)}
-                      activeOpacity={0.75}
-                    >
-                      <View style={styles.suggestionPillIconBox}>
-                        <Icon name={iconName} size={13} color={theme.colors.primary} />
-                      </View>
-                      <Text style={styles.suggestionPillText} numberOfLines={1}>
-                        {suggestionText}
-                      </Text>
-                      <Icon
-                        name="arrow-up-right"
-                        size={12}
-                        color={theme.colors.textMuted}
-                      />
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            </View>
-          )}
-
+        {/* Docked Bottom Chat Bar */}
+        <View
+          style={[
+            styles.dockedBottomContainer,
+            isDark && styles.dockedBottomContainerDark,
+          ]}
+        >
           <ChatInputBar
             value={inputText}
             onChangeText={setInputText}
@@ -289,15 +323,19 @@ function MainApp() {
           }}
         />
 
-        {/* History Sessions Modal with real saved chats */}
-        <HistoryModal
+        {/* Animated Slide-out Sidebar Drawer matching Web layout */}
+        <SidebarDrawer
           visible={historyVisible}
           onClose={() => setHistoryVisible(false)}
           savedSessions={savedSessions}
           activeSessionId={activeSessionId}
-          onSelectSavedSession={(session) => selectSession(session)}
+          onSelectSession={(session) => selectSession(session)}
           onDeleteSession={(id) => deleteSession(id)}
-          onStartNewChat={resetChat}
+          onNewChat={resetChat}
+          activeAccount={headerAccount}
+          onOpenProfileOrAuth={handleOpenProfileOrAuth}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Traveler Profile & Settings Modal */}
@@ -363,9 +401,9 @@ const styles = StyleSheet.create({
   welcomeHero: {
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
-    paddingTop: 48,
-    paddingBottom: 24,
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   heroTitle: {
     fontSize: 26,
@@ -378,137 +416,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: "center",
-    lineHeight: 22,
-    marginTop: 10,
+    lineHeight: 21,
+    marginTop: 8,
     maxWidth: 320,
   },
-  historyLink: {
+  starterCardsContainer: {
+    width: "100%",
+    marginTop: 22,
+    gap: 10,
+  },
+  starterCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.surfaceContainer,
+    backgroundColor: theme.colors.surface,
+    padding: 13,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
+    gap: 12,
+    ...theme.shadows.sm,
   },
-  historyLinkText: {
+  starterCardDark: {
+    backgroundColor: darkColors.surface,
+    borderColor: darkColors.border,
+  },
+  starterCardIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surfaceContainer,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  starterCardIconBoxDark: {
+    backgroundColor: darkColors.surfaceContainer,
+  },
+  starterCardText: {
     fontSize: 13,
     fontWeight: "600",
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
+  },
+  textPrimaryDark: {
+    color: darkColors.textPrimary,
+  },
+  textSecondaryDark: {
+    color: darkColors.textSecondary,
+  },
+  rootContainerDark: {
+    backgroundColor: darkColors.background,
+  },
+  feedDark: {
+    backgroundColor: darkColors.background,
   },
   activeChatWrapper: {
     width: "100%",
     gap: 12,
   },
-  sessionPillRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: theme.colors.surfaceContainer,
-    borderRadius: theme.borderRadius.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
-    marginBottom: 4,
-  },
-  sessionStatusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  sessionDotPulse: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: theme.colors.primary,
-  },
-  sessionPillText: {
-    fontSize: 11,
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-  },
-  sessionFilterBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-  },
-  onlineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#059669",
-  },
-  sessionFilterBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#059669",
-  },
   messagesList: {
     gap: 12,
-  },
-  tripCardsContainer: {
-    marginTop: 8,
-    gap: 14,
-  },
-  tripSectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 2,
-  },
-  tripSectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  tripSectionCount: {
-    fontSize: 13,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
   },
   dockedBottomContainer: {
     backgroundColor: theme.colors.background,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderSubtle,
   },
-  dockedSuggestionsWrapper: {
-    paddingVertical: 10,
-    backgroundColor: theme.colors.background,
-  },
-  dockedSuggestionsScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-    alignItems: "center",
-  },
-  suggestionPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: 7,
-    ...theme.shadows.sm,
-  },
-  suggestionPillIconBox: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: theme.colors.surfaceContainer,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  suggestionPillText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-    maxWidth: 220,
+  dockedBottomContainerDark: {
+    backgroundColor: darkColors.background,
+    borderTopColor: darkColors.borderSubtle,
   },
 });
