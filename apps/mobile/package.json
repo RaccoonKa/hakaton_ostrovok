@@ -10,7 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "check:types": "tsc --noEmit",
-    "lint": "echo Mobile lint passed"
+    "lint": "echo Mobile lint passed",
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "@babel/runtime": "^7.26.9",
