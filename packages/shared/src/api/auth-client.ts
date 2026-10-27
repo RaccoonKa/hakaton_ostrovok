@@ -3,30 +3,7 @@ import { AuthUser, AuthSession, LoginCredentials, RegisterCredentials } from "..
 const STORAGE_USERS_KEY = "odin_registered_users_v1";
 const STORAGE_CURRENT_SESSION_KEY = "odin_current_session_v1";
 
-const DEFAULT_USERS: AuthUser[] = [
-  {
-    id: "usr-alexey",
-    email: "alexey.smirnov@example.com",
-    fullName: "Алексей Смирнов",
-    phone: "+7 (999) 123-45-67",
-    tier: "Премиум",
-    bonusMiles: 14500,
-    passportNumber: "4512 789123",
-    intlPassport: "75 №1234567",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "usr-ekaterina",
-    email: "ekaterina.s@example.com",
-    fullName: "Екатерина Смирнова",
-    phone: "+7 (916) 555-43-21",
-    tier: "Стандарт",
-    bonusMiles: 4200,
-    passportNumber: "4516 432198",
-    intlPassport: "76 №8901234",
-    createdAt: new Date().toISOString(),
-  },
-];
+const DEFAULT_USERS: AuthUser[] = [];
 
 export class ClientAuthManager {
   private static getStorage(): Storage | null {
@@ -61,7 +38,7 @@ export class ClientAuthManager {
   static getCurrentSession(): AuthSession | null {
     const storage = this.getStorage();
     if (!storage) {
-      return { token: "tok_local_default", user: DEFAULT_USERS[0] };
+      return null;
     }
     try {
       const raw = storage.getItem(STORAGE_CURRENT_SESSION_KEY);
@@ -71,10 +48,7 @@ export class ClientAuthManager {
     } catch {
       // fallback
     }
-    // Default logged in user for immediate seamless experience
-    const defaultSession: AuthSession = { token: "tok_local_default", user: DEFAULT_USERS[0] };
-    this.saveCurrentSession(defaultSession);
-    return defaultSession;
+    return null;
   }
 
   static saveCurrentSession(session: AuthSession | null): void {

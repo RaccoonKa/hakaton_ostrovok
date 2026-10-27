@@ -39,12 +39,12 @@ function getDefaultBackendUrl(): string {
     if (match && match[1]) {
       const host = match[1];
       if (host.includes("exp.direct") || host.includes("ngrok")) {
-        return "http://192.168.1.79:8000";
+        return "https://strong-colts-own.loca.lt";
       }
       return `http://${host}:8000`;
     }
   }
-  return "http://192.168.1.79:8000";
+  return "https://strong-colts-own.loca.lt";
 }
 
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {
@@ -181,17 +181,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         timestamp: timeStr,
       };
 
-      const assistantMsg: MobileChatMessage = {
-        id: assistantMsgId,
-        role: "assistant",
-        content: "",
-        timestamp: timeStr,
-        isThinking: true,
-        thinkingStep: "analyzing_flights",
-        thinkingText: "Анализирую авиарейсы и логистику...",
-      };
-
-      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setMessages((prev) => [...prev, userMsg]);
       setHistorySessions((prev) => {
         if (prev.some((h) => h.query === trimmed)) return prev;
         return [{ id: `h-${Date.now()}`, query: trimmed, timestamp: timeStr }, ...prev];
@@ -203,34 +193,12 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       timer1Ref.current = setTimeout(() => {
         if (!abortController.signal.aborted) {
           setThinkingText("Подбираю проверенные отели...");
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsgId && m.isThinking
-                ? {
-                    ...m,
-                    thinkingStep: "finding_hotels",
-                    thinkingText: "Подбираю проверенные отели...",
-                  }
-                : m
-            )
-          );
         }
       }, 700);
 
       timer2Ref.current = setTimeout(() => {
         if (!abortController.signal.aborted) {
           setThinkingText("Рассчитываю бюджет и оптимизацию...");
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantMsgId && m.isThinking
-                ? {
-                    ...m,
-                    thinkingStep: "calculating_budget",
-                    thinkingText: "Рассчитываю бюджет и оптимизацию...",
-                  }
-                : m
-            )
-          );
         }
       }, 1500);
 
@@ -251,17 +219,26 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               clearTimers();
               accumulatedContent += token;
               setIsThinking(false);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? {
-                        ...msg,
-                        isThinking: false,
-                        content: accumulatedContent,
-                      }
-                    : msg
-                )
-              );
+              setIsStreaming(false);
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.id === assistantMsgId) {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, content: accumulatedContent },
+                  ];
+                }
+                return [
+                  ...prev,
+                  {
+                    id: assistantMsgId,
+                    role: "assistant",
+                    type: "ai",
+                    content: accumulatedContent,
+                    timestamp: timeStr,
+                  },
+                ];
+              });
             },
             onMessage: (msg: any) => {
               clearTimers();
@@ -285,40 +262,75 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
               if (content) {
                 accumulatedContent = content;
-              }
-
-              setMessages((prev) => {
-                const next = prev.map((m) =>
-                  m.id === assistantMsgId
-                    ? {
-                        ...m,
-                        isThinking: false,
-                        content: content || m.content,
-                        trip_options: normalized ?? m.trip_options,
-                        tripOptions: normalized ?? m.tripOptions,
+                setMessages((prev) => {
+                  const last = prev[prev.length - 1];
+                  let next: UnifiedChatMessage[];
+                  if (last && last.id === assistantMsgId) {
+                    next = [
+                      ...prev.slice(0, -1),
+                      {
+                        ...last,
+                        content,
+                        trip_options: normalized ?? last.trip_options,
+                        tripOptions: normalized ?? last.tripOptions,
                         suggestions:
-                          suggestions.length > 0 ? suggestions : m.suggestions,
-                      }
-                    : m
-                );
-                persistSession(next, normalized || tripOptions, selectedOption, currentThreadId);
-                return next;
-              });
-            },
-            onTripOptions: (options: TripOption[]) => {
-              const normalized = normalizeTripOptions(options);
-              setTripOptions(normalized);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? {
-                        ...msg,
+                          suggestions.length > 0 ? suggestions : last.suggestions,
+                      },
+                    ];
+                  } else {
+                    next = [
+                      ...prev,
+                      {
+                        id: assistantMsgId,
+                        role: "assistant",
+                        type: "ai",
+                        content,
+                        timestamp: timeStr,
                         trip_options: normalized,
                         tripOptions: normalized,
-                      }
-                    : msg
-                )
-              );
+                        suggestions,
+                      },
+                    ];
+                  }
+                  persistSession(next, normalized || tripOptions, selectedOption, currentThreadId);
+                  return next;
+                });
+              }
+            },
+            onTripOptions: (options: TripOption[]) => {
+              clearTimers();
+              setIsThinking(false);
+              setIsStreaming(false);
+              const normalized = normalizeTripOptions(options);
+              setTripOptions(normalized);
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.id === assistantMsgId) {
+                  const updated = prev.map((m) =>
+                    m.id === assistantMsgId
+                      ? { ...m, trip_options: normalized, tripOptions: normalized }
+                      : m
+                  );
+                  persistSession(updated, normalized, selectedOption, currentThreadId);
+                  return updated;
+                }
+                const next: UnifiedChatMessage[] = [
+                  ...prev,
+                  {
+                    id: assistantMsgId,
+                    role: "assistant",
+                    type: "ai",
+                    content:
+                      accumulatedContent ||
+                      "По вашему запросу сформированы следующие варианты:",
+                    timestamp: timeStr,
+                    trip_options: normalized,
+                    tripOptions: normalized,
+                  },
+                ];
+                persistSession(next, normalized, selectedOption, currentThreadId);
+                return next;
+              });
             },
             onSuggestions: (sugs: string[]) => {
               setMessages((prev) =>
@@ -336,35 +348,26 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               clearTimers();
               setIsThinking(false);
               setIsStreaming(false);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? {
-                        ...msg,
-                        isThinking: false,
-                      }
-                    : msg
-                )
-              );
             },
             onError: (err) => {
               clearTimers();
               console.warn("Client message error:", err);
               setIsThinking(false);
               setIsStreaming(false);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? {
-                        ...msg,
-                        isThinking: false,
-                        content:
-                          accumulatedContent ||
-                          "Не удалось получить ответ от ассистента. Проверьте соединение с сервером.",
-                      }
-                    : msg
-                )
-              );
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: assistantMsgId,
+                  role: "assistant",
+                  type: "ai",
+                  content:
+                    typeof err === "string"
+                      ? err
+                      : err?.message ||
+                        "Не удалось получить ответ от ассистента. Проверьте соединение с сервером.",
+                  timestamp: timeStr,
+                },
+              ]);
             },
           },
           abortController.signal
@@ -374,19 +377,18 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         console.warn("Error sending message:", err);
         setIsThinking(false);
         setIsStreaming(false);
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantMsgId
-              ? {
-                  ...msg,
-                  isThinking: false,
-                  content:
-                    accumulatedContent ||
-                    "Ошибка подключения к сервису. Попробуйте повторить запрос позже.",
-                }
-              : msg
-          )
-        );
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            type: "ai",
+            content:
+              accumulatedContent ||
+              "Ошибка подключения к сервису. Попробуйте повторить запрос позже.",
+            timestamp: timeStr,
+          },
+        ]);
       }
     },
     [cancelRequest, clearTimers, isThinking]

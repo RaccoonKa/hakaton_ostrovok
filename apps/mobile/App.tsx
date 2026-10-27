@@ -22,6 +22,7 @@ import { Icon, IconName } from "./src/components/common/Icon";
 import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
 import { ChatInputBar } from "./src/components/chat/ChatInputBar";
+import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
@@ -280,18 +281,6 @@ function MainApp() {
           ) : (
             /* Screen 2, 3, 4: Active Chat & Recommendations Flow */
             <View style={styles.activeChatWrapper}>
-              {/* Context Session Pill */}
-              <View style={styles.sessionPillRow}>
-                <View style={styles.sessionStatusBadge}>
-                  <View style={styles.sessionDotPulse} />
-                  <Text style={styles.sessionPillText}>Активный диалог</Text>
-                </View>
-                <View style={styles.sessionFilterBadge}>
-                  <View style={styles.onlineDot} />
-                  <Text style={styles.sessionFilterBadgeText}>ИИ на связи</Text>
-                </View>
-              </View>
-
               {/* Message Turns */}
               <View style={styles.messagesList}>
                 {messages.map((m) => (
@@ -304,6 +293,13 @@ function MainApp() {
                     onSelectChip={handleSelectChip}
                   />
                 ))}
+
+                {isThinking && (
+                  <ThinkingBubble
+                    isThinking={true}
+                    statusText={thinkingText}
+                  />
+                )}
               </View>
 
               {/* Screen 3 & 4: Detailed Tour Dossier when an option is selected */}

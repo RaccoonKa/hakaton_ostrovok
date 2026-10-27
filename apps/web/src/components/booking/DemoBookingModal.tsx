@@ -134,7 +134,7 @@ export const DemoBookingModal: React.FC<DemoBookingModalProps> = ({
                 <span>Путешественники:</span>
               </span>
               <span className="font-medium text-content-primary">
-                2 взр + 1 реб (Алексей С., Елена С., Марк С.)
+                2 взрослых + 1 ребёнок
               </span>
             </div>
 

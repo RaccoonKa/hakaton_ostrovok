@@ -13,7 +13,7 @@ export interface ClarificationChipsMobileProps {
 }
 
 export const ClarificationChipsMobile: React.FC<ClarificationChipsMobileProps> = ({
-  chips = DEFAULT_CLARIFICATION_CHIPS,
+  chips = [],
   onSelectChip,
   activeChip: externalActiveChip,
 }) => {

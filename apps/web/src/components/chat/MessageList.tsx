@@ -33,21 +33,6 @@ export const MessageList: React.FC<MessageListProps> = ({
 
   return (
     <div className="w-full max-w-3xl mx-auto px-3 sm:px-6 pt-4 pb-44 flex flex-col gap-6">
-      {/* Session header badge */}
-      <div className="flex items-center justify-between py-1.5 px-3.5 rounded-full bg-surface-container-low border border-surface-container-highest/40 shadow-xs text-xs">
-        <div className="flex items-center gap-2 truncate text-content-secondary">
-          <span className="w-2 h-2 rounded-full bg-primary shrink-0 animate-pulse" />
-          <span className="font-medium text-content-primary">
-            Умный ассистент путешествий
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 shrink-0 bg-surface-container px-2.5 py-0.5 rounded-full text-[11px] text-content-secondary font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>ИИ онлайн</span>
-        </div>
-      </div>
-
       {/* Message Turns */}
       {messages.map((msg, idx) => {
         const isLastAi = msg.type === "ai" && idx === messages.length - 1;

@@ -48,8 +48,8 @@ export const POPULAR_CURRENCIES = [
 ];
 
 export const SERVER_PRESETS = [
+  { label: "Туннель", url: "https://strong-colts-own.loca.lt" },
   { label: "Wi-Fi LAN", url: "http://192.168.1.79:8000" },
-  { label: "Туннель", url: "https://famous-bars-glow.loca.lt" },
   { label: "Эмулятор", url: "http://10.0.2.2:8000" },
   { label: "Localhost", url: "http://localhost:8000" },
 ];
@@ -71,7 +71,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [editPassport, setEditPassport] = useState(currentUser?.passportNumber || "");
   const [editIntlPassport, setEditIntlPassport] = useState(currentUser?.intlPassport || "");
 
-  const [serverUrl, setServerUrl] = useState(backendUrl || "http://192.168.1.79:8000");
+  const [serverUrl, setServerUrl] = useState(backendUrl || "https://strong-colts-own.loca.lt");
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);

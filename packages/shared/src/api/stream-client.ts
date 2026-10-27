@@ -20,6 +20,8 @@ export class FastApiStreamClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      "bypass-tunnel-reminder": "true",
+      "Bypass-Tunnel-Reminder": "true",
     };
     if (this.authSecret) {
       headers["Authorization"] = `Bearer ${this.authSecret}`;
@@ -48,12 +50,20 @@ export class FastApiStreamClient {
       stream_tokens: options.streamTokens ?? true,
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 12000);
+
+    const onExternalAbort = () => controller.abort();
+    signal?.addEventListener("abort", onExternalAbort);
+
     try {
       const response = await fetch(url, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(payload),
-        signal,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -123,6 +133,9 @@ export class FastApiStreamClient {
         return;
       }
       throw err;
+    } finally {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", onExternalAbort);
     }
   }
 }

@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { PanelLeft, Share2, RefreshCw, Moon, Sun, Check, LogIn } from "lucide-react";
+import { PanelLeft, Share2, RefreshCw, Moon, Sun, Check } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { useTheme } from "../../context/ThemeContext";
-import { useAuth } from "../../context/AuthContext";
-import { usePreferences } from "../../context/PreferencesContext";
 
 interface HeaderProps {
   onResetChat?: () => void;
@@ -13,8 +11,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
   const { isSidebarOpen, toggleSidebar } = useSidebar();
   const { isDark, toggleTheme } = useTheme();
-  const { user, isAuthenticated, openAuthModal } = useAuth();
-  const { openSettingsModal } = usePreferences();
 
   const [isCopied, setIsCopied] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -128,30 +124,6 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
             <Moon className="w-4 h-4 text-white/90 transition-transform duration-200" />
           )}
         </button>
-
-        {/* Authentication Button / User Profile Pill */}
-        {isAuthenticated && user ? (
-          <button
-            type="button"
-            onClick={() => openSettingsModal("account")}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-medium backdrop-blur-xs transition-colors cursor-pointer"
-            title={`${user.fullName} (${user.email})`}
-          >
-            <div className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center font-bold text-[11px] text-white">
-              {user.fullName.slice(0, 1).toUpperCase()}
-            </div>
-            <span className="hidden sm:inline max-w-[90px] truncate">{user.fullName.split(" ")[0]}</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={openAuthModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all shadow-xs cursor-pointer"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Войти</span>
-          </button>
-        )}
       </div>
 
       {/* Floating Copied Toast Notification */}

@@ -42,9 +42,9 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   const [bookingId, setBookingId] = useState("");
   const [pnrCode, setPnrCode] = useState("7W4KL9");
   const [traveler, setTraveler] = useState<TravelerData>(() => initialTraveler || {
-    name: "Алексей Смирнов",
-    phone: "+7 (999) 123-45-67",
-    email: "alexey.smirnov@example.com",
+    name: "",
+    phone: "",
+    email: "",
   });
 
   React.useEffect(() => {
