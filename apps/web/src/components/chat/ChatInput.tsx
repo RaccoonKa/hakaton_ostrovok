@@ -146,7 +146,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
               }
             }}
             placeholder={placeholder}
-            className="flex-1 bg-transparent border-none outline-none text-content-primary placeholder-content-muted text-xs sm:text-sm font-normal"
+            className="flex-1 bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-content-primary placeholder-content-muted text-xs sm:text-sm font-normal"
           />
 
           <div className="flex items-center gap-1 shrink-0">

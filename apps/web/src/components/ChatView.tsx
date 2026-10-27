@@ -130,7 +130,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
                   }
                 }}
                 placeholder="Например: Хочу куда-нибудь к тёплому морю в ноябре, недорого, с ребёнком, без долгих перелётов..."
-                className="w-full resize-none bg-transparent text-sm sm:text-base text-content-primary placeholder:text-content-muted focus:outline-hidden leading-relaxed"
+                className="w-full resize-none bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-sm sm:text-base text-content-primary placeholder:text-content-muted leading-relaxed"
               />
 
               <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-surface-border">
