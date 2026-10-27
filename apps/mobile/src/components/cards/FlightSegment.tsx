@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Flight, formatDuration } from "@corvax/shared";
 import { theme } from "../../theme";
@@ -9,7 +9,7 @@ export interface FlightSegmentProps {
   compact?: boolean;
 }
 
-export const FlightSegment: React.FC<FlightSegmentProps> = ({ flight, compact = false }) => {
+const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({ flight, compact = false }) => {
   const durationText = flight.duration ? formatDuration(flight.duration) : "";
   const stopsText = flight.stops === 0 ? "Прямой рейс" : `${flight.stops} пересадка`;
 
@@ -44,6 +44,8 @@ export const FlightSegment: React.FC<FlightSegmentProps> = ({ flight, compact = 
     </View>
   );
 };
+
+export const FlightSegment = memo(FlightSegmentComponent);
 
 const styles = StyleSheet.create({
   container: {

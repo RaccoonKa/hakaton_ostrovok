@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
   Hotel,
@@ -14,7 +14,7 @@ export interface HotelSummaryProps {
   showPrice?: boolean;
 }
 
-export const HotelSummary: React.FC<HotelSummaryProps> = ({ hotel, showPrice = false }) => {
+const HotelSummaryComponent: React.FC<HotelSummaryProps> = ({ hotel, showPrice = false }) => {
   const dates = formatDateRange(hotel.check_in, hotel.check_out);
   const meal = hotel.meal_plan ? formatMealPlan(hotel.meal_plan) : "";
 
@@ -169,3 +169,5 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.borderSubtle,
   },
 });
+
+export const HotelSummary = memo(HotelSummaryComponent);

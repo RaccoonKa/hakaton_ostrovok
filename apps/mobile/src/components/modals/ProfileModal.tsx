@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
@@ -33,6 +34,11 @@ export const POPULAR_CURRENCIES = [
   { code: "EUR", symbol: "€", label: "Евро" },
   { code: "AED", symbol: "AED", label: "Дирхам ОАЭ" },
   { code: "TRY", symbol: "₺", label: "Турецкая лира" },
+  { code: "GEL", symbol: "₾", label: "Грузинский лари" },
+  { code: "KZT", symbol: "₸", label: "Казахстанский тенге" },
+  { code: "BYN", symbol: "Br", label: "Белорусский рубль" },
+  { code: "THB", symbol: "฿", label: "Тайский бат" },
+  { code: "CNY", symbol: "¥", label: "Китайский юань" },
 ];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -45,6 +51,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [selectedCurrency, setSelectedCurrency] = useState("RUB");
   const [travelerName, setTravelerName] = useState("Иван Иванов");
   const [travelerPhone, setTravelerPhone] = useState("+7 (999) 123-45-67");
+  const [travelerEmail, setTravelerEmail] = useState("ivan@example.com");
+  const [priceAlerts, setPriceAlerts] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = () => {
@@ -194,6 +202,35 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   placeholderTextColor={theme.colors.textMuted}
                 />
               </View>
+
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>Электронная почта</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={travelerEmail}
+                  onChangeText={setTravelerEmail}
+                  placeholder="ivan@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor={theme.colors.textMuted}
+                />
+              </View>
+            </View>
+
+            {/* Notification & Price Alerts */}
+            <View style={styles.notificationRow}>
+              <View style={styles.notificationTextCol}>
+                <Text style={styles.notificationTitle}>Уведомления о снижении цен</Text>
+                <Text style={styles.notificationSubtitle}>
+                  Получать алерты при появлении горящих путевок по моим направлениям
+                </Text>
+              </View>
+              <Switch
+                value={priceAlerts}
+                onValueChange={setPriceAlerts}
+                trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
+                thumbColor={priceAlerts ? theme.colors.primary : "#F3F4F6"}
+              />
             </View>
 
             {/* Save Button */}
@@ -282,7 +319,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.textMuted,
+    color: theme.colors.textSecondary,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -292,12 +329,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cityChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: theme.colors.border,
   },
   cityChipActive: {
     backgroundColor: theme.colors.primaryLight,
@@ -305,8 +342,8 @@ const styles = StyleSheet.create({
   },
   cityChipText: {
     fontSize: 12,
-    fontWeight: "500",
     color: theme.colors.textPrimary,
+    fontWeight: "500",
   },
   cityChipTextActive: {
     color: theme.colors.primary,
@@ -319,12 +356,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 9,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: theme.colors.borderSubtle,
+    borderColor: "transparent",
   },
   currencyRowActive: {
     backgroundColor: theme.colors.primaryLight,
@@ -333,16 +370,17 @@ const styles = StyleSheet.create({
   currencyCodeCol: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   currencySymbol: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: theme.colors.primary,
     width: 28,
   },
   currencyName: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: "500",
     color: theme.colors.textPrimary,
   },
   currencyNameActive: {
@@ -353,7 +391,7 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
@@ -362,9 +400,9 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.primary,
   },
   radioInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
     backgroundColor: theme.colors.primary,
   },
   formGroup: {
@@ -385,17 +423,43 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textPrimary,
   },
+  notificationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...theme.shadows.sm,
+  },
+  notificationTextCol: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  notificationTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  },
+  notificationSubtitle: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+    lineHeight: 15,
+  },
   saveButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
+    marginTop: 6,
     ...theme.shadows.md,
   },
   saveButtonSuccess: {
-    backgroundColor: "#047857",
+    backgroundColor: "#059669",
   },
   saveButtonText: {
     fontSize: 14,

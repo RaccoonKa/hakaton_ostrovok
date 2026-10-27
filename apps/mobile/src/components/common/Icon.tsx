@@ -34,7 +34,10 @@ export type IconName =
   | "chevron-right"
   | "filter"
   | "restaurant"
-  | "water";
+  | "water"
+  | "plus"
+  | "minus"
+  | "edit";
 
 export interface IconProps {
   name: IconName;
@@ -120,6 +123,12 @@ export const Icon: React.FC<IconProps> = ({
       return <Ionicons name="restaurant-outline" size={size} color={color} />;
     case "water":
       return <Ionicons name="water-outline" size={size} color={color} />;
+    case "plus":
+      return <Feather name="plus" size={size} color={color} />;
+    case "minus":
+      return <Feather name="minus" size={size} color={color} />;
+    case "edit":
+      return <Feather name="edit-2" size={size} color={color} />;
     default:
       return <Feather name="help-circle" size={size} color={color} />;
   }

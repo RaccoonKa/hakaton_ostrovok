@@ -11,6 +11,24 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
+import {
+  ORIGIN_CITIES,
+  DESTINATION_DIRECTIONS,
+  DURATION_OPTIONS,
+  BUDGET_OPTIONS,
+  MEAL_OPTIONS,
+  buildFilterPrompt,
+} from "../../utils/filters";
+
+export {
+  ORIGIN_CITIES,
+  DESTINATION_DIRECTIONS,
+  DURATION_OPTIONS,
+  BUDGET_OPTIONS,
+  MEAL_OPTIONS,
+  formatGuestsCount,
+  buildFilterPrompt,
+} from "../../utils/filters";
 
 export interface TravelFiltersModalProps {
   visible: boolean;
@@ -24,22 +42,38 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
   onApplyFilters,
 }) => {
   const insets = useSafeAreaInsets();
-  const [budget, setBudget] = useState("200000");
+
+  const [originCity, setOriginCity] = useState("Москва");
+  const [destination, setDestination] = useState("");
   const [directFlightsOnly, setDirectFlightsOnly] = useState(true);
   const [duration, setDuration] = useState("7");
+  const [budget, setBudget] = useState("200000");
   const [mealPlan, setMealPlan] = useState("all_inclusive");
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+
+  const handleReset = () => {
+    setOriginCity("Москва");
+    setDestination("");
+    setDirectFlightsOnly(true);
+    setDuration("7");
+    setBudget("200000");
+    setMealPlan("all_inclusive");
+    setAdults(2);
+    setChildren(0);
+  };
 
   const handleApply = () => {
-    const mealText =
-      mealPlan === "all_inclusive"
-        ? "всё включено"
-        : mealPlan === "breakfast"
-        ? "только завтраки"
-        : "любое питание";
-    const flightText = directFlightsOnly ? "только прямой рейс" : "возможны пересадки";
-    const budgetText = budget ? `бюджет до ${Number(budget).toLocaleString("ru-RU")} ₽` : "";
-
-    const promptSummary = `Уточнить фильтры: ${flightText}, ${mealText}, ${duration} ночей${budgetText ? `, ${budgetText}` : ""}`;
+    const promptSummary = buildFilterPrompt({
+      originCity,
+      destination,
+      directFlightsOnly,
+      duration,
+      budget,
+      mealPlan,
+      adults,
+      children,
+    });
     onApplyFilters(promptSummary);
     onClose();
   };
@@ -60,15 +94,29 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Параметры и фильтры подбора</Text>
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={onClose}
-              accessibilityLabel="Закрыть"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Icon name="close" size={18} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
+            <View>
+              <Text style={styles.headerTitle}>Параметры поездки</Text>
+              <Text style={styles.headerSubtitle}>
+                Фильтры перелёта, отеля и состава туристов
+              </Text>
+            </View>
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                onPress={handleReset}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.resetBtn}
+              >
+                <Text style={styles.resetBtnText}>Сброс</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={onClose}
+                accessibilityLabel="Закрыть"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Icon name="close" size={18} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -76,7 +124,67 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Direct Flight Toggle */}
+            {/* 1. Origin City (Откуда) */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="plane" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Откуда (город вылета)</Text>
+              </View>
+              <View style={styles.chipsRow}>
+                {ORIGIN_CITIES.map((c) => {
+                  const isSelected = originCity === c.val;
+                  return (
+                    <TouchableOpacity
+                      key={c.label}
+                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      onPress={() => setOriginCity(c.val)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                      >
+                        {c.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* 2. Destination (Куда) */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="compass" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Куда (направление)</Text>
+              </View>
+              <View style={styles.chipsRow}>
+                {DESTINATION_DIRECTIONS.map((d) => {
+                  const isSelected = destination === d.val;
+                  return (
+                    <TouchableOpacity
+                      key={d.label}
+                      style={[styles.chip, isSelected && styles.chipSelected]}
+                      onPress={() => setDestination(d.val)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          isSelected && styles.chipTextSelected,
+                        ]}
+                      >
+                        {d.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* 3. Direct Flight Toggle */}
             <View style={styles.cardRow}>
               <View style={styles.cardRowTextCol}>
                 <Text style={styles.cardRowTitle}>Только прямые авиарейсы</Text>
@@ -92,16 +200,108 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               />
             </View>
 
-            {/* Budget Chips */}
+            {/* 4. Guests (Adults and Children with +/- counters matching Web 1:1) */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Бюджет поездки</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="user" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Состав туристов</Text>
+              </View>
+
+              {/* Adults counter */}
+              <View style={styles.counterRow}>
+                <View style={styles.counterLabelCol}>
+                  <Text style={styles.counterMainLabel}>Взрослые</Text>
+                  <Text style={styles.counterSubLabel}>(от 12 лет)</Text>
+                </View>
+                <View style={styles.counterControls}>
+                  <TouchableOpacity
+                    style={[
+                      styles.counterBtn,
+                      adults <= 1 && styles.counterBtnDisabled,
+                    ]}
+                    disabled={adults <= 1}
+                    onPress={() => setAdults((prev) => Math.max(1, prev - 1))}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Уменьшить количество взрослых"
+                  >
+                    <Icon
+                      name="minus"
+                      size={14}
+                      color={adults <= 1 ? theme.colors.textMuted : theme.colors.textPrimary}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.counterValue}>{adults}</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.counterBtn,
+                      adults >= 8 && styles.counterBtnDisabled,
+                    ]}
+                    disabled={adults >= 8}
+                    onPress={() => setAdults((prev) => Math.min(8, prev + 1))}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Увеличить количество взрослых"
+                  >
+                    <Icon
+                      name="plus"
+                      size={14}
+                      color={adults >= 8 ? theme.colors.textMuted : theme.colors.textPrimary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Children counter */}
+              <View style={[styles.counterRow, styles.counterRowDivider]}>
+                <View style={styles.counterLabelCol}>
+                  <Text style={styles.counterMainLabel}>Дети</Text>
+                  <Text style={styles.counterSubLabel}>(до 11 лет)</Text>
+                </View>
+                <View style={styles.counterControls}>
+                  <TouchableOpacity
+                    style={[
+                      styles.counterBtn,
+                      children <= 0 && styles.counterBtnDisabled,
+                    ]}
+                    disabled={children <= 0}
+                    onPress={() => setChildren((prev) => Math.max(0, prev - 1))}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Уменьшить количество детей"
+                  >
+                    <Icon
+                      name="minus"
+                      size={14}
+                      color={children <= 0 ? theme.colors.textMuted : theme.colors.textPrimary}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.counterValue}>{children}</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.counterBtn,
+                      children >= 6 && styles.counterBtnDisabled,
+                    ]}
+                    disabled={children >= 6}
+                    onPress={() => setChildren((prev) => Math.min(6, prev + 1))}
+                    activeOpacity={0.7}
+                    accessibilityLabel="Увеличить количество детей"
+                  >
+                    <Icon
+                      name="plus"
+                      size={14}
+                      color={children >= 6 ? theme.colors.textMuted : theme.colors.textPrimary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* 5. Budget Chips */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="sparkles" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Бюджет поездки</Text>
+              </View>
               <View style={styles.chipsRow}>
-                {[
-                  { label: "до 150 000 ₽", val: "150000" },
-                  { label: "до 200 000 ₽", val: "200000" },
-                  { label: "до 300 000 ₽", val: "300000" },
-                  { label: "Любой бюджет", val: "" },
-                ].map((b) => {
+                {BUDGET_OPTIONS.map((b) => {
                   const isSelected = budget === b.val;
                   return (
                     <TouchableOpacity
@@ -124,15 +324,14 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Duration Chips */}
+            {/* 6. Duration Chips */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Длительность тура</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="calendar" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Длительность тура</Text>
+              </View>
               <View style={styles.chipsRow}>
-                {[
-                  { label: "Выходные (3–4 ночи)", val: "4" },
-                  { label: "Неделя (7 ночей)", val: "7" },
-                  { label: "10–14 ночей", val: "10" },
-                ].map((d) => {
+                {DURATION_OPTIONS.map((d) => {
                   const isSelected = duration === d.val;
                   return (
                     <TouchableOpacity
@@ -155,16 +354,14 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               </View>
             </View>
 
-            {/* Meal Plan */}
+            {/* 7. Meal Plan */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Тип питания в отеле</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="restaurant" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionCaption}>Тип питания в отеле</Text>
+              </View>
               <View style={styles.chipsRow}>
-                {[
-                  { label: "Всё включено (All Inc)", val: "all_inclusive" },
-                  { label: "Завтрак + ужин (HB)", val: "half_board" },
-                  { label: "Только завтраки (BB)", val: "breakfast" },
-                  { label: "Любое", val: "any" },
-                ].map((m) => {
+                {MEAL_OPTIONS.map((m) => {
                   const isSelected = mealPlan === m.val;
                   return (
                     <TouchableOpacity
@@ -193,7 +390,8 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               onPress={handleApply}
               activeOpacity={0.8}
             >
-              <Text style={styles.applyButtonText}>Применить фильтры к поиску</Text>
+              <Icon name="check" size={17} color="#FFFFFF" />
+              <Text style={styles.applyButtonText}>Применить параметры</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -213,7 +411,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     overflow: "hidden",
-    maxHeight: "88%",
+    maxHeight: "90%",
   },
   header: {
     flexDirection: "row",
@@ -226,9 +424,28 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: theme.colors.textPrimary,
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  resetBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  resetBtnText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: theme.colors.primary,
   },
   closeBtn: {
     width: 32,
@@ -238,17 +455,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-  },
   scroll: {
     maxHeight: "100%",
   },
   scrollContent: {
     padding: theme.spacing.md,
     gap: 12,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   cardRow: {
     flexDirection: "row",
@@ -281,7 +499,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    gap: 10,
+    gap: 8,
     ...theme.shadows.sm,
   },
   sectionCaption: {
@@ -305,8 +523,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   chipSelected: {
-    backgroundColor: theme.colors.primaryLight, // #FAF5FF
-    borderColor: theme.colors.primary, // #581C87
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
   },
   chipText: {
     fontSize: 12,
@@ -317,12 +535,66 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: "700",
   },
-  applyButton: {
-    backgroundColor: theme.colors.primary, // #581C87
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: 14,
+  counterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 6,
+  },
+  counterRowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
+    marginTop: 4,
+    paddingTop: 8,
+  },
+  counterLabelCol: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
+  counterMainLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  },
+  counterSubLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: theme.colors.textMuted,
+  },
+  counterControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  counterBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
+  },
+  counterBtnDisabled: {
+    opacity: 0.35,
+  },
+  counterValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    minWidth: 18,
+    textAlign: "center",
+  },
+  applyButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.lg,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     marginTop: 6,
     ...theme.shadows.md,
   },

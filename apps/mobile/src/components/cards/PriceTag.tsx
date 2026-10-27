@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { StyleSheet, Text, View, StyleProp, ViewStyle } from "react-native";
 import { formatPrice, Currency } from "@corvax/shared";
 import { theme } from "../../theme";
@@ -14,7 +14,7 @@ export interface PriceTagProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const PriceTag: React.FC<PriceTagProps> = ({
+const PriceTagComponent: React.FC<PriceTagProps> = ({
   amount,
   currency = Currency.RUB,
   subtitle,
@@ -98,3 +98,5 @@ const styles = StyleSheet.create({
     color: theme.colors.badgeRecommendText,
   },
 });
+
+export const PriceTag = memo(PriceTagComponent);

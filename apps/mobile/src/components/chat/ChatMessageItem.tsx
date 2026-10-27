@@ -1,23 +1,26 @@
-import React from "react";
+import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { TripOption } from "@corvax/shared";
 import { theme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
 import { ThinkingBubble } from "./ThinkingBubble";
+import { ClarificationChipsMobile } from "./ClarificationChipsMobile";
 import { Icon } from "../common/Icon";
 
 export interface ChatMessageItemProps {
   message: MobileChatMessage;
   onSelectOption?: (option: TripOption) => void;
   onBookDemo?: (option: TripOption) => void;
+  onSelectChip?: (text: string) => void;
   selectedOptionId?: string;
 }
 
-export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
+export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
   message,
   onSelectOption,
   onBookDemo,
+  onSelectChip,
   selectedOptionId,
 }) => {
   const isUser = message.role === "user";
@@ -29,6 +32,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   if (!hasContent && !hasOptions && !isThinking) {
     return null;
   }
+
+  const showClarification = !isUser && hasContent && !hasOptions && !isThinking && !selectedOptionId;
 
   return (
     <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
@@ -64,6 +69,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               {message.content}
             </Text>
 
+            {/* Inline Clarification Chips for assistant turn (1:1 with Web AssistantMessage) */}
+            {showClarification && (
+              <ClarificationChipsMobile onSelectChip={onSelectChip} />
+            )}
+
             {isUser && (
               <View style={styles.userMetaRow}>
                 {message.timestamp && (
@@ -93,6 +103,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
     </View>
   );
 };
+
+export const ChatMessageItem = memo(ChatMessageItemComponent);
 
 const styles = StyleSheet.create({
   container: {

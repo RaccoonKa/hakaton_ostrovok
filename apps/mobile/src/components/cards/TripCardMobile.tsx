@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import {
   StyleSheet,
   Text,
@@ -23,7 +23,7 @@ export interface TripCardMobileProps {
   onBookDemo?: (option: TripOption) => void;
 }
 
-export const TripCardMobile: React.FC<TripCardMobileProps> = ({
+const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
   option,
   isSelected = false,
   onSelect,
@@ -538,3 +538,5 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 });
+
+export const TripCardMobile = memo(TripCardMobileComponent);

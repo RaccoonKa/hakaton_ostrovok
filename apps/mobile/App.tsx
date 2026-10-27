@@ -268,6 +268,7 @@ function MainApp() {
                     selectedOptionId={selectedOption?.id}
                     onSelectOption={(opt) => handleSelectOption(opt)}
                     onBookDemo={openCheckout}
+                    onSelectChip={handleSelectChip}
                   />
                 ))}
               </View>
