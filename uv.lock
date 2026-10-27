@@ -146,7 +146,7 @@ requires-dist = [
     { name = "langchain-chroma", specifier = "~=1.1.0" },
     { name = "langchain-community", specifier = "~=0.4.2" },
     { name = "langchain-core", specifier = "~=1.4.8" },
-    { name = "langchain-gigachat", specifier = ">=0.5.1" },
+    { name = "langchain-gigachat", specifier = ">=0.3.0" },
     { name = "langchain-google-genai", specifier = "~=4.2.6" },
     { name = "langchain-google-vertexai", specifier = ">=3.2.4" },
     { name = "langchain-groq", specifier = "~=1.1.3" },

@@ -1,10 +1,12 @@
 import random
+
 from langchain_core.messages import SystemMessage
-from core.llm import get_model
-from core.settings import settings
-from agents.travel.tools import TRAVEL_TOOLS
+
 from agents.travel.prompts import TRAVEL_AGENT_SYSTEM_PROMPT
 from agents.travel.state import TravelState
+from agents.travel.tools import TRAVEL_TOOLS
+from core.llm import get_model
+from core.settings import settings
 
 CENSORSHIP_TRIGGERS = [
     "не обладает собственным мнением",

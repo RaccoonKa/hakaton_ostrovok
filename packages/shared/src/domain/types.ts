@@ -69,15 +69,23 @@ export interface Flight {
 export interface Hotel {
   hotel: string;
   city: string;
+  district?: string | null;
   check_in: string;
   check_out: string;
+  check_in_time?: string;
+  check_out_time?: string;
   guests?: number;
   room_type?: string | null;
   meal_plan?: MealPlan | null;
   price?: number | null;
   currency?: Currency | null;
   refundable?: boolean | null;
+  free_cancellation?: boolean;
   cancellation_conditions?: string | null;
+  non_refundable_discount_pct?: number;
+  early_check_in_fee?: number;
+  pet_friendly?: boolean;
+  pet_fee_per_night?: number;
   amenities?: string[];
   rating?: number | null;
   image_url?: string | null;

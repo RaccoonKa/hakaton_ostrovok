@@ -55,7 +55,7 @@ async def background(state: AgentState, config: RunnableConfig) -> AgentState:
 
 
 birthdate_extraction_prompt = SystemMessagePromptTemplate.from_template("""
-You are an expert at extracting birthdates from conversational text.
+You are an expert at extracting birthdates from conversational text.txt.
 
 Rules for extraction:
 - Look for user messages that mention birthdates

@@ -4,6 +4,7 @@ t.py
 .vscode/
 __pycache__/
 .ruff_cache
+.env
 
 # Node / Monorepo
 node_modules/

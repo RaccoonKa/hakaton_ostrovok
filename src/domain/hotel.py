@@ -40,9 +40,49 @@ class Hotel(BaseModel):
         default=None,
         examples=["Standard Double"],
     )
+    district: str | None = Field(
+        default=None,
+        description="Курортный район (Сириус, Красная Поляна и т.д.).",
+    )
+    rating: float | None = Field(
+        default=None,
+        description="Рейтинг гостей по отзывам (например, 4.8).",
+    )
+    image_url: str | None = Field(
+        default=None,
+        description="Ссылка на фото отеля.",
+    )
+    pet_friendly: bool = Field(
+        default=False,
+        description="Разрешено ли проживание с домашними животными.",
+    )
+    pet_fee_per_night: float = Field(
+        default=0.0,
+        description="Доплата за питомца за сутки.",
+    )
+    check_in_time: str = Field(
+        default="14:00",
+        description="Время заезда в отель (ЧЧ:ММ).",
+    )
+    check_out_time: str = Field(
+        default="12:00",
+        description="Время выезда из отеля (ЧЧ:ММ).",
+    )
+    early_check_in_fee: float = Field(
+        default=0.0,
+        description="Стоимость гарантированного раннего заезда.",
+    )
+    free_cancellation: bool = Field(
+        default=True,
+        description="Доступна ли бесплатная отмена бронирования.",
+    )
+    non_refundable_discount_pct: int = Field(
+        default=0,
+        description="Скидка за невозвратный тариф (в процентах).",
+    )
     meal_plan: MealPlan | None = Field(
         description="Тип питания, включённый в проживание.",
-        default=None,
+        default=MealPlan.BREAKFAST,
     )
     price: float | None = Field(
         description="Стоимость проживания.",

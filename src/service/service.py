@@ -28,9 +28,8 @@ from langsmith import Client as LangsmithClient
 from langsmith import uuid7
 
 from agents import DEFAULT_AGENT, get_agent, get_all_agent_info, load_agent
-
 from core import settings
-from memory import initialize_database, initialize_store
+from memory import init_db_and_seed, initialize_database, initialize_store
 from schema import (
     ChatHistory,
     ChatHistoryInput,
@@ -77,6 +76,7 @@ def verify_bearer(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
+        await init_db_and_seed()
         async with initialize_database() as saver, initialize_store() as store:
             if hasattr(saver, "setup"):
                 await saver.setup()
@@ -305,7 +305,7 @@ def _sse_response_example() -> dict[int | str, Any]:
         status.HTTP_200_OK: {
             "description": "Server Sent Event Response",
             "content": {
-                "text/event-stream": {
+                "text.txt/event-stream": {
                     "example": "data: {'type': 'token', 'content': 'Hello'}\n\ndata: {'type': 'token', 'content': ' World'}\n\ndata: [DONE]\n\n",
                     "schema": {"type": "string"},
                 }
@@ -324,7 +324,7 @@ def _sse_response_example() -> dict[int | str, Any]:
 async def stream(user_input: StreamInput, agent_id: str = DEFAULT_AGENT) -> StreamingResponse:
     return StreamingResponse(
         message_generator(user_input, agent_id),
-        media_type="text/event-stream",
+        media_type="text.txt/event-stream",
     )
 
 

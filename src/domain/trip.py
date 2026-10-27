@@ -62,6 +62,22 @@ class TripOption(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    id: str | None = Field(
+        default=None,
+        description="Уникальный ID варианта поездки.",
+    )
+    title: str | None = Field(
+        default=None,
+        description="Маркетинговый заголовок тура.",
+    )
+    description: str | None = Field(
+        default=None,
+        description="Краткое описание преимуществ.",
+    )
+    destination: str | None = Field(
+        default=None,
+        description="Основное направление поездки.",
+    )
     flights: list[Flight] = Field(
         description="Перелёты, входящие в вариант поездки.",
         default=[],
@@ -98,4 +114,12 @@ class TripOption(BaseModel):
     currency: Currency | None = Field(
         description="Валюта итоговой стоимости.",
         default=None,
+    )
+    score: float | None = Field(
+        default=None,
+        description="Балл соответствия предпочтениям (0-100).",
+    )
+    isDemo: bool = Field(
+        default=True,
+        description="Флаг синтетического/демонстрационного тарифа.",
     )

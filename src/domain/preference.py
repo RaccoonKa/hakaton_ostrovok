@@ -2,9 +2,11 @@
 Доменная модель пользовательского пожелания.
 """
 
-from pydantic import BaseModel, ConfigDict, Field
 from datetime import date
-from domain.common import Priority, Season, Month
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from domain.common import Month, Priority, Season
 
 
 class Preference(BaseModel):
