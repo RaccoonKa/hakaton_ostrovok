@@ -74,7 +74,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   isOpen,
   onClose,
   onApply,
-  anchorRef,
+  anchorRef: _anchorRef,
   initialFilters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,12 +84,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Synchronous position calculation: compact sizing so it fits 100% zoom screens
+  // Synchronous position calculation: perfectly docked beside sidebar, never overlapping
   const calculateDefaultPosition = () => {
-    const panelWidth = 300;
+    const panelWidth = 295;
     const panelHeight = 440;
     const headerHeight = 56;
-    const margin = 10;
+    const margin = 12;
 
     // 1. Determine the right boundary of the open sidebar
     let sidebarRight = 0;
@@ -97,36 +97,21 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       sidebarRight = 256;
     }
 
-    if (anchorRef?.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const inputLeft = rect.left;
-      const gap = inputLeft - sidebarRight;
-      let x: number;
+    // 2. Position beside sidebar on desktop, centered on mobile
+    const x =
+      typeof window !== "undefined" && window.innerWidth < 768
+        ? Math.max(8, (window.innerWidth - panelWidth) / 2)
+        : sidebarRight + margin;
 
-      if (gap >= panelWidth + margin * 2) {
-        // Exactly in the center between the sidebar boundary and the input box
-        x = sidebarRight + (gap - panelWidth) / 2;
-      } else {
-        // If the gap is narrower than the panel, place it safely to the right of the sidebar
-        x = sidebarRight + margin;
-      }
+    // 3. Vertical position (y): starts comfortably below header and clamps inside screen
+    const targetY = headerHeight + 16;
+    const maxY =
+      typeof window !== "undefined"
+        ? Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin)
+        : targetY;
+    const y = Math.min(targetY, maxY);
 
-      // Clamp within screen boundaries
-      x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
-
-      // 2. Vertical position (y): starts comfortably below header and clamps inside screen
-      const targetY = headerHeight + 20;
-      const maxY = Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin);
-      const y = Math.min(targetY, maxY);
-
-      return { x, y };
-    }
-
-    const fallbackX =
-      sidebarRight > 0
-        ? sidebarRight + margin
-        : Math.max(margin, (window.innerWidth - panelWidth) / 2);
-    return { x: fallbackX, y: headerHeight + 20 };
+    return { x, y };
   };
 
   const isDraggingRef = useRef(false);
@@ -168,7 +153,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   useEffect(() => {
     if (!isOpen || !draggedPos) return;
     if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
-      const minX = 256 + 10;
+      const minX = 256 + 12;
       if (draggedPos.x < minX) {
         setDraggedPos((prev) => (prev ? { ...prev, x: minX } : null));
       }
@@ -268,7 +253,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const panelWidth = 300;
+      const panelWidth = 295;
       const panelHeight = 440;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
@@ -420,7 +405,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className={`fixed z-[100] w-[295px] sm:w-[305px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in ${
+      className={`fixed z-[100] w-[295px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in ${
         isDragging ? "transition-none" : "transition-[left,top] duration-300 ease-in-out"
       }`}
       style={{

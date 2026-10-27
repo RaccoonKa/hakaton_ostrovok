@@ -11,6 +11,8 @@ interface ChatInputProps {
   isLoading?: boolean;
   suggestions?: string[];
   placeholder?: string;
+  isFiltersOpen?: boolean;
+  onToggleFilters?: () => void;
 }
 
 const DEFAULT_SUGGESTIONS = [
@@ -26,9 +28,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   isLoading = false,
   suggestions = DEFAULT_SUGGESTIONS,
   placeholder = "Спросите что угодно или уточните параметры путешествия...",
+  isFiltersOpen: externalIsFiltersOpen,
+  onToggleFilters,
 }) => {
   const [text, setText] = useState("");
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [localIsFiltersOpen, setLocalIsFiltersOpen] = useState(false);
+  const isFiltersOpen =
+    externalIsFiltersOpen !== undefined ? externalIsFiltersOpen : localIsFiltersOpen;
   const [isListening, setIsListening] = useState(false);
   const chatFormRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,7 +106,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       return result ? `${result} ${formattedText}` : formattedText;
     });
-    setIsFiltersOpen(false);
+    setLocalIsFiltersOpen(false);
     focusInputAtEnd();
     requestAnimationFrame(focusInputAtEnd);
   };
@@ -166,7 +172,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             type="button"
             data-filters-toggle="true"
             title="Параметры поиска"
-            onClick={() => setIsFiltersOpen((prev) => !prev)}
+            onClick={onToggleFilters || (() => setLocalIsFiltersOpen((prev) => !prev))}
             className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
               isFiltersOpen
                 ? "bg-primary text-white shadow-xs"
@@ -176,12 +182,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             <SlidersHorizontal className="w-4 h-4" />
           </button>
 
-          <SearchFiltersPopover
-            isOpen={isFiltersOpen}
-            onClose={() => setIsFiltersOpen(false)}
-            onApply={handleApplyFilters}
-            anchorRef={chatFormRef}
-          />
+          {!onToggleFilters && (
+            <SearchFiltersPopover
+              isOpen={localIsFiltersOpen}
+              onClose={() => setLocalIsFiltersOpen(false)}
+              onApply={handleApplyFilters}
+              anchorRef={chatFormRef}
+            />
+          )}
 
           <input
             ref={inputRef}
