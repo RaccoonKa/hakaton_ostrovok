@@ -72,3 +72,13 @@ class Flight(BaseModel):
         description="Можно ли изменить билет (обмен).",
         default=None,
     )
+    transit_point: str | None = Field(
+        description="Пункт пересадки при транзитном рейсе.",
+        default=None,
+        examples=["Москва (SVO)"],
+    )
+    layover_duration: timedelta | None = Field(
+        description="Длительность пересадки при транзитном рейсе.",
+        default=None,
+        examples=["PT2H15M"],
+    )

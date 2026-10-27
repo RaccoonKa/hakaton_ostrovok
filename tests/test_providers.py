@@ -392,3 +392,80 @@ def test_destinations_tag_and_season_ranking():
     dest_nov = get_destinations(season="ноябрь")
     assert len(dest_nov) == 3
     assert any(d["city"] == "Стамбул" for d in dest_nov)
+
+
+def test_flights_non_moscow_origins():
+    """Тест поиска рейсов из региональных хабов: Екатеринбург, Казань, Новосибирск, Санкт-Петербург."""
+    # Екатеринбург (Кольцово) -> Сочи: есть и прямой U6 219, и транзитный SU 1401 / SU 1122
+    f_ekb_aer = search_flights(origin="Екатеринбург", destination="Сочи", departure_date="2026-07-01")
+    assert len(f_ekb_aer) >= 2
+    assert any(f.stops == 0 and "U6" in (f.flight_number or "") for f in f_ekb_aer)
+    assert any(f.stops == 1 for f in f_ekb_aer)
+
+    # Поиск по синонимам "Екб", "Кольцово", "SVX"
+    f_ekb_syn = search_flights(origin="Екб", destination="Сочи", departure_date="2026-07-01")
+    assert len(f_ekb_syn) >= 2
+
+    # Казань -> Сочи
+    f_kzn_aer = search_flights(origin="Казань", destination="Сочи", departure_date="2026-07-01")
+    assert len(f_kzn_aer) >= 2
+    assert any(f.stops == 0 for f in f_kzn_aer)
+
+    # Новосибирск (Толмачево / OVB) -> Калининград (классический транзитный маршрут)
+    f_ovb_kgd = search_flights(origin="Новосибирск", destination="Калининград", departure_date="2026-07-01")
+    assert len(f_ovb_kgd) >= 1
+    assert any(f.stops == 1 and "DME" in (f.transit_point or "") for f in f_ovb_kgd)
+
+    # Санкт-Петербург (Пулково / LED) -> Анталья (прямой Turkish Airlines)
+    f_led_ayt = search_flights(origin="Пулково", destination="Анталья", departure_date="2026-07-01")
+    assert len(f_led_ayt) >= 1
+    assert any("TK" in (f.flight_number or "") for f in f_led_ayt)
+
+
+def test_flights_transit_curated_and_traps():
+    """Тест транзитных рейсов, ловушек валидатора и корректности transit_point / layover_duration."""
+    # Екатеринбург -> Сочи через SVO: оптимальная стыковка
+    f_ekb_sochi = search_flights(origin="SVX", destination="AER", departure_date="2026-07-01")
+    transit_su = next((f for f in f_ekb_sochi if f.flight_number == "SU 1401 / SU 1122"), None)
+    assert transit_su is not None
+    assert transit_su.stops == 1
+    assert transit_su.transit_point == "Москва (SVO)"
+    assert transit_su.layover_duration is not None
+    assert transit_su.layover_duration == timedelta(hours=2, minutes=15)
+
+    # Екатеринбург -> Сочи через VKO: ночной рейс ловушка (прилет в 05:15)
+    trap_dp = next((f for f in f_ekb_sochi if f.flight_number == "DP 406 / DP 115"), None)
+    assert trap_dp is not None
+    assert trap_dp.stops == 1
+    assert trap_dp.arrival_at.hour == 5 and trap_dp.arrival_at.minute == 15
+
+    # Новосибирск -> Сочи через SVO: ловушка короткой стыковки 50 минут
+    f_ovb_sochi = search_flights(origin="OVB", destination="AER", departure_date="2026-07-01")
+    short_layover = next((f for f in f_ovb_sochi if f.flight_number == "SU 1461 / SU 1122"), None)
+    assert short_layover is not None
+    assert short_layover.layover_duration == timedelta(minutes=50)
+
+
+def test_flights_max_stops_filtering():
+    """Тест фильтрации рейсов по количеству пересадок (max_stops)."""
+    # Только прямые рейсы из Екатеринбурга в Сочи (max_stops=0)
+    direct_only = search_flights(origin="Екатеринбург", destination="Сочи", departure_date="2026-07-01", max_stops=0)
+    assert len(direct_only) > 0
+    assert all(f.stops == 0 for f in direct_only)
+
+    # Рейсы с пересадками (max_stops=1)
+    with_transit = search_flights(origin="Екатеринбург", destination="Сочи", departure_date="2026-07-01", max_stops=1)
+    assert len(with_transit) > len(direct_only)
+    assert any(f.stops == 1 for f in with_transit)
+
+
+def test_flights_dynamic_transit_synthesis():
+    """Тест динамического синтеза пересадки через хаб при редких маршрутах."""
+    # Казань -> Стамбул (где нет прямого рейса в датасете, но есть KZN -> SVO и SVO -> IST)
+    f_kzn_ist = search_flights(origin="Казань", destination="Стамбул", departure_date="2026-07-01")
+    assert len(f_kzn_ist) > 0
+    transit_flight = f_kzn_ist[0]
+    assert transit_flight.stops == 1
+    assert "Москва" in (transit_flight.transit_point or "")
+    assert transit_flight.layover_duration is not None
+    assert transit_flight.price is not None and transit_flight.price > 0

@@ -132,6 +132,7 @@ def test_flights_json_valid():
             currency=Currency(f["currency"]) if f.get("currency") else None,
             refundable=f.get("refundable"),
             changeable=f.get("changeable"),
+            transit_point=f.get("transit_point"),
         )
         assert flight_obj.flight_number == f["flight_number"]
 
