@@ -214,10 +214,15 @@ function MainApp() {
           style={[styles.feed, { backgroundColor: colors.background }]}
           contentContainerStyle={[
             styles.feedContent,
-            isInitialState && styles.feedContentInitial,
+            isInitialState ? styles.feedContentInitial : { paddingBottom: 40 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => {
+            if (!isInitialState) {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
         >
           {/* Screen 1: Welcome matching Web ChatView Hero with raised cards */}
           {isInitialState ? (

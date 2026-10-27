@@ -228,15 +228,16 @@ const styles = StyleSheet.create({
   },
   userContentCol: {
     alignItems: "flex-end",
+    width: "100%",
   },
   assistantContentCol: {
-    alignItems: "flex-start",
+    alignItems: "stretch",
+    width: "100%",
   },
   bubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 18,
-    maxWidth: "100%",
     ...theme.shadows.sm,
   },
   userBubble: {
@@ -244,12 +245,16 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 4,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    maxWidth: "85%",
+    alignSelf: "flex-end",
   },
   assistantBubble: {
     backgroundColor: theme.colors.surface, // #FFFFFF
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderTopLeftRadius: 4,
+    width: "100%",
+    alignSelf: "stretch",
   },
   text: {
     fontSize: 14,

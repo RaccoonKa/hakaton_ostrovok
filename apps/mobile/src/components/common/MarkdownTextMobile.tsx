@@ -116,10 +116,14 @@ export const MarkdownTextMobile: React.FC<MarkdownTextMobileProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     gap: 8,
   },
-  paragraph: {},
+  paragraph: {
+    width: "100%",
+  },
   paragraphText: {
+    width: "100%",
     lineHeight: 22,
   },
   bold: {
@@ -129,12 +133,14 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   listContainer: {
+    width: "100%",
     gap: 6,
     marginVertical: 2,
   },
   listItem: {
     flexDirection: "row",
     alignItems: "flex-start",
+    width: "100%",
     gap: 8,
   },
   listNum: {
@@ -149,6 +155,7 @@ const styles = StyleSheet.create({
   },
   listText: {
     flex: 1,
+    flexShrink: 1,
     lineHeight: 22,
   },
 });
