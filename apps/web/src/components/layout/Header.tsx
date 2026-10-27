@@ -119,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
           aria-label={isDark ? "Переключить на светлую тему" : "Переключить на тёмную тему"}
         >
           {isDark ? (
-            <Sun className="w-4 h-4 text-amber-300 transition-transform duration-200" />
+            <Sun className="w-4 h-4 text-white/90 transition-transform duration-200" />
           ) : (
             <Moon className="w-4 h-4 text-white/90 transition-transform duration-200" />
           )}

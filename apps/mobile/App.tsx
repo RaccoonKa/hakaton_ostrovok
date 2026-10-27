@@ -7,6 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  useColorScheme,
+  Appearance,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -54,16 +56,17 @@ function MainApp() {
   const [profileVisible, setProfileVisible] = useState(false);
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
-  const [isDark, setIsDark] = useState(false);
+
+  // System OS color scheme auto-detection
+  const systemColorScheme = useColorScheme();
+  const [manualTheme, setManualTheme] = useState<"light" | "dark" | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
         const saved = await AsyncStorage.getItem(STORAGE_THEME_KEY);
-        if (saved !== null) {
-          const dark = saved === "dark";
-          setIsDark(dark);
-          setAppTheme(dark);
+        if (saved === "light" || saved === "dark") {
+          setManualTheme(saved);
         }
       } catch {
         // ignore
@@ -71,13 +74,28 @@ function MainApp() {
     })();
   }, []);
 
-  const toggleTheme = () => {
-    setIsDark((prev) => {
-      const next = !prev;
-      setAppTheme(next);
-      AsyncStorage.setItem(STORAGE_THEME_KEY, next ? "dark" : "light").catch(() => {});
-      return next;
+  // Listen to system Appearance changes
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (!manualTheme) {
+        setAppTheme(colorScheme === "dark");
+      }
     });
+    return () => subscription.remove();
+  }, [manualTheme]);
+
+  // Effective theme: manual override takes precedence, otherwise automatically follow system OS
+  const isDark = manualTheme !== null ? manualTheme === "dark" : systemColorScheme === "dark";
+
+  useEffect(() => {
+    setAppTheme(isDark);
+  }, [isDark]);
+
+  const toggleTheme = () => {
+    const nextTheme: "light" | "dark" = isDark ? "light" : "dark";
+    setManualTheme(nextTheme);
+    setAppTheme(nextTheme === "dark");
+    AsyncStorage.setItem(STORAGE_THEME_KEY, nextTheme).catch(() => {});
   };
 
   const currentTheme = getTheme(isDark);
@@ -180,10 +198,10 @@ function MainApp() {
       <Header
         title="О!дин запрос"
         subtitle="Ассистент путешествий"
-        activeAccount={headerAccount}
         onMenuPress={() => setHistoryVisible(true)}
         onNewChatPress={resetChat}
-        onSettingsPress={handleOpenProfileOrAuth}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
       />
 
       <KeyboardAvoidingView
@@ -338,7 +356,6 @@ function MainApp() {
           activeAccount={headerAccount}
           onOpenProfileOrAuth={handleOpenProfileOrAuth}
           isDark={isDark}
-          onToggleTheme={toggleTheme}
         />
 
         {/* Traveler Profile & Settings Modal */}

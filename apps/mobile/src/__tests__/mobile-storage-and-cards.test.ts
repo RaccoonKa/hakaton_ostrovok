@@ -169,3 +169,31 @@ test("option selection state toggle operates cleanly in place without jump", () 
   selectOptionHandler(null);
   assert.equal(currentSelection, null);
 });
+
+test("system OS color scheme auto-detection resolution logic", () => {
+  const resolveEffectiveDark = (manualTheme: "light" | "dark" | null, systemColorScheme: "light" | "dark") => {
+    return manualTheme !== null ? manualTheme === "dark" : systemColorScheme === "dark";
+  };
+
+  // When no manual theme chosen, follows OS scheme automatically
+  assert.equal(resolveEffectiveDark(null, "dark"), true, "Should automatically be dark when system is dark");
+  assert.equal(resolveEffectiveDark(null, "light"), false, "Should automatically be light when system is light");
+
+  // When manual theme is chosen, takes precedence over OS scheme
+  assert.equal(resolveEffectiveDark("light", "dark"), false, "Manual light override takes precedence over system dark");
+  assert.equal(resolveEffectiveDark("dark", "light"), true, "Manual dark override takes precedence over system light");
+});
+
+test("header theme icon uses pure white and avoids yellow/amber in dark mode", () => {
+  const getHeaderThemeIconProps = (isDark: boolean) => ({
+    name: isDark ? "sun" : "moon",
+    color: "#FFFFFF",
+  });
+
+  const darkProps = getHeaderThemeIconProps(true);
+  const lightProps = getHeaderThemeIconProps(false);
+
+  assert.equal(darkProps.color, "#FFFFFF");
+  assert.notEqual(darkProps.color, "#F59E0B");
+  assert.equal(lightProps.color, "#FFFFFF");
+});

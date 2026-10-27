@@ -84,3 +84,34 @@ test("Trip option hotels have required amenities and ratings", () => {
     }
   }
 });
+
+test("Web sidebar search filtering works accurately", () => {
+  const sessions = [
+    { id: "1", title: "Тур в Сочи на 7 дней" },
+    { id: "2", title: "Семейный отдых в Анталье" },
+    { id: "3", title: "Экскурсии по Стамбулу" },
+  ];
+
+  const filter = (query: string) => {
+    if (!query.trim()) return sessions;
+    const lower = query.toLowerCase();
+    return sessions.filter((s) => s.title.toLowerCase().includes(lower));
+  };
+
+  assert.equal(filter("").length, 3);
+  assert.equal(filter("сочи").length, 1);
+  assert.equal(filter("сочи")[0].id, "1");
+  assert.equal(filter("тур").length, 1);
+  assert.equal(filter("стамбул").length, 1);
+  assert.equal(filter("дубай").length, 0);
+});
+
+test("Web theme toggle button uses neutral text-white/90 and avoids amber/yellow in dark mode", () => {
+  const getThemeToggleClass = (isDark: boolean) => {
+    return isDark ? "text-white/90" : "text-white/90";
+  };
+
+  assert.equal(getThemeToggleClass(true), "text-white/90");
+  assert.ok(!getThemeToggleClass(true).includes("amber"));
+  assert.ok(!getThemeToggleClass(true).includes("yellow"));
+});

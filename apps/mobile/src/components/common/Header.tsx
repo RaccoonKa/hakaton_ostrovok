@@ -11,13 +11,8 @@ export interface HeaderProps {
   onBackPress?: () => void;
   onMenuPress?: () => void;
   onNewChatPress?: () => void;
-  onSettingsPress?: () => void;
-  activeAccount?: {
-    name: string;
-    avatarInitials: string;
-    tier: string;
-    badgeColor?: string;
-  };
+  isDark?: boolean;
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -27,8 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
   onBackPress,
   onMenuPress,
   onNewChatPress,
-  onSettingsPress,
-  activeAccount,
+  isDark = false,
+  onToggleTheme,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -85,25 +80,23 @@ export const Header: React.FC<HeaderProps> = ({
           ) : null}
         </View>
 
-        {/* Right Status / Profile Indicator */}
+        {/* Right: Theme Toggle Button */}
         <View style={styles.rightContainer}>
-          <TouchableOpacity
-            style={[
-              styles.iconButton,
-              activeAccount && styles.accountButton,
-            ]}
-            onPress={onSettingsPress}
-            accessibilityLabel="Параметры и профиль"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
-          >
-            {activeAccount?.avatarInitials ? (
-              <Text style={styles.avatarInitialsText}>{activeAccount.avatarInitials}</Text>
-            ) : (
-              <Icon name="user" size={17} color="#FFFFFF" />
-            )}
-            <View style={styles.headerDotOnline} />
-          </TouchableOpacity>
+          {onToggleTheme && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onToggleTheme}
+              accessibilityLabel={isDark ? "Светлая тема" : "Тёмная тема"}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <Icon
+                name={isDark ? "sun" : "moon"}
+                size={18}
+                color="#FFFFFF"
+              />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>

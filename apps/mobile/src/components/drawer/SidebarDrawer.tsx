@@ -11,6 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { Icon } from "../common/Icon";
 import { SavedMobileSession } from "../../hooks/useMobileAgent";
 import { getTheme } from "../../theme";
@@ -33,20 +34,7 @@ export interface SidebarDrawerProps {
   };
   onOpenProfileOrAuth: () => void;
   isDark?: boolean;
-  onToggleTheme?: () => void;
 }
-
-// Multi-stop simulated linear gradient matching Web's CSS linear-gradient(180deg, rgba(92, 30, 134, 0.96) ...)
-const GRADIENT_STOPS = [
-  "rgba(92, 30, 134, 0.98)",
-  "rgba(92, 30, 134, 0.95)",
-  "rgba(92, 30, 134, 0.88)",
-  "rgba(92, 30, 134, 0.72)",
-  "rgba(92, 30, 134, 0.48)",
-  "rgba(92, 30, 134, 0.28)",
-  "rgba(92, 30, 134, 0.12)",
-  "rgba(92, 30, 134, 0.03)",
-];
 
 export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   visible,
@@ -59,7 +47,6 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   activeAccount,
   onOpenProfileOrAuth,
   isDark = false,
-  onToggleTheme,
 }) => {
   const insets = useSafeAreaInsets();
   const currentTheme = getTheme(isDark);
@@ -173,18 +160,21 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             },
           ]}
         >
-          {/* Continuous frosted purple gradient top background matching Web */}
-          <View style={styles.gradientHeaderWrapper} pointerEvents="none">
-            {GRADIENT_STOPS.map((stopColor, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.gradientStopStrip,
-                  { backgroundColor: stopColor },
-                ]}
-              />
-            ))}
-          </View>
+          {/* Continuous hardware-accelerated purple gradient top background matching Web */}
+          <LinearGradient
+            colors={[
+              "rgba(92, 30, 134, 0.98)",
+              "rgba(92, 30, 134, 0.93)",
+              "rgba(92, 30, 134, 0.70)",
+              "rgba(92, 30, 134, 0.38)",
+              "rgba(92, 30, 134, 0.15)",
+              "rgba(92, 30, 134, 0.04)",
+              "rgba(92, 30, 134, 0.00)",
+            ]}
+            locations={[0, 0.28, 0.52, 0.70, 0.85, 0.94, 1.0]}
+            style={styles.gradientHeader}
+            pointerEvents="none"
+          />
 
           {/* Top Brand Bar matching Web's h-14 Header */}
           <View
@@ -374,12 +364,12 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             )}
           </ScrollView>
 
-          {/* Footer User & Settings — frosted glass footer matching Web */}
+          {/* Footer User & Settings — frosted glass footer matching Web 1:1 */}
           <View
             style={[
               styles.drawerFooter,
               {
-                paddingBottom: Math.max(insets.bottom, 12),
+                paddingBottom: Math.max(insets.bottom, 14),
                 backgroundColor: isDark
                   ? "rgba(21, 18, 33, 0.95)"
                   : "rgba(255, 255, 255, 0.92)",
@@ -389,57 +379,6 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               },
             ]}
           >
-            {/* Theme switcher toggle row */}
-            {onToggleTheme && (
-              <TouchableOpacity
-                style={[
-                  styles.themeToggleRow,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(255, 255, 255, 0.06)"
-                      : "rgba(0, 0, 0, 0.03)",
-                  },
-                ]}
-                onPress={onToggleTheme}
-                activeOpacity={0.75}
-              >
-                <View style={styles.themeToggleLeft}>
-                  <Icon
-                    name={isDark ? "sun" : "moon"}
-                    size={14}
-                    color={isDark ? "#F59E0B" : "#581C87"}
-                  />
-                  <Text
-                    style={[
-                      styles.themeToggleText,
-                      { color: colors.textSecondary },
-                    ]}
-                  >
-                    {isDark ? "Светлая тема" : "Тёмная тема"}
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.themeToggleBadge,
-                    {
-                      backgroundColor: isDark
-                        ? "rgba(245, 158, 11, 0.15)"
-                        : "rgba(88, 28, 135, 0.12)",
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.themeToggleBadgeText,
-                      { color: isDark ? "#F59E0B" : "#581C87" },
-                    ]}
-                  >
-                    {isDark ? "Тёмная" : "Светлая"}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
             {/* Authenticated user profile or unauthenticated login button matching Web */}
             {activeAccount?.name ? (
               <TouchableOpacity
@@ -557,18 +496,13 @@ const styles = StyleSheet.create({
     flexDirection: "column",
     overflow: "hidden",
   },
-  gradientHeaderWrapper: {
+  gradientHeader: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: 110,
+    height: 120,
     zIndex: 0,
-    flexDirection: "column",
-  },
-  gradientStopStrip: {
-    flex: 1,
-    width: "100%",
   },
   brandBar: {
     position: "relative",
@@ -727,35 +661,9 @@ const styles = StyleSheet.create({
   },
   drawerFooter: {
     paddingHorizontal: 10,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     gap: 8,
-  },
-  themeToggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 9,
-  },
-  themeToggleLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  themeToggleText: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  themeToggleBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  themeToggleBadgeText: {
-    fontSize: 9,
-    fontWeight: "700",
   },
   profileRow: {
     flexDirection: "row",

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Trash2,
   LogIn,
+  X,
 } from "lucide-react";
 import { useSidebar } from "../../context/SidebarContext";
 import { usePreferences } from "../../context/PreferencesContext";
@@ -32,6 +33,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     deleteSession,
     startNewChat,
   } = useChat();
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return sessions;
+    const lower = searchQuery.toLowerCase();
+    return sessions.filter((s) => s.title.toLowerCase().includes(lower));
+  }, [sessions, searchQuery]);
 
   const handleStartNew = () => {
     startNewChat();
@@ -98,12 +108,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* Search button */}
             <button
               type="button"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/85 hover:bg-white/15 hover:text-white transition-colors"
-              title="Поиск по диалогам"
+              onClick={() => {
+                setIsSearchOpen((prev) => !prev);
+                if (isSearchOpen) setSearchQuery("");
+              }}
+              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
+                isSearchOpen
+                  ? "bg-white/25 text-white"
+                  : "text-white/85 hover:bg-white/15 hover:text-white"
+              }`}
+              title={isSearchOpen ? "Закрыть поиск" : "Поиск по диалогам"}
             >
               <Search className="w-4 h-4" />
             </button>
           </div>
+
+          {/* Search Input Bar when toggled */}
+          {isSearchOpen && (
+            <div className="px-3 pt-1 pb-1 relative z-10 animate-fade-in">
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 absolute left-3 text-content-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по диалогам..."
+                  autoFocus
+                  className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-white/90 dark:bg-white/10 border border-black/[0.08] dark:border-white/[0.12] text-content-primary placeholder:text-content-muted focus:outline-none focus:ring-1 focus:ring-primary/40 backdrop-blur-md shadow-xs transition-all"
+                />
+                {searchQuery.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 text-content-muted hover:text-content-primary p-0.5 cursor-pointer"
+                    title="Очистить"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* New route button section */}
           <div className="px-3 pt-2.5 pb-1 relative z-10">
@@ -121,13 +166,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Dialog history feed */}
           <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1">
-            {sessions.length === 0 ? (
+            {filteredSessions.length === 0 ? (
               <div className="px-3 py-8 text-center text-xs text-content-muted">
-                История диалогов пуста
+                {searchQuery ? "Ничего не найдено" : "История диалогов пуста"}
               </div>
             ) : (
               <div className="flex flex-col gap-1">
-                {sessions.map((item) => (
+                {filteredSessions.map((item) => (
                   <div
                     key={item.id}
                     className={`group/session relative flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-all ${
