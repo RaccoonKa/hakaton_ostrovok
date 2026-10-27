@@ -29,6 +29,7 @@ def validate_travel_request_tool(
     duration: int = 0,
     travelers: int = 0,
     budget: float = 0,
+    budget_mode: str = "",
     destination_confirmed: bool = False,
     confirmed_start_date: str = "",
     confirmed_end_date: str = "",
@@ -37,7 +38,10 @@ def validate_travel_request_tool(
     Проверяет, готов ли запрос к агрегации. Возвращает JSON с полями
     ready, missing, decisions_required, questions, budget_scenarios.
 
-    Это основной защитный барьер перед вызовом агрегатора.
+    Параметры:
+    - budget_mode: 'no_limit' (если бюджет не ограничен / любой),
+      'specified' (если указана точная сумма), 'flexible_scenarios' (подобрать разные варианты).
+    - budget: числовая сумма бюджета (если указана).
     """
     req = UserRequest()
     if origin:
@@ -47,7 +51,9 @@ def validate_travel_request_tool(
     if travelers:
         req.travelers = travelers
         req.travelers_provided = True
-    if budget:
+    if budget_mode:
+        req.budget_mode = budget_mode
+    elif budget and budget > 0:
         req.budget = budget
         req.budget_mode = "specified"
     if duration:
