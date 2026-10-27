@@ -98,7 +98,7 @@ function MainApp() {
       {/* Top Header with Edge-to-Edge Safe Inset Handling */}
       <Header
         title="О!дин запрос"
-        subtitle="ИИ-помощник в путешествиях"
+        subtitle="Ассистент путешествий"
         onMenuPress={() => setHistoryVisible(true)}
         onNewChatPress={resetChat}
         onSettingsPress={() => setProfileVisible(true)}
@@ -116,7 +116,7 @@ function MainApp() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Welcome Screen Cards if start of conversation (Stitch Screen 1) */}
+          {/* Welcome Screen Cards if start of conversation */}
           {isInitialState && (
             <View style={styles.welcomeHero}>
               <View style={styles.heroIconBadge}>
@@ -128,7 +128,7 @@ function MainApp() {
                 направления, отели и маршрут за один шаг.
               </Text>
 
-              {/* Starter Scenarios Chips from Stitch Screen 1 */}
+              {/* Starter Scenarios Chips */}
               <View style={styles.starterChipsContainer}>
                 <TouchableOpacity
                   style={styles.starterChip}
@@ -199,7 +199,7 @@ function MainApp() {
             </View>
           )}
 
-          {/* Chat Messages Turn List (Stitch Screen 2) */}
+          {/* Chat Messages Turn List */}
           {!isInitialState && (
             <View style={styles.messagesList}>
               {messages.map((m) => (
@@ -222,7 +222,7 @@ function MainApp() {
             />
           )}
 
-          {/* Standalone Trip Options Cards (Stitch Screen 3 & 4) */}
+          {/* Standalone Trip Options Cards */}
           {tripOptions.length > 0 && (
             <View style={styles.tripCardsContainer}>
               <View style={styles.tripSectionHeader}>
@@ -247,7 +247,7 @@ function MainApp() {
           )}
         </ScrollView>
 
-        {/* Quick Suggestion Chips (Stitch Screen 2) above input */}
+        {/* Quick Suggestion Chips above input */}
         <QuickReplyChips
           chips={
             tripOptions.length > 0
@@ -274,7 +274,7 @@ function MainApp() {
           placeholder="Например: Хочу к теплому морю в ноябре..."
         />
 
-        {/* Booking & Checkout Modal (Stitch Screen 5) */}
+        {/* Booking & Checkout Modal */}
         <BookingCheckoutModal
           visible={checkoutVisible}
           option={checkoutOption}
@@ -340,7 +340,9 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: theme.borderRadius.xl,
-    backgroundColor: theme.colors.surfaceContainer,
+    backgroundColor: theme.colors.primaryLight, // #FAF5FF
+    borderWidth: 1,
+    borderColor: "rgba(88, 28, 135, 0.15)",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 14,
@@ -384,7 +386,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -399,7 +401,7 @@ const styles = StyleSheet.create({
   },
   starterArrow: {
     fontSize: 16,
-    color: theme.colors.textTertiary,
+    color: theme.colors.primary, // #581C87
     fontWeight: "600",
   },
   historyLink: {
@@ -410,7 +412,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.canvasMuted,
+    backgroundColor: theme.colors.surfaceContainer,
   },
   historyLinkIcon: {
     fontSize: 13,
@@ -430,11 +432,11 @@ const styles = StyleSheet.create({
   },
   heroFeatureIcon: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
   },
   heroFeatureText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     fontWeight: "500",
   },
   messagesList: {
@@ -457,7 +459,7 @@ const styles = StyleSheet.create({
   },
   tripSectionCount: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     fontWeight: "500",
   },
 });

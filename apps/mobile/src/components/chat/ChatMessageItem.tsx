@@ -22,9 +22,21 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 
   return (
     <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
+      {/* Assistant Header with "О!" avatar badge, brand title and engine pill */}
       {!isUser && (
-        <View style={styles.assistantAvatar}>
-          <Text style={styles.avatarIcon}>✦</Text>
+        <View style={styles.assistantHeaderRow}>
+          <View style={styles.assistantAvatar}>
+            <Text style={styles.avatarLettermark}>О!</Text>
+          </View>
+          <View style={styles.assistantMetaRow}>
+            <Text style={styles.assistantBrandName}>О!дин запрос</Text>
+            {message.timestamp && (
+              <Text style={styles.assistantTimestamp}>• {message.timestamp}</Text>
+            )}
+            <View style={styles.engineBadge}>
+              <Text style={styles.engineBadgeText}>Умный движок v2.4</Text>
+            </View>
+          </View>
         </View>
       )}
 
@@ -34,14 +46,14 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             {message.content}
           </Text>
 
-          <View style={styles.metaRow}>
-            {message.timestamp && (
-              <Text style={[styles.timestamp, isUser ? styles.userTimestamp : styles.assistantTimestamp]}>
-                {message.timestamp}
-              </Text>
-            )}
-            {isUser && <Text style={styles.readCheckmark}>✓✓</Text>}
-          </View>
+          {isUser && (
+            <View style={styles.userMetaRow}>
+              {message.timestamp && (
+                <Text style={styles.userTimestamp}>{message.timestamp}</Text>
+              )}
+              <Text style={styles.readCheckmark}>✓✓</Text>
+            </View>
+          )}
         </View>
 
         {/* Embedded trip options if provided in this message */}
@@ -66,62 +78,94 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginVertical: 6,
-    flexDirection: "row",
-    gap: 10,
     width: "100%",
   },
   userContainer: {
-    justifyContent: "flex-end",
+    alignItems: "flex-end",
+    paddingLeft: 40,
   },
   assistantContainer: {
-    justifyContent: "flex-start",
+    alignItems: "flex-start",
+    paddingRight: 16,
+  },
+  assistantHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
   },
   assistantAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primary,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.headerBg, // #581C87
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
     ...theme.shadows.sm,
   },
-  avatarIcon: {
-    fontSize: 16,
+  avatarLettermark: {
+    fontSize: 12,
+    fontWeight: "800",
     color: "#FFFFFF",
+    letterSpacing: -0.2,
+  },
+  assistantMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  assistantBrandName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+  },
+  assistantTimestamp: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  engineBadge: {
+    backgroundColor: theme.colors.surfaceContainer,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  engineBadgeText: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: theme.colors.textSecondary,
   },
   contentCol: {
-    maxWidth: "85%",
+    width: "100%",
   },
   userContentCol: {
     alignItems: "flex-end",
-    flex: 1,
   },
   assistantContentCol: {
     alignItems: "flex-start",
-    flex: 1,
   },
   bubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 20,
+    borderRadius: 18,
+    maxWidth: "100%",
     ...theme.shadows.sm,
   },
   userBubble: {
-    backgroundColor: theme.colors.surfaceContainerHigh,
+    backgroundColor: theme.colors.surfaceContainer, // #F0EDF1 (matches web user bubble)
     borderTopRightRadius: 4,
     borderWidth: 1,
-    borderColor: "#DCE2F7",
+    borderColor: theme.colors.border, // #E5E5EB
   },
   assistantBubble: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surface, // #FFFFFF
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.border, // #E5E5EB
     borderTopLeftRadius: 4,
   },
   text: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 21,
   },
   userText: {
     color: theme.colors.textPrimary,
@@ -129,25 +173,20 @@ const styles = StyleSheet.create({
   assistantText: {
     color: theme.colors.textPrimary,
   },
-  metaRow: {
+  userMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 4,
-    marginTop: 6,
-  },
-  timestamp: {
-    fontSize: 11,
+    marginTop: 4,
   },
   userTimestamp: {
-    color: theme.colors.textTertiary,
-  },
-  assistantTimestamp: {
-    color: theme.colors.textTertiary,
+    fontSize: 11,
+    color: theme.colors.textMuted,
   },
   readCheckmark: {
-    fontSize: 11,
-    color: theme.colors.primary,
+    fontSize: 12,
+    color: theme.colors.primary, // #581C87
     fontWeight: "700",
   },
   tripOptionsList: {

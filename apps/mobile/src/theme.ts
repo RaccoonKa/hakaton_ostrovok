@@ -1,40 +1,55 @@
+import { DESIGN_TOKENS } from "@corvax/shared";
+
 /**
- * Google Stitch "Calm Intelligence" design tokens for "О!дин запрос" Mobile
+ * Shared design tokens for "О!дин запрос" Mobile
+ * Fully aligned with Web client (apps/web) & @corvax/shared
  */
 export const theme = {
   colors: {
-    // Primary & containers (Soft lavender/lilac #B286D0)
-    primary: "#B286D0",
-    primaryContainer: "#9C68C1",
-    primaryHover: "#8D57B4",
-    primaryLight: "#F8F2FC",
-    accentPurpleTint: "#F4EBF9",
+    // Primary brand palette (Royal Deep Purple)
+    primary: DESIGN_TOKENS.colors.primary.DEFAULT, // #581C87
+    primaryContainer: DESIGN_TOKENS.colors.primary.hover, // #4C1675
+    primaryDark: DESIGN_TOKENS.colors.primary.active, // #3B0764
+    primaryHover: DESIGN_TOKENS.colors.primary.hover, // #4C1675
+    primaryLight: DESIGN_TOKENS.colors.primary.light, // #FAF5FF
+    accentPurpleTint: DESIGN_TOKENS.colors.primary.tint, // #F3E8FF
+    headerBg: DESIGN_TOKENS.colors.primary.DEFAULT, // #581C87
 
-    // Secondary & Tertiary
-    secondary: "#FF7A30",
-    secondaryLight: "#FFF7ED",
-    tertiary: "#22C55E",
+    // Secondary (Ostrovok warm Orange) & Tertiary (Emerald Green)
+    secondary: DESIGN_TOKENS.colors.secondary.DEFAULT, // #FF7A30
+    secondaryHover: DESIGN_TOKENS.colors.secondary.hover, // #E86922
+    secondaryLight: DESIGN_TOKENS.colors.secondary.light, // #FFF4EE
+    tertiary: DESIGN_TOKENS.colors.tertiary.DEFAULT, // #22C55E
+    tertiaryLight: DESIGN_TOKENS.colors.tertiary.light, // #ECFDF5
+    tertiaryBg: DESIGN_TOKENS.colors.tertiary.bg, // #DCFCE7
 
     // Surfaces & Backgrounds
-    background: "#FBFBFD",
-    surface: "#FFFFFF",
-    card: "#FFFFFF",
-    surfaceContainerLow: "#F9F5FC",
-    surfaceContainer: "#F3EBF9",
-    surfaceContainerHigh: "#ECE0F5",
-    canvasMuted: "#F4F4F6",
-    canvasSubtle: "#FAFAFA",
+    background: DESIGN_TOKENS.colors.canvas, // #FBFBFD
+    surface: DESIGN_TOKENS.colors.surface.DEFAULT, // #FFFFFF
+    card: DESIGN_TOKENS.colors.surface.DEFAULT, // #FFFFFF
+    surfaceContainerLow: "#F6F2F7",
+    surfaceContainer: "#F0EDF1", // Exact web user bubble container
+    surfaceContainerHigh: "#EAE7EB",
+    canvasMuted: DESIGN_TOKENS.colors.surface.muted, // #F4F4F6
+    canvasSubtle: DESIGN_TOKENS.colors.surface.subtle, // #EEEEF2
 
     // Borders
-    border: "#E5E7EB",
-    borderSubtle: "#F3F4F6",
-    borderStandard: "#E5E7EB",
+    border: DESIGN_TOKENS.colors.surface.border, // #E5E5EB
+    borderSubtle: DESIGN_TOKENS.colors.surface.borderSubtle, // #F3F4F6
+    borderStandard: DESIGN_TOKENS.colors.surface.border, // #E5E5EB
 
     // Typography
-    textPrimary: "#18181B",
-    textSecondary: "#4B5563",
-    textTertiary: "#9CA3AF",
-    textMuted: "#9CA3AF",
+    textPrimary: DESIGN_TOKENS.colors.content.primary, // #18181B
+    textSecondary: DESIGN_TOKENS.colors.content.secondary, // #3F3F46
+    textTertiary: DESIGN_TOKENS.colors.content.tertiary, // #9CA3AF
+    textMuted: DESIGN_TOKENS.colors.content.muted, // #71717A
+
+    // Badges & Accents
+    badgeRecommendBg: "#ECFDF5",
+    badgeRecommendText: "#047857",
+    star: "#F59E0B",
+    hotelScoreBg: "#F0FDF4",
+    hotelScoreText: "#166534",
 
     // Status
     success: "#22C55E",
@@ -60,7 +75,8 @@ export const theme = {
     sm: 6,
     md: 10,
     lg: 16,
-    xl: 24,
+    xl: 20,
+    "2xl": 24,
     full: 9999,
   },
   shadows: {

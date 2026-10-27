@@ -27,7 +27,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onChangeText,
   onSend,
   disabled = false,
-  placeholder = "Спросите или уточните детали...",
+  placeholder = "Спросите что угодно или уточните детали...",
   isListening = false,
   onToggleMic,
   onFilterPress,
@@ -108,6 +108,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         <View style={styles.bottomBar}>
           <View style={styles.leftActions}>
             <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onFilterPress}
+              accessibilityLabel="Фильтры и пожелания"
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.iconText}>⚙️</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={[styles.iconButton, isListening && styles.micActiveButton]}
               onPress={onToggleMic}
               accessibilityLabel="Голосовой ввод"
@@ -123,16 +133,6 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
               >
                 🎤
               </Animated.Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={onFilterPress}
-              accessibilityLabel="Фильтры и пожелания"
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.iconText}>⚙️</Text>
             </TouchableOpacity>
           </View>
 
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: theme.spacing.md,
     paddingTop: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.background,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     ...theme.shadows.sm,
@@ -194,12 +194,13 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
   },
   inputCard: {
-    backgroundColor: theme.colors.surfaceContainerLow,
-    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
+    ...theme.shadows.sm,
   },
   input: {
     fontSize: 15,
@@ -227,10 +228,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.canvasMuted,
   },
   iconText: {
-    fontSize: 15,
+    fontSize: 14,
   },
   micActiveButton: {
     backgroundColor: "#FEE2E2",
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
   sendButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     ...theme.shadows.sm,
   },
   sendButtonArrow: {

@@ -103,22 +103,21 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* New Chat Button */}
+          {/* Top Quick Action */}
           <View style={styles.topActionBar}>
             <TouchableOpacity
               style={styles.newChatButton}
               onPress={() => {
-                onStartNewChat();
                 onClose();
+                onStartNewChat();
               }}
               activeOpacity={0.8}
             >
               <Text style={styles.newChatIcon}>✎</Text>
-              <Text style={styles.newChatText}>Начать новый поиск тура</Text>
+              <Text style={styles.newChatText}>Начать новый диалог</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Sessions List */}
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
@@ -129,7 +128,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 <Text style={styles.emptyIcon}>📂</Text>
                 <Text style={styles.emptyTitle}>История пуста</Text>
                 <Text style={styles.emptySub}>
-                  Здесь появятся ваши диалоги и подобранные варианты путешествий
+                  Задайте вопрос ассистенту, и результаты подбора сохранятся здесь.
                 </Text>
               </View>
             ) : (
@@ -152,13 +151,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                         <Text style={styles.itemDestination}>{item.destination}</Text>
                         <Text style={styles.itemPrice}>{item.price}</Text>
                       </View>
-
                       <Text style={styles.itemHotelTitle} numberOfLines={1}>
                         {item.title}
                       </Text>
-
                       <Text style={styles.itemDates}>{item.dates}</Text>
-
                       <View style={styles.promptBubble}>
                         <Text style={styles.promptText} numberOfLines={1}>
                           «{item.previewPrompt}»
@@ -170,8 +166,8 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDelete(item.id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityLabel="Удалить запись"
+                    accessibilityLabel="Удалить из истории"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     <Text style={styles.deleteIcon}>🗑️</Text>
                   </TouchableOpacity>
@@ -227,13 +223,13 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -253,7 +249,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 10,
     gap: 8,
@@ -297,7 +293,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -315,14 +311,14 @@ const styles = StyleSheet.create({
   itemDestination: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
     textTransform: "uppercase",
     letterSpacing: 0.4,
   },
   itemPrice: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
+    color: theme.colors.primary, // #581C87
   },
   itemHotelTitle: {
     fontSize: 14,
@@ -336,7 +332,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   promptBubble: {
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     borderRadius: theme.borderRadius.sm,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -369,7 +365,7 @@ const styles = StyleSheet.create({
   },
   emptySub: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     textAlign: "center",
     maxWidth: 240,
   },

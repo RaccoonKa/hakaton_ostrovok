@@ -100,20 +100,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       onPress={() => setSelectedCity(c.id)}
                       activeOpacity={0.7}
                     >
-                      <Text
-                        style={[
-                          styles.cityName,
-                          isSelected && styles.cityNameSelected,
-                        ]}
-                      >
+                      <Text style={[styles.cityName, isSelected && styles.cityNameSelected]}>
                         {c.name}
                       </Text>
-                      <View
-                        style={[
-                          styles.radioCircle,
-                          isSelected && styles.radioCircleSelected,
-                        ]}
-                      >
+                      <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
                         {isSelected && <View style={styles.radioInner} />}
                       </View>
                     </TouchableOpacity>
@@ -122,21 +112,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </View>
             </View>
 
-            {/* Notification & Currency Settings */}
+            {/* Notification and Personalization Toggles */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Настройки сервиса</Text>
+              <Text style={styles.sectionCaption}>Уведомления и рекомендации</Text>
 
               <View style={styles.settingRow}>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Push-уведомления</Text>
+                  <Text style={styles.settingTitle}>Push-уведомления о статусе брони</Text>
                   <Text style={styles.settingSub}>
-                    Статусы рейсов и напоминания о вылете
+                    Мгновенные оповещения об изменении времени вылета и подтверждении ваучеров
                   </Text>
                 </View>
                 <Switch
                   value={pushEnabled}
                   onValueChange={setPushEnabled}
-                  trackColor={{ false: "#D1D5DB", true: "#C7D2FE" }}
+                  trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
                   thumbColor={pushEnabled ? theme.colors.primary : "#F3F4F6"}
                 />
               </View>
@@ -145,25 +135,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
               <View style={styles.settingRow}>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Снижение цен на отели</Text>
+                  <Text style={styles.settingTitle}>Алерты снижения цен</Text>
                   <Text style={styles.settingSub}>
-                    Оповещать, если тур подешевеет на 15%+
+                    Оповещать, если отель или билеты по выбранным датам подешевеют
                   </Text>
                 </View>
                 <Switch
                   value={discountAlerts}
                   onValueChange={setDiscountAlerts}
-                  trackColor={{ false: "#D1D5DB", true: "#C7D2FE" }}
+                  trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
                   thumbColor={discountAlerts ? theme.colors.primary : "#F3F4F6"}
                 />
               </View>
+            </View>
 
-              <View style={styles.divider} />
-
+            {/* App Currency and Locale */}
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionCaption}>Региональные настройки</Text>
               <View style={styles.settingRow}>
                 <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Основная валюта</Text>
-                  <Text style={styles.settingSub}>Российский рубль (₽)</Text>
+                  <Text style={styles.settingTitle}>Основная валюта расчётов</Text>
+                  <Text style={styles.settingSub}>Цены авиабилетов и гостиничных ваучеров</Text>
                 </View>
                 <View style={styles.currencyBadge}>
                   <Text style={styles.currencyBadgeText}>RUB (₽)</Text>
@@ -177,7 +169,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               onPress={handleSave}
               activeOpacity={0.8}
             >
-              <Text style={styles.saveButtonText}>Сохранить настройки</Text>
+              <Text style={styles.saveButtonText}>Сохранить настройки профиля</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -218,7 +210,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -272,7 +264,7 @@ const styles = StyleSheet.create({
   statusPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0FDF4",
+    backgroundColor: theme.colors.badgeRecommendBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.borderRadius.full,
@@ -282,12 +274,12 @@ const styles = StyleSheet.create({
   },
   statusPillDot: {
     fontSize: 6,
-    color: "#16A34A",
+    color: theme.colors.badgeRecommendText,
   },
   statusPillText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#16A34A",
+    color: theme.colors.badgeRecommendText,
   },
   sectionCard: {
     backgroundColor: theme.colors.surface,
@@ -301,7 +293,7 @@ const styles = StyleSheet.create({
   sectionCaption: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -315,10 +307,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   cityRowSelected: {
-    backgroundColor: theme.colors.surfaceContainer,
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
   },
   cityName: {
     fontSize: 13,
@@ -327,7 +322,7 @@ const styles = StyleSheet.create({
   },
   cityNameSelected: {
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
   },
   radioCircle: {
     width: 18,
@@ -345,7 +340,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
   },
   settingRow: {
     flexDirection: "row",
@@ -364,7 +359,7 @@ const styles = StyleSheet.create({
   },
   settingSub: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   divider: {
@@ -372,7 +367,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.borderSubtle,
   },
   currencyBadge: {
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: theme.borderRadius.md,
@@ -380,10 +375,10 @@ const styles = StyleSheet.create({
   currencyBadgeText: {
     fontSize: 12,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
   },
   saveButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 14,
     alignItems: "center",

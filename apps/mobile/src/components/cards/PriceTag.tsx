@@ -10,6 +10,7 @@ export interface PriceTagProps {
   savings?: string;
   size?: "sm" | "md" | "lg";
   align?: "left" | "right";
+  color?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -20,6 +21,7 @@ export const PriceTag: React.FC<PriceTagProps> = ({
   savings,
   size = "md",
   align = "left",
+  color,
   style,
 }) => {
   const formatted = formatPrice(amount, currency);
@@ -32,7 +34,15 @@ export const PriceTag: React.FC<PriceTagProps> = ({
         </View>
       )}
       <View style={[styles.priceRow, align === "right" && styles.rowRight]}>
-        <Text style={[styles.price, styles[`price_${size}`]]}>{formatted}</Text>
+        <Text
+          style={[
+            styles.price,
+            styles[`price_${size}`],
+            color ? { color } : { color: theme.colors.primary },
+          ]}
+        >
+          {formatted}
+        </Text>
         {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       </View>
     </View>
@@ -56,7 +66,7 @@ const styles = StyleSheet.create({
   },
   price: {
     fontWeight: "700",
-    color: theme.colors.textPrimary,
+    color: theme.colors.primary, // #581C87
   },
   price_sm: {
     fontSize: 14,
@@ -71,11 +81,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     fontWeight: "400",
   },
   savingsPill: {
-    backgroundColor: "#DCFCE7",
+    backgroundColor: theme.colors.badgeRecommendBg,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.xs,
@@ -85,6 +95,6 @@ const styles = StyleSheet.create({
   savingsText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#15803D",
+    color: theme.colors.badgeRecommendText,
   },
 });

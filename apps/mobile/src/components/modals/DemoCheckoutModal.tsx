@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TripOption, formatPrice, formatDateRange } from "@corvax/shared";
+import { TripOption, formatPrice, formatDateRange, PAYMENT_SIMULATION } from "@corvax/shared";
 import { theme } from "../../theme";
 import { TravelerEditModal, TravelerData } from "./TravelerEditModal";
 
@@ -31,7 +31,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"sbp" | "card" | "hotel">("sbp");
+  const [paymentMethod, setPaymentMethod] = useState<string>("sbp");
   const [traveler, setTraveler] = useState<TravelerData>({
     name: "Алексей Смирнов",
     phone: "+7 (999) 456-78-90",
@@ -51,7 +51,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
 
     setLoading(true);
     setTimeout(() => {
-      const generatedId = `OST-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedId = `${PAYMENT_SIMULATION.orderPrefix}${Math.floor(1000 + Math.random() * 9000)}`;
       setBookingId(generatedId);
       setLoading(false);
       setConfirmed(true);
@@ -192,7 +192,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
 
               <View style={styles.priceRow}>
                 <Text style={styles.priceItemLabel}>Сервисный сбор подбора</Text>
-                <Text style={[styles.priceItemValue, { color: theme.colors.primary }]}>
+                <Text style={[styles.priceItemValue, { color: theme.colors.badgeRecommendText }]}>
                   0 ₽ (Бесплатно)
                 </Text>
               </View>
@@ -218,66 +218,34 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               </View>
 
               <Text style={styles.simNoticeText}>
-                В рамках демонстрации списание реальных средств не производится. Эмулируется моментальная авторизация через Ostrovok Travel Gateway.
+                {PAYMENT_SIMULATION.disclaimer}
               </Text>
 
               <View style={styles.paymentMethodsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.paymentMethodChip,
-                    paymentMethod === "sbp" && styles.paymentMethodChipActive,
-                  ]}
-                  onPress={() => setPaymentMethod("sbp")}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.paymentMethodIcon}>⚡</Text>
-                  <Text
-                    style={[
-                      styles.paymentMethodText,
-                      paymentMethod === "sbp" && styles.paymentMethodTextActive,
-                    ]}
-                  >
-                    СБП (0 ₽)
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.paymentMethodChip,
-                    paymentMethod === "card" && styles.paymentMethodChipActive,
-                  ]}
-                  onPress={() => setPaymentMethod("card")}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.paymentMethodIcon}>💳</Text>
-                  <Text
-                    style={[
-                      styles.paymentMethodText,
-                      paymentMethod === "card" && styles.paymentMethodTextActive,
-                    ]}
-                  >
-                    Карта (тест)
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.paymentMethodChip,
-                    paymentMethod === "hotel" && styles.paymentMethodChipActive,
-                  ]}
-                  onPress={() => setPaymentMethod("hotel")}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.paymentMethodIcon}>🏨</Text>
-                  <Text
-                    style={[
-                      styles.paymentMethodText,
-                      paymentMethod === "hotel" && styles.paymentMethodTextActive,
-                    ]}
-                  >
-                    В отеле
-                  </Text>
-                </TouchableOpacity>
+                {PAYMENT_SIMULATION.methods.map((method) => {
+                  const isActive = paymentMethod === method.id;
+                  return (
+                    <TouchableOpacity
+                      key={method.id}
+                      style={[
+                        styles.paymentMethodChip,
+                        isActive && styles.paymentMethodChipActive,
+                      ]}
+                      onPress={() => setPaymentMethod(method.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.paymentMethodIcon}>{method.icon}</Text>
+                      <Text
+                        style={[
+                          styles.paymentMethodText,
+                          isActive && styles.paymentMethodTextActive,
+                        ]}
+                      >
+                        {method.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
@@ -308,7 +276,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               </View>
             )}
 
-            {/* Primary Action Button */}
+            {/* Primary Action Button (Ostrovok Orange #FF7A30 CTA) */}
             <TouchableOpacity
               style={[
                 styles.ctaButton,
@@ -388,7 +356,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   verifiedBadge: {
-    backgroundColor: theme.colors.accentPurpleTint,
+    backgroundColor: theme.colors.badgeRecommendBg,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.borderRadius.full,
@@ -396,13 +364,13 @@ const styles = StyleSheet.create({
   verifiedBadgeText: {
     fontSize: 10,
     fontWeight: "600",
-    color: theme.colors.primary,
+    color: theme.colors.badgeRecommendText,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -473,7 +441,7 @@ const styles = StyleSheet.create({
   cardCaption: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -551,13 +519,13 @@ const styles = StyleSheet.create({
   },
   totalSub: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   totalValue: {
     fontSize: 20,
     fontWeight: "800",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -576,7 +544,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     borderColor: theme.colors.primary,
   },
   checkMark: {
@@ -618,7 +586,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   ctaButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.secondary, // Ostrovok Orange #FF7A30
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 14,
     alignItems: "center",
@@ -654,7 +622,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   simBadge: {
-    backgroundColor: theme.colors.accentPurpleTint,
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.full,
@@ -685,11 +653,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
   },
   paymentMethodChipActive: {
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.accentPurpleTint,
+    backgroundColor: theme.colors.primaryLight,
   },
   paymentMethodIcon: {
     fontSize: 13,
@@ -715,6 +683,6 @@ const styles = StyleSheet.create({
   },
   encryptionText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
   },
 });

@@ -15,7 +15,7 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   title = "О!дин запрос",
-  subtitle = "ИИ-помощник в путешествиях",
+  subtitle = "Ассистент путешествий",
   showBack = false,
   onBackPress,
   onMenuPress,
@@ -77,19 +77,16 @@ export const Header: React.FC<HeaderProps> = ({
           ) : null}
         </View>
 
-        {/* Right Status / Profile Indicator (Stitch Screen 1 & 2) */}
+        {/* Right Status / Profile Indicator */}
         <View style={styles.rightContainer}>
           <TouchableOpacity
-            style={styles.profileButton}
+            style={styles.iconButton}
             onPress={onSettingsPress}
             accessibilityLabel="Параметры и профиль"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
           >
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarIcon}>👤</Text>
-              <View style={styles.onlineDot} />
-            </View>
+            <Text style={styles.avatarIcon}>👤</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -99,14 +96,14 @@ export const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   headerContainer: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.headerBg, // #581C87
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255, 255, 255, 0.12)",
-    ...theme.shadows.md,
+    ...theme.shadows.sm,
     zIndex: 50,
   },
   header: {
-    height: 56,
+    height: 54,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -135,59 +132,38 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   iconButton: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
     alignItems: "center",
     justifyContent: "center",
   },
   iconText: {
-    fontSize: 17,
+    fontSize: 16,
     color: "#FFFFFF",
     fontWeight: "700",
   },
   backArrow: {
-    fontSize: 20,
+    fontSize: 18,
     color: "#FFFFFF",
     fontWeight: "700",
   },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontSize: 11,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.92)",
+    fontWeight: "500",
+    color: "rgba(255, 255, 255, 0.8)",
     marginTop: 1,
   },
-  profileButton: {
-    padding: 2,
-  },
-  avatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(255, 255, 255, 0.25)",
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-  },
   avatarIcon: {
-    fontSize: 17,
-  },
-  onlineDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#22C55E",
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
+    fontSize: 15,
   },
 });

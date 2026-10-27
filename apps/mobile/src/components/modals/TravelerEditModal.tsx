@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   input: {
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   saveBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 12,
     alignItems: "center",

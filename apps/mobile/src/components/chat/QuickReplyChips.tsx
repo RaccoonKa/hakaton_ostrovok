@@ -7,21 +7,18 @@ import {
   StyleProp,
   ViewStyle,
 } from "react-native";
+import { SHARED_QUICK_CHIPS, SHARED_SUGGESTIONS } from "@corvax/shared";
 import { theme } from "../../theme";
 
 export interface QuickReplyChipsProps {
-  chips?: string[];
+  chips?: readonly string[] | string[];
   onSelectChip: (text: string) => void;
   style?: StyleProp<ViewStyle>;
 }
 
-export const DEFAULT_QUICK_CHIPS = [
-  "🏖️ Тёплое море в ноябре с ребёнком до 200 000 ₽",
-  "⛷️ Горные лыжи в Сочи на двоих в январе",
-  "🏛️ Выходные в Стамбуле: уютный бутик-отель",
-  "🏨 Показать отели в ОАЭ",
-  "⚖️ Сравнить отели",
-  "📅 А если на 2 дня позже?",
+export const DEFAULT_QUICK_CHIPS: readonly string[] = [
+  ...SHARED_QUICK_CHIPS,
+  ...SHARED_SUGGESTIONS.slice(0, 2),
 ];
 
 export const QuickReplyChips: React.FC<QuickReplyChipsProps> = ({
@@ -54,25 +51,26 @@ export const QuickReplyChips: React.FC<QuickReplyChipsProps> = ({
 
 const styles = StyleSheet.create({
   scrollView: {
-    maxHeight: 44,
+    maxHeight: 48,
   },
   contentContainer: {
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 4,
+    paddingVertical: 6,
     gap: 8,
     flexDirection: "row",
     alignItems: "center",
   },
   chip: {
     paddingHorizontal: 14,
-    paddingVertical: 7,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    paddingVertical: 8,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.border,
+    ...theme.shadows.sm,
   },
   chipText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "500",
     color: theme.colors.textPrimary,
   },

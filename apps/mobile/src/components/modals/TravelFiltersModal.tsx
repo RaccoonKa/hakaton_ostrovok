@@ -86,7 +86,7 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               <Switch
                 value={directFlightsOnly}
                 onValueChange={setDirectFlightsOnly}
-                trackColor={{ false: "#D1D5DB", true: "#C7D2FE" }}
+                trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
                 thumbColor={directFlightsOnly ? theme.colors.primary : "#F3F4F6"}
               />
             </View>
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   cardRowSub: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     marginTop: 2,
   },
   sectionCard: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   sectionCaption: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -299,13 +299,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
   chipSelected: {
-    backgroundColor: theme.colors.surfaceContainer,
-    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.primaryLight, // #FAF5FF
+    borderColor: theme.colors.primary, // #581C87
   },
   chipText: {
     fontSize: 12,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   applyButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 14,
     alignItems: "center",

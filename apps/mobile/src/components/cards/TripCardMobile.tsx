@@ -5,13 +5,10 @@ import {
   View,
   TouchableOpacity,
   Image,
-  Platform,
 } from "react-native";
 import { TripOption, formatPrice } from "@corvax/shared";
 import { theme } from "../../theme";
 import { PriceTag } from "./PriceTag";
-import { FlightSegment } from "./FlightSegment";
-import { HotelSummary } from "./HotelSummary";
 
 export interface TripCardMobileProps {
   option: TripOption;
@@ -45,7 +42,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
 
   return (
     <View style={[styles.card, isSelected && styles.selectedCard]}>
-      {/* Visual Cover Banner with Overlay Badges (Stitch Screen 3) */}
+      {/* Visual Cover Banner with Overlay Badges */}
       <View style={styles.imageContainer}>
         {!imageError ? (
           <Image
@@ -65,6 +62,11 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
         <View style={styles.topRatingBadge}>
           <Text style={styles.starIcon}>★</Text>
           <Text style={styles.ratingBadgeLabel}>{ratingBadgeText}</Text>
+        </View>
+
+        {/* Top-Right "Рекомендуем" badge */}
+        <View style={styles.topRecommendBadge}>
+          <Text style={styles.recommendBadgeText}>Рекомендуем</Text>
         </View>
 
         {/* Bottom-Right Price Tag Overlay */}
@@ -102,7 +104,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
           </View>
         ) : null}
 
-        {/* Key Features Bullets (Stitch Screen 3) */}
+        {/* Key Features Bullets */}
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
             <Text style={styles.featureIcon}>🏖️</Text>
@@ -126,7 +128,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
           ) : null}
         </View>
 
-        {/* Expandable Itinerary Timeline (Stitch Screen 4) */}
+        {/* Expandable Itinerary Timeline */}
         <TouchableOpacity
           style={styles.expandButton}
           onPress={() => setIsExpanded(!isExpanded)}
@@ -292,7 +294,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   selectedCard: {
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.primary, // #581C87
     borderWidth: 2,
     backgroundColor: "#FFFFFF",
   },
@@ -328,20 +330,36 @@ const styles = StyleSheet.create({
     left: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(20, 27, 43, 0.82)",
+    backgroundColor: "rgba(24, 24, 27, 0.85)",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: theme.borderRadius.md,
     gap: 4,
   },
   starIcon: {
-    color: "#FACC15",
+    color: theme.colors.star, // #F59E0B
     fontSize: 13,
   },
   ratingBadgeLabel: {
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
+  },
+  topRecommendBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    backgroundColor: theme.colors.badgeRecommendBg, // #ECFDF5
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: "rgba(5, 150, 105, 0.2)",
+  },
+  recommendBadgeText: {
+    color: theme.colors.badgeRecommendText, // #047857
+    fontSize: 11,
+    fontWeight: "700",
   },
   priceOverlayBadge: {
     position: "absolute",
@@ -357,14 +375,14 @@ const styles = StyleSheet.create({
   savingsLabel: {
     fontSize: 10,
     fontWeight: "600",
-    color: theme.colors.success,
+    color: theme.colors.badgeRecommendText,
     textTransform: "uppercase",
     letterSpacing: 0.3,
   },
   priceOverlayValue: {
     fontSize: 16,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
   },
   contentBody: {
     padding: theme.spacing.md,
@@ -382,26 +400,26 @@ const styles = StyleSheet.create({
   destinationTitle: {
     fontSize: 11,
     fontWeight: "700",
-    color: theme.colors.primary,
+    color: theme.colors.primary, // #581C87
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   hotelTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
     marginTop: 2,
-    lineHeight: 24,
+    lineHeight: 23,
   },
   aiScoreBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.accentPurpleTint,
+    backgroundColor: theme.colors.primaryLight, // #FAF5FF
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: "#DAD7FF",
+    borderColor: "rgba(88, 28, 135, 0.2)",
     gap: 4,
   },
   aiScoreSparkle: {
@@ -414,7 +432,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   descriptionBox: {
-    backgroundColor: theme.colors.canvasSubtle,
+    backgroundColor: theme.colors.canvasMuted,
     borderRadius: theme.borderRadius.md,
     padding: 10,
     borderLeftWidth: 3,
@@ -426,7 +444,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   featuresList: {
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surfaceContainer,
     borderRadius: theme.borderRadius.lg,
     padding: 12,
     gap: 8,
@@ -446,7 +464,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   expandButton: {
-    backgroundColor: theme.colors.canvasMuted,
+    backgroundColor: theme.colors.surfaceContainer,
     borderRadius: theme.borderRadius.md,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -467,10 +485,10 @@ const styles = StyleSheet.create({
   },
   expandChevron: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
   },
   timelineContainer: {
-    backgroundColor: theme.colors.canvasSubtle,
+    backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
     padding: 14,
     borderWidth: 1,
@@ -490,7 +508,7 @@ const styles = StyleSheet.create({
   timelineSynthesisBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.accentPurpleTint,
+    backgroundColor: theme.colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: theme.borderRadius.full,
@@ -518,7 +536,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.primary, // #581C87
     alignItems: "center",
     justifyContent: "center",
   },
@@ -588,7 +606,7 @@ const styles = StyleSheet.create({
   },
   footerPriceCaption: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: theme.colors.textMuted,
     fontWeight: "500",
     marginBottom: 2,
   },
@@ -598,15 +616,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   selectButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surfaceContainerLow,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
   selectButtonActive: {
     backgroundColor: theme.colors.surfaceContainer,
+    borderColor: theme.colors.primary,
   },
   selectButtonText: {
     fontSize: 13,
@@ -618,10 +639,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   bookButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.secondary, // Ostrovok Orange #FF7A30
     alignItems: "center",
     justifyContent: "center",
     ...theme.shadows.sm,
