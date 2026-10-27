@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { NativeModules } from "react-native";
 import {
   TripOption,
   MOCK_TRIP_OPTIONS,
@@ -8,6 +9,26 @@ import { MobileChatMessage } from "../types";
 
 export interface UseMobileAgentOptions {
   baseUrl?: string;
+}
+
+declare const process: any;
+
+function getDefaultBackendUrl(): string {
+  if (typeof process !== "undefined" && process?.env?.EXPO_PUBLIC_BACKEND_URL) {
+    return process.env.EXPO_PUBLIC_BACKEND_URL;
+  }
+  const scriptURL = (NativeModules as any)?.SourceCode?.scriptURL;
+  if (scriptURL) {
+    const match = String(scriptURL).match(/^https?:\/\/([^/:]+)/);
+    if (match && match[1]) {
+      const host = match[1];
+      if (host.includes("exp.direct") || host.includes("ngrok")) {
+        return "http://10.238.31.123:8000";
+      }
+      return `http://${host}:8000`;
+    }
+  }
+  return "http://10.238.31.123:8000";
 }
 
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {
@@ -35,7 +56,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
   const clientRef = useRef<TravelApiClient>(
     new TravelApiClient({
-      baseUrl: options.baseUrl || "http://localhost:8000",
+      baseUrl: options.baseUrl || getDefaultBackendUrl(),
       agentId: "travel_agent",
       useAgUi: false,
     })

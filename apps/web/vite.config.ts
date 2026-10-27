@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     port: 8080,
     host: true,
+    allowedHosts: true,
     proxy: {
       "/agui": {
         target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
