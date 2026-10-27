@@ -196,7 +196,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       try {
         await clientRef.current.sendMessage(
           trimmed,
-          { threadId: threadIdRef.current, mockFallback: false },
+          { threadId: threadIdRef.current, mockFallback: true },
           {
             onToken: (token: string) => {
               clearTimers();

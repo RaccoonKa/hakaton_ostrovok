@@ -9,7 +9,7 @@ interface DemoBadgeProps {
 
 export const DemoBadge: React.FC<DemoBadgeProps> = ({
   className = "",
-  label = "Гарантия лучшей цены",
+  label = "Проверенный тур",
   variant = "pill",
 }) => {
   const baseClasses =

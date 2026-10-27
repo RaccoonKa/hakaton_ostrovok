@@ -12,6 +12,12 @@ export interface HeaderProps {
   onMenuPress?: () => void;
   onNewChatPress?: () => void;
   onSettingsPress?: () => void;
+  activeAccount?: {
+    name: string;
+    avatarInitials: string;
+    tier: string;
+    badgeColor?: string;
+  };
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   onMenuPress,
   onNewChatPress,
   onSettingsPress,
+  activeAccount,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -81,13 +88,21 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Status / Profile Indicator */}
         <View style={styles.rightContainer}>
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              activeAccount && styles.accountButton,
+            ]}
             onPress={onSettingsPress}
             accessibilityLabel="Параметры и профиль"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
           >
-            <Icon name="user" size={17} color="#FFFFFF" />
+            {activeAccount?.avatarInitials ? (
+              <Text style={styles.avatarInitialsText}>{activeAccount.avatarInitials}</Text>
+            ) : (
+              <Icon name="user" size={17} color="#FFFFFF" />
+            )}
+            <View style={styles.headerDotOnline} />
           </TouchableOpacity>
         </View>
       </View>
@@ -141,6 +156,27 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.12)",
     alignItems: "center",
     justifyContent: "center",
+    position: "relative",
+  },
+  accountButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.22)",
+    borderColor: "rgba(255, 255, 255, 0.35)",
+  },
+  avatarInitialsText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  headerDotOnline: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: "#10B981",
+    borderWidth: 1.5,
+    borderColor: theme.colors.headerBg,
   },
   title: {
     fontSize: 16,

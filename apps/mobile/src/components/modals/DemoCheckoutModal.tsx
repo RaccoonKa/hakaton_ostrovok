@@ -26,6 +26,7 @@ export interface BookingCheckoutModalProps {
   option: TripOption | null;
   onClose: () => void;
   onConfirmSuccess?: (bookingId: string) => void;
+  initialTraveler?: TravelerData;
 }
 
 export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
@@ -33,17 +34,24 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   option,
   onClose,
   onConfirmSuccess,
+  initialTraveler,
 }) => {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState("");
   const [pnrCode, setPnrCode] = useState("7W4KL9");
-  const [traveler, setTraveler] = useState<TravelerData>({
-    name: "Иван Иванов",
+  const [traveler, setTraveler] = useState<TravelerData>(() => initialTraveler || {
+    name: "Алексей Смирнов",
     phone: "+7 (999) 123-45-67",
-    email: "traveler@example.com",
+    email: "alexey.smirnov@example.com",
   });
+
+  React.useEffect(() => {
+    if (initialTraveler) {
+      setTraveler(initialTraveler);
+    }
+  }, [initialTraveler?.name, initialTraveler?.phone, initialTraveler?.email]);
   const [editTravelerVisible, setEditTravelerVisible] = useState(false);
 
   if (!option) return null;
@@ -155,7 +163,7 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 >
                   {confirmed
                     ? "Маршрут-квитанции и ваучер сформированы"
-                    : "Гарантия лучшей цены и мгновенное бронирование"}
+                    : "Мгновенное бронирование маршрута"}
                 </Text>
                 <Text style={styles.statusBannerDesc}>
                   {confirmed

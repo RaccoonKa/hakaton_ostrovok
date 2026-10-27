@@ -3,7 +3,6 @@ import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
 import { ChatMessage, TripOption } from "../../types/travel";
 import { PriceOptimizationDiff } from "../cards/PriceBreakdown";
-import { ShieldCheck } from "lucide-react";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -44,8 +43,8 @@ export const MessageList: React.FC<MessageListProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 bg-surface-container px-2.5 py-0.5 rounded-full text-[11px] text-content-secondary font-medium">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Гарантия честных цен</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span>ИИ онлайн</span>
         </div>
       </div>
 

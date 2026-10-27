@@ -29,6 +29,7 @@ import { HistoryModal, HistoryTripItem } from "./src/components/modals/HistoryMo
 import { ProfileModal } from "./src/components/modals/ProfileModal";
 import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
+import { UserAccount, INITIAL_ACCOUNTS } from "./src/types/account";
 
 function getSuggestionIcon(text: string): IconName {
   const lower = text.toLowerCase();
@@ -50,6 +51,19 @@ function MainApp() {
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [accounts, setAccounts] = useState<UserAccount[]>(INITIAL_ACCOUNTS);
+  const [activeAccountId, setActiveAccountId] = useState<string>("acc-1");
+  const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0];
+
+  const handleUpdateAccount = (updated: UserAccount) => {
+    setAccounts((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+  };
+
+  const handleCreateAccount = (newAcc: UserAccount) => {
+    setAccounts((prev) => [...prev, newAcc]);
+    setActiveAccountId(newAcc.id);
+  };
+
   const scrollViewRef = useRef<any>(null);
 
   const {
@@ -132,6 +146,7 @@ function MainApp() {
       <Header
         title="О!дин запрос"
         subtitle="Ассистент путешествий"
+        activeAccount={activeAccount}
         onMenuPress={() => setHistoryVisible(true)}
         onNewChatPress={resetChat}
         onSettingsPress={() => setProfileVisible(true)}
@@ -253,11 +268,11 @@ function MainApp() {
               <View style={styles.sessionPillRow}>
                 <View style={styles.sessionStatusBadge}>
                   <View style={styles.sessionDotPulse} />
-                  <Text style={styles.sessionPillText}>Активный маршрут</Text>
+                  <Text style={styles.sessionPillText}>Активный диалог</Text>
                 </View>
                 <View style={styles.sessionFilterBadge}>
-                  <Icon name="shield" size={12} color="#059669" />
-                  <Text style={styles.sessionFilterBadgeText}>Гарантия честных цен</Text>
+                  <View style={styles.onlineDot} />
+                  <Text style={styles.sessionFilterBadgeText}>ИИ на связи</Text>
                 </View>
               </View>
 
@@ -311,6 +326,11 @@ function MainApp() {
           option={checkoutOption}
           onClose={closeCheckout}
           onConfirmSuccess={handleBookingConfirmed}
+          initialTraveler={{
+            name: activeAccount.name,
+            phone: activeAccount.phone,
+            email: activeAccount.email,
+          }}
         />
 
         {/* History Sessions Modal */}
@@ -321,10 +341,15 @@ function MainApp() {
           onStartNewChat={resetChat}
         />
 
-        {/* Traveler Profile & Settings Modal */}
+        {/* Traveler Profile & Settings Modal with Accounts Management */}
         <ProfileModal
           visible={profileVisible}
           onClose={() => setProfileVisible(false)}
+          accounts={accounts}
+          activeAccountId={activeAccountId}
+          onSelectAccount={setActiveAccountId}
+          onUpdateAccount={handleUpdateAccount}
+          onCreateAccount={handleCreateAccount}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
         />
@@ -530,7 +555,13 @@ const styles = StyleSheet.create({
   sessionFilterBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#059669",
   },
   sessionFilterBadgeText: {
     fontSize: 11,
