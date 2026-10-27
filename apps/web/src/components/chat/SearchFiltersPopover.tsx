@@ -89,7 +89,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     const panelWidth = 295;
     const panelHeight = 440;
     const headerHeight = 56;
-    const margin = isSidebarOpen ? 96 : 16;
+    const margin = 16;
 
     // 1. Determine the right boundary of the open sidebar
     let sidebarRight = 0;
@@ -153,7 +153,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   useEffect(() => {
     if (!isOpen || !draggedPos) return;
     if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
-      const minX = 256 + 96;
+      const minX = 256 + 16;
       if (draggedPos.x < minX) {
         setDraggedPos((prev) => (prev ? { ...prev, x: minX } : null));
       }

@@ -97,7 +97,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     return Sparkles;
   };
 
-  const chatPaddingLeft = isFiltersOpen && isSidebarOpen && isDesktop ? "415px" : "0px";
+  const chatShiftX = isFiltersOpen && isSidebarOpen && isDesktop ? "128px" : "0px";
 
   return (
     <div className="flex flex-col w-full relative min-h-[calc(100vh-3.5rem)]">
@@ -107,8 +107,8 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       {/* Screen 1: Welcome / Empty Dashboard Hero */}
       {messages.length === 0 ? (
         <div
-          className="relative w-full flex-1 flex flex-col justify-center transition-all duration-300 ease-in-out"
-          style={{ paddingLeft: chatPaddingLeft }}
+          className="relative w-full flex-1 flex flex-col justify-center transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(${chatShiftX})` }}
         >
           <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center my-auto px-4 sm:px-6 py-12 z-10 animate-fade-in">
             {/* Heading */}
@@ -207,8 +207,8 @@ export const ChatView: React.FC<ChatViewProps> = () => {
       ) : (
         /* Screens 2, 3, 4: Active Chat Flow */
         <div
-          className="flex-1 flex flex-col w-full transition-all duration-300 ease-in-out"
-          style={{ paddingLeft: chatPaddingLeft }}
+          className="flex-1 flex flex-col w-full transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(${chatShiftX})` }}
         >
           <MessageList
             messages={messages}
@@ -226,9 +226,11 @@ export const ChatView: React.FC<ChatViewProps> = () => {
             className={`fixed bottom-0 right-0 p-3 sm:p-4 pointer-events-none z-30 bg-gradient-to-t from-canvas via-canvas/90 to-transparent pt-8 transition-all duration-300 ease-in-out ${
               isSidebarOpen ? "left-0 md:left-64" : "left-0"
             }`}
-            style={{ paddingLeft: chatPaddingLeft }}
           >
-            <div className="pointer-events-auto">
+            <div
+              className="pointer-events-auto transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(${chatShiftX})` }}
+            >
               <ChatInput
                 onSendMessage={(text) => sendMessage(text)}
                 isLoading={isLoading}
