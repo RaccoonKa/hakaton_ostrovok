@@ -328,6 +328,7 @@ function MainApp() {
             onSend={handleSendActiveChat}
             disabled={isThinking || isStreaming}
             onFilterPress={() => setFiltersVisible(true)}
+            isDark={isDark}
           />
         </View>
 
@@ -386,6 +387,7 @@ function MainApp() {
           visible={filtersVisible}
           onClose={() => setFiltersVisible(false)}
           onApplyFilters={handleApplyFilters}
+          isDark={isDark}
         />
       </KeyboardAvoidingView>
     </View>

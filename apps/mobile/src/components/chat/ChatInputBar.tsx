@@ -7,7 +7,7 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 
 export interface ChatInputBarProps {
@@ -17,6 +17,7 @@ export interface ChatInputBarProps {
   disabled?: boolean;
   placeholder?: string;
   onFilterPress?: () => void;
+  isDark?: boolean;
 }
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -26,8 +27,12 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   disabled = false,
   placeholder = "Куда вы хотите поехать?",
   onFilterPress,
+  isDark = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const [inputHeight, setInputHeight] = useState(40);
   const hasText = value.trim().length > 0;
 
@@ -44,16 +49,34 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
     <View
       style={[
         styles.container,
-        { paddingBottom: Math.max(insets.bottom, 10) },
+        {
+          paddingBottom: Math.max(insets.bottom, 10),
+          backgroundColor: colors.background,
+          borderTopColor: colors.borderSubtle,
+        },
       ]}
     >
-      <View style={styles.inputCard}>
+      <View
+        style={[
+          styles.inputCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <TextInput
-          style={[styles.input, { height: Math.min(Math.max(40, inputHeight), 120) }]}
+          style={[
+            styles.input,
+            {
+              height: Math.min(Math.max(40, inputHeight), 120),
+              color: colors.textPrimary,
+            },
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.textMuted}
+          placeholderTextColor={colors.textMuted}
           multiline
           onContentSizeChange={(e) => {
             setInputHeight(e.nativeEvent.contentSize.height);
@@ -66,13 +89,16 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
         <View style={styles.bottomBar}>
           <View style={styles.leftActions}>
             <TouchableOpacity
-              style={styles.filterButton}
+              style={[
+                styles.filterButton,
+                { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted },
+              ]}
               onPress={onFilterPress}
               accessibilityLabel="Параметры поиска"
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
               activeOpacity={0.7}
             >
-              <Icon name="sliders" size={16} color={theme.colors.textSecondary} />
+              <Icon name="sliders" size={16} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -89,7 +115,7 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
             <Icon
               name="send"
               size={15}
-              color={hasText && !disabled ? "#FFFFFF" : theme.colors.textMuted}
+              color={hasText && !disabled ? "#FFFFFF" : colors.textMuted}
             />
           </TouchableOpacity>
         </View>

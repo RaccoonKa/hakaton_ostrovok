@@ -48,6 +48,15 @@ export const DEFAULT_CLARIFICATION_CHIPS = [
   "Напишу своими словами...",
 ];
 
+const RU_MONTH_GENITIVE = [
+  "января", "февраля", "марта", "апреля", "мая", "июня",
+  "июля", "августа", "сентября", "октября", "ноября", "декабря"
+];
+
+function formatDateRussian(d: Date): string {
+  return `${d.getDate()} ${RU_MONTH_GENITIVE[d.getMonth()]}${d.getFullYear() > new Date().getFullYear() ? ` ${d.getFullYear()}` : ""}`;
+}
+
 export function buildFilterPrompt({
   originCity,
   destination,
@@ -57,6 +66,8 @@ export function buildFilterPrompt({
   mealPlan,
   adults,
   children,
+  startDate,
+  endDate,
 }: {
   originCity: string;
   destination: string;
@@ -66,6 +77,8 @@ export function buildFilterPrompt({
   mealPlan: string;
   adults: number;
   children: number;
+  startDate?: Date | null;
+  endDate?: Date | null;
 }): string {
   const parts: string[] = [];
 
@@ -89,7 +102,14 @@ export function buildFilterPrompt({
     parts.push(mealText);
   }
 
-  if (duration) {
+  if (startDate) {
+    if (endDate && startDate.getTime() !== endDate.getTime()) {
+      const diffDays = Math.max(1, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+      parts.push(`даты: с ${formatDateRussian(startDate)} по ${formatDateRussian(endDate)} (${diffDays} ноч.)`);
+    } else {
+      parts.push(`даты: с ${formatDateRussian(startDate)}`);
+    }
+  } else if (duration) {
     parts.push(`${duration} ночей`);
   }
 

@@ -37,6 +37,7 @@ export type IconName =
   | "chevron-down"
   | "chevron-up"
   | "chevron-right"
+  | "chevron-left"
   | "filter"
   | "restaurant"
   | "water"
@@ -135,6 +136,8 @@ export const Icon: React.FC<IconProps> = ({
       return <Feather name="chevron-up" size={size} color={color} />;
     case "chevron-right":
       return <Feather name="chevron-right" size={size} color={color} />;
+    case "chevron-left":
+      return <Feather name="chevron-left" size={size} color={color} />;
     case "filter":
       return <Feather name="filter" size={size} color={color} />;
     case "restaurant":

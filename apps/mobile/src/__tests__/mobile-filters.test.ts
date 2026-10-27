@@ -60,6 +60,27 @@ test("buildFilterPrompt handles minimal and optional parameters safely", () => {
   );
 });
 
+test("buildFilterPrompt formats explicit calendar dates and nights count", () => {
+  const startDate = new Date(2026, 9, 15);
+  const endDate = new Date(2026, 9, 22);
+  const prompt = buildFilterPrompt({
+    originCity: "Москва",
+    destination: "Сочи",
+    directFlightsOnly: true,
+    duration: "7",
+    budget: "180000",
+    mealPlan: "all_inclusive",
+    adults: 2,
+    children: 0,
+    startDate,
+    endDate,
+  });
+
+  assert.ok(prompt.includes("даты: с 15 октября по 22 октября (7 ноч.)"));
+  assert.ok(prompt.includes("бюджет до 180\u00A0000 ₽"));
+  assert.ok(prompt.includes("2 взрослых"));
+});
+
 test("constants and clarification chips are well-formed and non-empty", () => {
   assert.ok(ORIGIN_CITIES.length >= 5);
   assert.ok(DESTINATION_DIRECTIONS.length >= 5);
