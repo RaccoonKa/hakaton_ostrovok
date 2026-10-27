@@ -1,29 +1,63 @@
 from typing import Annotated
+
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
 from pydantic import BaseModel, ConfigDict, Field
 
 from domain.itinerary import Itinerary
+from domain.planning import (
+    DateRange,
+    DestinationCandidate,
+    TravelPlanningStatus,
+    ValidationResult,
+)
 from domain.request import UserRequest
-from domain.trip import TripOption
 
 
 class TravelState(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="ignore")
 
     user_request: UserRequest | None = Field(
-        description="Текущие пожелания и ограничения пользователя.",
+        description="Текущие пожелания и ограничения пользователя (источник истины).",
         default=None,
     )
-    candidate_destinations: list[str] = Field(
-        description="Рассматриваемые направления.",
+    planning_status: TravelPlanningStatus = Field(
+        description="Текущее состояние процесса планирования.",
+        default="collecting",
+    )
+    candidate_destinations: list[DestinationCandidate] = Field(
+        description="Предложенные агентом направления (ещё не выбранные).",
         default=[],
     )
-    trip_options: list[TripOption] = Field(
-        description="Найденные варианты поездки.",
+    date_options: list[DateRange] = Field(
+        description="Предложенные агентм конкретные периоды поездки.",
         default=[],
     )
-    selected_option: TripOption | None = Field(
+    confirmed_date_range: DateRange | None = Field(
+        description="Период, подтверждённый пользователем.",
+        default=None,
+    )
+    destination_confirmed: bool = Field(
+        description="Подтвердил ли пользователь выбор города.",
+        default=False,
+    )
+    travelers_provided: bool = Field(
+        description="Указал ли пользователь количество путешественников явно.",
+        default=False,
+    )
+    pending_questions: list[str] = Field(
+        description="Сгруппированные вопросы, ожидающие ответа пользователя.",
+        default=[],
+    )
+    last_validation: ValidationResult | None = Field(
+        description="Результат последней deterministic-проверки готовности.",
+        default=None,
+    )
+    trip_options: list[dict] = Field(
+        description="Найденные варианты поездки (пакеты из mock aggregator).",
+        default=[],
+    )
+    selected_option: dict | None = Field(
         description="Выбранный пользователем вариант поездки.",
         default=None,
     )
@@ -32,7 +66,7 @@ class TravelState(BaseModel):
         default=None,
     )
     unresolved_questions: list[str] = Field(
-        description="Вопросы, требующие уточнения у пользователя.",
+        description="Актуальный набор нерешённых вопросов (не история).",
         default=[],
     )
     messages: Annotated[list[AnyMessage], add_messages] = Field(

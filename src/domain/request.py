@@ -30,6 +30,11 @@ class UserRequest(BaseModel):
         default=None,
         examples=["Antalya"],
     )
+    destination_country: str | None = Field(
+        description="Страна направления, если пользователь указал только страну.",
+        default=None,
+        examples=["Italy"],
+    )
     date_preferences: DatePreferences = Field(
         default_factory=DatePreferences,
         description="Предпочтения пользователя по датам и периоду поездки.",
@@ -43,6 +48,11 @@ class UserRequest(BaseModel):
         description="Количество путешественников.",
         default=1,
         examples=[2],
+    )
+    traveler_range: tuple[int, int] | None = Field(
+        description="Диапазон количества путешественников (минимум, максимум).",
+        default=None,
+        examples=[[2, 5]],
     )
     budget: float | None = Field(
         description="Желаемый бюджет поездки.",

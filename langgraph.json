@@ -2,7 +2,7 @@
     "python_version": "3.12",
     "dependencies": ["./src"],
     "graphs": {
-
+        "travel_agent": "./src/agents/travel/graph.py:travel_agent_graph"
     },
     "env": "./.env"
 }
