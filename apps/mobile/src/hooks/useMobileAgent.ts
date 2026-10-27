@@ -7,6 +7,12 @@ import {
 } from "@corvax/shared";
 import { MobileChatMessage } from "../types";
 
+export interface HistorySessionRecord {
+  id: string;
+  query: string;
+  timestamp: string;
+}
+
 export interface UseMobileAgentOptions {
   baseUrl?: string;
 }
@@ -32,13 +38,17 @@ function getDefaultBackendUrl(): string {
 }
 
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {
-  const [messages, setMessages] = useState<MobileChatMessage[]>([
+  const [messages, setMessages] = useState<MobileChatMessage[]>([]);
+  const [historySessions, setHistorySessions] = useState<HistorySessionRecord[]>([
     {
-      id: "welcome-1",
-      role: "assistant",
-      content:
-        "Привет! Я AI-ассистент «О!дин запрос». Расскажите своими словами, куда и как вы хотите поехать — я подберу готовый маршрут с отелями, билетами и расчетом бюджета.",
-      timestamp: "14:20",
+      id: "hist-default-1",
+      query: "Тёплое море в ноябре с ребёнком до 200 000 ₽",
+      timestamp: "Сегодня",
+    },
+    {
+      id: "hist-default-2",
+      query: "Горные лыжи в Сочи на двоих в январе",
+      timestamp: "Вчера",
     },
   ]);
 
@@ -86,6 +96,10 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       };
 
       setMessages((prev) => [...prev, userMsg]);
+      setHistorySessions((prev) => {
+        if (prev.some((h) => h.query === trimmed)) return prev;
+        return [{ id: `h-${Date.now()}`, query: trimmed, timestamp: timeStr }, ...prev];
+      });
       setIsThinking(true);
       setIsStreaming(true);
       setThinkingText(
@@ -124,9 +138,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
             },
             onTripOptions: (options: TripOption[]) => {
               setTripOptions(options);
-              if (options.length > 0) {
-                setSelectedOption(options[0]);
-              }
               setMessages((prev) => {
                 const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
                 if (existingIndex >= 0) {
@@ -157,7 +168,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               setIsThinking(false);
               setIsStreaming(false);
               setTripOptions(MOCK_TRIP_OPTIONS);
-              setSelectedOption(MOCK_TRIP_OPTIONS[0]);
+              setSelectedOption(null);
               setMessages((prev) => {
                 const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
                 const fallbackMsg: MobileChatMessage = {
@@ -182,7 +193,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         setIsThinking(false);
         setIsStreaming(false);
         setTripOptions(MOCK_TRIP_OPTIONS);
-        setSelectedOption(MOCK_TRIP_OPTIONS[0]);
+        setSelectedOption(null);
         setMessages((prev) => {
           const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
           const fallbackMsg: MobileChatMessage = {
@@ -204,7 +215,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     [isThinking]
   );
 
-  const selectOption = useCallback((option: TripOption) => {
+  const selectOption = useCallback((option: TripOption | null) => {
     setSelectedOption(option);
   }, []);
 
@@ -221,27 +232,19 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setCheckoutOption(null);
   }, []);
 
-  const handleBookingConfirmed = useCallback((id: string) => {
+  const handleBookingConfirmed = useCallback((id: string, optionTitle?: string) => {
     setConfirmedBookingId(id);
     const successMsg: MobileChatMessage = {
       id: `ai-booked-${Date.now()}`,
       role: "assistant",
-      content: `🎉 Тестовое бронирование #${id} успешно подтверждено!\n\nОплата сымитирована (0 ₽ списания), электронные билеты и ваучер отеля зафиксированы в сценарии. Вы можете продолжить диалог или спланировать новую поездку.`,
+      content: `Бронирование ${optionTitle ? `«${optionTitle}»` : "тура"} успешно подтверждено! Заявка #${id}. Электронные билеты и гостиничный ваучер сформированы.`,
       timestamp: formatCurrentTime(),
     };
     setMessages((prev) => [...prev, successMsg]);
   }, []);
 
   const resetChat = useCallback(() => {
-    setMessages([
-      {
-        id: "welcome-1",
-        role: "assistant",
-        content:
-          "Привет! Я AI-ассистент «О!дин запрос». Расскажите своими словами, куда и как вы хотите поехать — я подберу готовый маршрут с отелями, билетами и расчетом бюджета.",
-        timestamp: formatCurrentTime(),
-      },
-    ]);
+    setMessages([]);
     setTripOptions([]);
     setSelectedOption(null);
     setIsThinking(false);
@@ -259,6 +262,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     checkoutVisible,
     checkoutOption,
     confirmedBookingId,
+    historySessions,
     sendMessage,
     selectOption,
     openCheckout,

@@ -7,36 +7,42 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TripOption, formatPrice, formatDateRange, PAYMENT_SIMULATION } from "@corvax/shared";
+import {
+  TripOption,
+  formatPrice,
+  formatDateRange,
+  formatMealPlan,
+  formatDuration,
+} from "@corvax/shared";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
 import { TravelerEditModal, TravelerData } from "./TravelerEditModal";
 
-export interface DemoCheckoutModalProps {
+export interface BookingCheckoutModalProps {
   visible: boolean;
   option: TripOption | null;
   onClose: () => void;
   onConfirmSuccess?: (bookingId: string) => void;
 }
 
-export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
+export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
   visible,
   option,
   onClose,
   onConfirmSuccess,
 }) => {
   const insets = useSafeAreaInsets();
-  const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [bookingId, setBookingId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<string>("sbp");
+  const [pnrCode, setPnrCode] = useState("7W4KL9");
   const [traveler, setTraveler] = useState<TravelerData>({
-    name: "Алексей Смирнов",
-    phone: "+7 (999) 456-78-90",
-    email: "alex.smirnov@example.com",
+    name: "Иван Иванов",
+    phone: "+7 (999) 123-45-67",
+    email: "traveler@example.com",
   });
   const [editTravelerVisible, setEditTravelerVisible] = useState(false);
 
@@ -44,20 +50,41 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
 
   const hotel = option.hotels?.[0];
   const flight = option.flights?.[0];
-  const dates = hotel ? formatDateRange(hotel.check_in, hotel.check_out) : "14–21 ноября (7 ночей)";
+  const returnFlight = option.flights?.[1];
+
+  const dates =
+    hotel?.check_in && hotel?.check_out
+      ? formatDateRange(hotel.check_in, hotel.check_out)
+      : "Даты согласованы";
+
   const totalPriceFormatted = formatPrice(option.total_price, option.currency);
 
   const handleConfirm = () => {
-    if (!agreed || loading) return;
-
+    if (loading) return;
     setLoading(true);
     setTimeout(() => {
-      const generatedId = `${PAYMENT_SIMULATION.orderPrefix}${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+      const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+      const randomPnr = `${letters[Math.floor(Math.random() * letters.length)]}${Math.floor(
+        10 + Math.random() * 89
+      )}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}9`;
       setBookingId(generatedId);
+      setPnrCode(randomPnr);
       setLoading(false);
       setConfirmed(true);
       onConfirmSuccess?.(generatedId);
-    }, 1100);
+    }, 800);
+  };
+
+  const handleShareVoucher = async () => {
+    try {
+      await Share.share({
+        message: `Маршрут и бронирование: ${option.destination || option.title}\nЗаявка: #${bookingId} (PNR: ${pnrCode})\nОтель: ${hotel?.hotel || "Отель"}\nДаты: ${dates}\nСтоимость: ${totalPriceFormatted}`,
+        title: `Бронь #${bookingId}`,
+      });
+    } catch {
+      // Ignored
+    }
   };
 
   const handleClose = () => {
@@ -80,13 +107,21 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
             { paddingBottom: Math.max(insets.bottom, 16) },
           ]}
         >
-          {/* Sheet Header */}
+          {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
-              <Text style={styles.headerTitle}>Оформление поездки</Text>
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedBadgeText}>Гарантия лучшей цены</Text>
-              </View>
+            <View style={styles.headerTitleCol}>
+              <Text style={styles.headerTitle}>
+                {confirmed ? "Бронирование подтверждено" : "Оформление поездки"}
+              </Text>
+              {confirmed ? (
+                <Text style={styles.headerSub}>
+                  Заявка #{bookingId} • PNR: {pnrCode}
+                </Text>
+              ) : (
+                <Text style={styles.headerSub}>
+                  {option.destination || option.title}
+                </Text>
+              )}
             </View>
 
             <TouchableOpacity
@@ -104,224 +139,212 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* Trust and Safety Banner */}
-            <View style={styles.trustBanner}>
-              <Icon name="shield" size={18} color="#047857" />
-              <View style={styles.trustBannerContent}>
-                <Text style={styles.trustBannerTitle}>
-                  Безопасное оформление бронирования
-                </Text>
-                <Text style={styles.trustBannerText}>
-                  Бесплатная отмена за 24 ч • Мгновенное подтверждение авиабилетов и ваучера отеля
-                </Text>
-              </View>
-            </View>
-
-            {/* Trip Summary Card */}
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardCaption}>Параметры тура</Text>
-                <Text style={styles.cardDates}>{dates}</Text>
-              </View>
-
-              <Text style={styles.hotelTitle}>{hotel?.hotel || option.title}</Text>
-              <Text style={styles.destinationSub}>
-                {option.destination} • 1-я береговая линия • Всё включено
-              </Text>
-
-              <View style={styles.divider} />
-
-              <View style={styles.paramRow}>
-                <Icon name="plane" size={14} color={theme.colors.primary} />
-                <Text style={styles.paramText}>
-                  {flight
-                    ? `${flight.origin} ⇄ ${flight.destination} (${flight.carrier || "Air Arabia"}) • Багаж включён`
-                    : "Москва (DME) ⇄ Рас-эль-Хайма/Дубай • Багаж 20 кг включён"}
-                </Text>
-              </View>
-
-              <View style={styles.paramRow}>
-                <Icon name="user" size={14} color={theme.colors.primary} />
-                <Text style={styles.paramText}>1 взрослый + 1 ребёнок (5 лет)</Text>
-              </View>
-            </View>
-
-            {/* Traveler Information with Edit Action */}
-            <View style={styles.card}>
-              <View style={styles.travelerHeader}>
-                <Text style={styles.cardCaption}>Данные путешественника</Text>
-                <TouchableOpacity
-                  onPress={() => setEditTravelerVisible(true)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            {/* Status / Trust Banner */}
+            <View style={[styles.statusBanner, confirmed && styles.statusBannerSuccess]}>
+              <Icon
+                name={confirmed ? "check" : "shield"}
+                size={20}
+                color={confirmed ? "#047857" : theme.colors.primary}
+              />
+              <View style={styles.statusBannerTextCol}>
+                <Text
+                  style={[
+                    styles.statusBannerTitle,
+                    confirmed && { color: "#047857" },
+                  ]}
                 >
-                  <Text style={styles.editActionText}>Изменить ✎</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Основной турист</Text>
-                <Text style={styles.infoValue}>{traveler.name}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Телефон (СМС-статус)</Text>
-                <Text style={styles.infoValue}>{traveler.phone}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Электронная почта</Text>
-                <Text style={styles.infoValue}>{traveler.email}</Text>
+                  {confirmed
+                    ? "Маршрут-квитанции и ваучер сформированы"
+                    : "Гарантия лучшей цены и мгновенное бронирование"}
+                </Text>
+                <Text style={styles.statusBannerDesc}>
+                  {confirmed
+                    ? `Документы оформлены на имя: ${traveler.name}. Копия отправлена на ${traveler.email}`
+                    : "Бесплатная отмена за 24 ч до заезда • Подтверждение отеля и билетов"}
+                </Text>
               </View>
             </View>
 
-            {/* Cost Breakdown */}
+            {/* Hotel & Stay Card */}
             <View style={styles.card}>
-              <Text style={styles.cardCaption}>Детализация стоимости</Text>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.priceItemLabel}>Проживание и авиаперелёт (2 чел.)</Text>
-                <Text style={styles.priceItemValue}>
-                  {formatPrice(Math.round((option.total_price || 163900) * 0.9), option.currency)}
-                </Text>
+              <View style={styles.cardHeaderRow}>
+                <View style={styles.cardIconBox}>
+                  <Icon name="hotel" size={16} color={theme.colors.primary} />
+                </View>
+                <View style={styles.cardHeaderTextCol}>
+                  <Text style={styles.cardLabel}>Гостиничный ваучер</Text>
+                  <Text style={styles.cardMainTitle}>
+                    {hotel?.hotel || option.title}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.priceRow}>
-                <Text style={styles.priceItemLabel}>Топливный сбор и трансфер до отеля</Text>
-                <Text style={styles.priceItemValue}>
-                  {formatPrice(Math.round((option.total_price || 163900) * 0.1), option.currency)}
-                </Text>
+              <View style={styles.metaGrid}>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>Даты проживания</Text>
+                  <Text style={styles.metaValue}>{dates}</Text>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={styles.metaLabel}>Локация</Text>
+                  <Text style={styles.metaValue}>
+                    {hotel?.city || option.destination || "Курорт"}
+                  </Text>
+                </View>
+                {hotel?.meal_plan ? (
+                  <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Питание</Text>
+                    <Text style={styles.metaValue}>
+                      {formatMealPlan(hotel.meal_plan)}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Flight Card */}
+            {flight ? (
+              <View style={styles.card}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.cardIconBox}>
+                    <Icon name="plane" size={16} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.cardHeaderTextCol}>
+                    <Text style={styles.cardLabel}>Электронные авиабилеты</Text>
+                    <Text style={styles.cardMainTitle}>
+                      {flight.origin} ⇄ {flight.destination}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.metaGrid}>
+                  <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Авиакомпания</Text>
+                    <Text style={styles.metaValue}>
+                      {flight.carrier || "Регулярный рейс"}
+                      {flight.flight_number ? ` (${flight.flight_number})` : ""}
+                    </Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Text style={styles.metaLabel}>Багаж</Text>
+                    <Text style={styles.metaValue}>
+                      {flight.baggage || "Включён (20 кг)"}
+                    </Text>
+                  </View>
+                  {flight.duration ? (
+                    <View style={styles.metaItem}>
+                      <Text style={styles.metaLabel}>Время в полёте</Text>
+                      <Text style={styles.metaValue}>
+                        {formatDuration(flight.duration)}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Traveler Information Card */}
+            <View style={styles.card}>
+              <View style={styles.cardHeaderWithAction}>
+                <View style={styles.cardHeaderRow}>
+                  <View style={styles.cardIconBox}>
+                    <Icon name="user" size={16} color={theme.colors.primary} />
+                  </View>
+                  <Text style={styles.cardLabel}>Данные туриста</Text>
+                </View>
+                {!confirmed && (
+                  <TouchableOpacity
+                    onPress={() => setEditTravelerVisible(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.editActionText}>Изменить</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
+              <View style={styles.travelerRow}>
+                <Text style={styles.travelerName}>{traveler.name}</Text>
+                <Text style={styles.travelerContact}>
+                  {traveler.phone} • {traveler.email}
+                </Text>
+              </View>
+            </View>
+
+            {/* Pricing Summary */}
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Смета путешествия</Text>
               <View style={styles.priceRow}>
-                <Text style={styles.priceItemLabel}>Сервисный сбор подбора</Text>
-                <Text style={[styles.priceItemValue, { color: theme.colors.badgeRecommendText }]}>
-                  0 ₽ (Бесплатно)
+                <Text style={styles.priceRowLabel}>Авиаперелёт и отель</Text>
+                <Text style={styles.priceRowValue}>{totalPriceFormatted}</Text>
+              </View>
+              <View style={styles.priceRow}>
+                <Text style={styles.priceRowLabel}>Трансфер и сопровождение</Text>
+                <Text style={[styles.priceRowValue, { color: "#047857" }]}>
+                  Включено
                 </Text>
               </View>
 
               <View style={styles.divider} />
 
               <View style={styles.totalRow}>
-                <View>
-                  <Text style={styles.totalLabel}>Итого к оплате</Text>
-                  <Text style={styles.totalSub}>Включая все налоги и сборы</Text>
-                </View>
+                <Text style={styles.totalLabel}>Итого к оплате:</Text>
                 <Text style={styles.totalValue}>{totalPriceFormatted}</Text>
               </View>
             </View>
 
-            {/* Payment Method (Imitation / Test Mode) */}
-            <View style={styles.card}>
-              <View style={styles.cardHeaderRow}>
-                <Text style={styles.cardCaption}>Способ оплаты (симуляция)</Text>
-                <View style={styles.simBadge}>
-                  <Text style={styles.simBadgeText}>Тестовый контур</Text>
-                </View>
-              </View>
-
-              <Text style={styles.simNoticeText}>
-                {PAYMENT_SIMULATION.disclaimer}
-              </Text>
-
-              <View style={styles.paymentMethodsRow}>
-                {PAYMENT_SIMULATION.methods.map((method) => {
-                  const isActive = paymentMethod === method.id;
-                  return (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={[
-                        styles.paymentMethodChip,
-                        isActive && styles.paymentMethodChipActive,
-                      ]}
-                      onPress={() => setPaymentMethod(method.id)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.paymentMethodIcon}>{method.icon}</Text>
-                      <Text
-                        style={[
-                          styles.paymentMethodText,
-                          isActive && styles.paymentMethodTextActive,
-                        ]}
-                      >
-                        {method.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            {/* Agreement Checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setAgreed(!agreed)}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                {agreed && <Icon name="check" size={12} color="#FFFFFF" />}
-              </View>
-              <Text style={styles.checkboxText}>
-                Я согласен с правилами бронирования и подтверждаю проведение тестовой транзакции
-              </Text>
-            </TouchableOpacity>
-
-            {/* Success Confirmation Banner */}
-            {confirmed && (
-              <View style={styles.successBox}>
-                <Text style={styles.successIcon}>🎉</Text>
-                <View style={styles.successTextCol}>
-                  <Text style={styles.successTitle}>Оплата успешно сымитирована!</Text>
-                  <Text style={styles.successSub}>
-                    Заказ #{bookingId} подтверждён в тестовом шлюзе. Электронный билет и отельный ваучер высланы на {traveler.email}.
+            {/* Actions */}
+            {confirmed ? (
+              <View style={styles.confirmedActionsCol}>
+                <TouchableOpacity
+                  style={styles.shareButton}
+                  onPress={handleShareVoucher}
+                  activeOpacity={0.8}
+                >
+                  <Icon name="share" size={16} color={theme.colors.primary} />
+                  <Text style={styles.shareButtonText}>
+                    Поделиться ваучером и билетами
                   </Text>
-                </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={handleClose}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.primaryButtonText}>Готово</Text>
+                </TouchableOpacity>
               </View>
-            )}
-
-            {/* Primary Action Button (Ostrovok Orange #FF7A30 CTA) */}
-            <TouchableOpacity
-              style={[
-                styles.ctaButton,
-                (!agreed || loading) && styles.ctaButtonDisabled,
-                confirmed && styles.ctaButtonSuccess,
-              ]}
-              onPress={confirmed ? handleClose : handleConfirm}
-              disabled={!agreed || loading}
-              activeOpacity={0.85}
-            >
-              {loading ? (
-                <View style={styles.loadingRow}>
+            ) : (
+              <TouchableOpacity
+                style={[styles.primaryButton, loading && styles.buttonDisabled]}
+                onPress={handleConfirm}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                {loading ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
-                  <Text style={styles.loadingText}>Авторизация тестового платежа...</Text>
-                </View>
-              ) : (
-                <Text style={styles.ctaButtonText}>
-                  {confirmed
-                    ? "Вернуться к диалогу"
-                    : `Оплатить (имитация) • ${totalPriceFormatted} →`}
-                </Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.encryptionRow}>
-              <Text style={styles.lockIcon}>🔒</Text>
-              <Text style={styles.encryptionText}>Защищённый тестовый контур бронирования</Text>
-            </View>
+                ) : (
+                  <Text style={styles.primaryButtonText}>
+                    Подтвердить бронирование • {totalPriceFormatted}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </ScrollView>
-
-          {/* Traveler Edit Dialog */}
-          <TravelerEditModal
-            visible={editTravelerVisible}
-            initialData={traveler}
-            onClose={() => setEditTravelerVisible(false)}
-            onSave={setTraveler}
-          />
         </View>
+
+        {/* Traveler Edit Sub-modal */}
+        <TravelerEditModal
+          visible={editTravelerVisible}
+          initialData={traveler}
+          onClose={() => setEditTravelerVisible(false)}
+          onSave={setTraveler}
+        />
       </View>
     </Modal>
   );
 };
 
-export const BookingCheckoutModal = DemoCheckoutModal;
+export const DemoCheckoutModal = BookingCheckoutModal;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -333,8 +356,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
-    overflow: "hidden",
     maxHeight: "92%",
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -342,30 +365,23 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 14,
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
   },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  headerTitleCol: {
+    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  verifiedBadge: {
-    backgroundColor: theme.colors.badgeRecommendBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.full,
-  },
-  verifiedBadgeText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.badgeRecommendText,
+  headerSub: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   closeBtn: {
     width: 32,
@@ -375,11 +391,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-  },
   scroll: {
     maxHeight: "100%",
   },
@@ -387,33 +398,33 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     gap: 12,
   },
-  trustBanner: {
+  statusBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    backgroundColor: "#F0FDF4",
-    borderWidth: 1,
-    borderColor: "#DCFCE7",
+    backgroundColor: theme.colors.primaryLight,
+    padding: 14,
     borderRadius: theme.borderRadius.lg,
-    padding: 12,
-    gap: 10,
+    borderWidth: 1,
+    borderColor: "rgba(88, 28, 135, 0.15)",
+    gap: 12,
   },
-  trustBannerIcon: {
-    fontSize: 20,
-    marginTop: 2,
+  statusBannerSuccess: {
+    backgroundColor: theme.colors.badgeRecommendBg,
+    borderColor: "#A7F3D0",
   },
-  trustBannerContent: {
+  statusBannerTextCol: {
     flex: 1,
   },
-  trustBannerTitle: {
+  statusBannerTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#166534",
+    color: theme.colors.primary,
   },
-  trustBannerText: {
+  statusBannerDesc: {
     fontSize: 12,
-    color: "#15803D",
-    marginTop: 2,
+    color: theme.colors.textSecondary,
     lineHeight: 16,
+    marginTop: 2,
   },
   card: {
     backgroundColor: theme.colors.surface,
@@ -421,269 +432,150 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    gap: 8,
+    gap: 10,
     ...theme.shadows.sm,
   },
-  cardHeader: {
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  cardHeaderWithAction: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  travelerHeader: {
-    flexDirection: "row",
+  cardIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+  },
+  cardHeaderTextCol: {
+    flex: 1,
+  },
+  cardLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+  },
+  cardMainTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.textPrimary,
+    marginTop: 1,
+  },
+  metaGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    paddingTop: 4,
+  },
+  metaItem: {
+    minWidth: "45%",
+    flex: 1,
+  },
+  metaLabel: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+  },
+  metaValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+    marginTop: 2,
   },
   editActionText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "600",
     color: theme.colors.primary,
   },
-  cardCaption: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.textMuted,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+  travelerRow: {
+    gap: 2,
+    paddingTop: 2,
   },
-  cardDates: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: "500",
-  },
-  hotelTitle: {
-    fontSize: 16,
+  travelerName: {
+    fontSize: 14,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  destinationSub: {
+  travelerContact: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 2,
+  },
+  priceRowLabel: {
     fontSize: 13,
     color: theme.colors.textSecondary,
+  },
+  priceRowValue: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
   },
   divider: {
     height: 1,
     backgroundColor: theme.colors.borderSubtle,
     marginVertical: 4,
   },
-  paramRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  paramIcon: {
-    fontSize: 15,
-  },
-  paramText: {
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    flex: 1,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 2,
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  priceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  priceItemLabel: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  priceItemValue: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
   totalRow: {
     flexDirection: "row",
-    alignItems: "flex-end",
+    alignItems: "center",
     justifyContent: "space-between",
-    paddingTop: 4,
   },
   totalLabel: {
     fontSize: 14,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  totalSub: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
   totalValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
-    color: theme.colors.primary, // #581C87
+    color: theme.colors.primary,
   },
-  checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.surface,
-  },
-  checkboxChecked: {
-    backgroundColor: theme.colors.primary, // #581C87
-    borderColor: theme.colors.primary,
-  },
-  checkMark: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  checkboxText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    flex: 1,
-    lineHeight: 16,
-  },
-  successBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.successBg,
-    borderRadius: theme.borderRadius.lg,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: "#86EFAC",
-  },
-  successIcon: {
-    fontSize: 26,
-  },
-  successTextCol: {
-    flex: 1,
-  },
-  successTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#166534",
-  },
-  successSub: {
-    fontSize: 12,
-    color: "#15803D",
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  ctaButton: {
-    backgroundColor: theme.colors.secondary, // Ostrovok Orange #FF7A30
-    borderRadius: theme.borderRadius.lg,
+  primaryButton: {
+    backgroundColor: theme.colors.primary,
     paddingVertical: 14,
+    borderRadius: theme.borderRadius.lg,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
     ...theme.shadows.md,
   },
-  ctaButtonDisabled: {
-    backgroundColor: theme.colors.border,
+  buttonDisabled: {
+    opacity: 0.6,
   },
-  ctaButtonSuccess: {
-    backgroundColor: theme.colors.success,
-  },
-  ctaButtonText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  loadingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  loadingText: {
+  primaryButtonText: {
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#FFFFFF",
   },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  simBadge: {
-    backgroundColor: theme.colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.full,
-  },
-  simBadgeText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: theme.colors.primary,
-  },
-  simNoticeText: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-    lineHeight: 15,
-  },
-  paymentMethodsRow: {
-    flexDirection: "row",
-    gap: 8,
+  confirmedActionsCol: {
+    gap: 10,
     marginTop: 4,
   },
-  paymentMethodChip: {
-    flex: 1,
+  shareButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
-  },
-  paymentMethodChipActive: {
+    borderWidth: 1,
     borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.lg,
+    gap: 8,
   },
-  paymentMethodIcon: {
+  shareButtonText: {
     fontSize: 13,
-  },
-  paymentMethodText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-  },
-  paymentMethodTextActive: {
-    color: theme.colors.primary,
     fontWeight: "700",
-  },
-  encryptionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 2,
-  },
-  lockIcon: {
-    fontSize: 12,
-  },
-  encryptionText: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
+    color: theme.colors.primary,
   },
 });

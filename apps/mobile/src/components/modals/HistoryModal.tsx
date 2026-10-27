@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
+import { HistorySessionRecord } from "../../hooks/useMobileAgent";
 
 export interface HistoryTripItem {
   id: string;
@@ -26,34 +27,35 @@ export interface HistoryModalProps {
   onClose: () => void;
   onSelectSession: (item: HistoryTripItem) => void;
   onStartNewChat: () => void;
+  recentSessions?: HistorySessionRecord[];
 }
 
-export const INITIAL_HISTORY: HistoryTripItem[] = [
+export const POPULAR_SCENARIOS: HistoryTripItem[] = [
   {
-    id: "hist-1",
-    title: "Radisson Resort Marjan Island 4★",
-    destination: "ОАЭ, Рас-эль-Хайма",
-    dates: "14–21 ноября (7 ночей)",
-    price: "163 900 ₽",
-    previewPrompt: "Тёплое море в ноябре с ребёнком до 200 000 ₽",
+    id: "pop-1",
+    title: "Тёплое море в ноябре",
+    destination: "ОАЭ, Рас-эль-Хайма / Дубай",
+    dates: "7 ночей",
+    price: "от 145 000 ₽",
+    previewPrompt: "Хочу к тёплому морю в ноябре с ребёнком, прямой рейс, бюджет до 200 000 ₽",
     iconName: "sun",
   },
   {
-    id: "hist-2",
-    title: "Golden Tulip Rosa Khutor 4★",
+    id: "pop-2",
+    title: "Горнолыжный отдых",
     destination: "Сочи, Красная Поляна",
-    dates: "5–10 января (5 ночей)",
-    price: "98 000 ₽",
-    previewPrompt: "Горные лыжи в Сочи на двоих в январе",
+    dates: "5 ночей",
+    price: "от 89 000 ₽",
+    previewPrompt: "Горные лыжи в Сочи на двоих в январе без очередей на подъёмники",
     iconName: "mountain",
   },
   {
-    id: "hist-3",
-    title: "The Galata Hotel Istanbul 4★",
-    destination: "Турция, Стамбул",
-    dates: "12–15 октября (3 ночи)",
-    price: "64 000 ₽",
-    previewPrompt: "Выходные в Стамбуле: уютный бутик-отель",
+    id: "pop-3",
+    title: "Уикенд в Стамбуле",
+    destination: "Турция, Стамбул (Бейоглу)",
+    dates: "3 ночи",
+    price: "от 64 000 ₽",
+    previewPrompt: "Уикенд в Стамбуле на двоих с уютным отелем возле достопримечательностей",
     iconName: "building",
   },
 ];
@@ -63,12 +65,31 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   onClose,
   onSelectSession,
   onStartNewChat,
+  recentSessions = [],
 }) => {
   const insets = useSafeAreaInsets();
-  const [historyItems, setHistoryItems] = useState<HistoryTripItem[]>(INITIAL_HISTORY);
 
-  const handleDelete = (id: string) => {
-    setHistoryItems((prev) => prev.filter((item) => item.id !== id));
+  const handleSelectRecent = (session: HistorySessionRecord) => {
+    onSelectSession({
+      id: session.id,
+      title: session.query,
+      destination: "Поиск",
+      dates: session.timestamp,
+      price: "",
+      previewPrompt: session.query,
+      iconName: "sun",
+    });
+    onClose();
+  };
+
+  const handleSelectPopular = (item: HistoryTripItem) => {
+    onSelectSession(item);
+    onClose();
+  };
+
+  const handleNewChat = () => {
+    onStartNewChat();
+    onClose();
   };
 
   return (
@@ -87,11 +108,9 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerTitleRow}>
+            <View style={styles.headerTitleCol}>
               <Text style={styles.headerTitle}>История диалогов</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{historyItems.length}</Text>
-              </View>
+              <Text style={styles.headerSub}>Предыдущие поиски и популярные туры</Text>
             </View>
 
             <TouchableOpacity
@@ -104,83 +123,89 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Top Quick Action */}
-          <View style={styles.topActionBar}>
-            <TouchableOpacity
-              style={styles.newChatButton}
-              onPress={() => {
-                onClose();
-                onStartNewChat();
-              }}
-              activeOpacity={0.8}
-            >
-              <Icon name="refresh" size={15} color="#FFFFFF" />
-              <Text style={styles.newChatText}>Начать новый диалог</Text>
-            </TouchableOpacity>
-          </View>
-
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {historyItems.length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <Text style={styles.emptyIcon}>📂</Text>
-                <Text style={styles.emptyTitle}>История пуста</Text>
-                <Text style={styles.emptySub}>
-                  Задайте вопрос ассистенту, и результаты подбора сохранятся здесь.
-                </Text>
+            {/* New Chat Button */}
+            <TouchableOpacity
+              style={styles.newChatButton}
+              onPress={handleNewChat}
+              activeOpacity={0.8}
+            >
+              <Icon name="refresh" size={16} color="#FFFFFF" />
+              <Text style={styles.newChatButtonText}>Начать новый поиск</Text>
+            </TouchableOpacity>
+
+            {/* Recent Sessions in Current App Runtime */}
+            {recentSessions.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionCaption}>Недавние запросы</Text>
+                <View style={styles.list}>
+                  {recentSessions.map((session) => (
+                    <TouchableOpacity
+                      key={session.id}
+                      style={styles.recentItem}
+                      onPress={() => handleSelectRecent(session)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.recentItemIconBox}>
+                        <Icon name="sparkles" size={14} color={theme.colors.primary} />
+                      </View>
+                      <View style={styles.recentItemTextCol}>
+                        <Text style={styles.recentItemTitle} numberOfLines={2}>
+                          {session.query}
+                        </Text>
+                        <Text style={styles.recentItemTime}>{session.timestamp}</Text>
+                      </View>
+                      <Icon name="arrow-up-right" size={14} color={theme.colors.textMuted} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
-            ) : (
-              historyItems.map((item) => (
-                <View key={item.id} style={styles.itemCard}>
+            )}
+
+            {/* Popular Scenarios */}
+            <View style={styles.section}>
+              <Text style={styles.sectionCaption}>Популярные сценарии</Text>
+              <View style={styles.list}>
+                {POPULAR_SCENARIOS.map((item) => (
                   <TouchableOpacity
-                    style={styles.itemClickableArea}
-                    onPress={() => {
-                      onSelectSession(item);
-                      onClose();
-                    }}
+                    key={item.id}
+                    style={styles.popularCard}
+                    onPress={() => handleSelectPopular(item)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.itemIconBox}>
-                      <Icon name={item.iconName || "sun"} size={16} color={theme.colors.primary} />
+                    <View style={styles.popularIconBox}>
+                      <Icon
+                        name={item.iconName || "sun"}
+                        size={18}
+                        color={theme.colors.primary}
+                      />
                     </View>
-
-                    <View style={styles.itemDetails}>
-                      <View style={styles.itemTopRow}>
-                        <Text style={styles.itemDestination}>{item.destination}</Text>
-                        <Text style={styles.itemPrice}>{item.price}</Text>
+                    <View style={styles.popularContent}>
+                      <View style={styles.popularHeaderRow}>
+                        <Text style={styles.popularTitle}>{item.title}</Text>
+                        <Text style={styles.popularPrice}>{item.price}</Text>
                       </View>
-                      <Text style={styles.itemHotelTitle} numberOfLines={1}>
-                        {item.title}
+                      <Text style={styles.popularDestination}>{item.destination}</Text>
+                      <Text style={styles.popularPrompt} numberOfLines={1}>
+                        «{item.previewPrompt}»
                       </Text>
-                      <Text style={styles.itemDates}>{item.dates}</Text>
-                      <View style={styles.promptBubble}>
-                        <Text style={styles.promptText} numberOfLines={1}>
-                          «{item.previewPrompt}»
-                        </Text>
-                      </View>
                     </View>
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(item.id)}
-                    accessibilityLabel="Удалить из истории"
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  >
-                    <Icon name="close" size={14} color={theme.colors.textMuted} />
-                  </TouchableOpacity>
-                </View>
-              ))
-            )}
+                ))}
+              </View>
+            </View>
           </ScrollView>
         </View>
       </View>
     </Modal>
   );
 };
+
+export const INITIAL_HISTORY = POPULAR_SCENARIOS;
 
 const styles = StyleSheet.create({
   overlay: {
@@ -192,8 +217,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
-    overflow: "hidden",
     maxHeight: "88%",
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -205,26 +230,19 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+  headerTitleCol: {
+    flex: 1,
+    marginRight: 10,
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  countBadge: {
-    backgroundColor: theme.colors.surfaceContainer,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.full,
-  },
-  countBadgeText: {
+  headerSub: {
     fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primary, // #581C87
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   closeBtn: {
     width: 32,
@@ -234,140 +252,118 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-  },
-  topActionBar: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderSubtle,
-  },
-  newChatButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary, // #581C87
-    borderRadius: theme.borderRadius.lg,
-    paddingVertical: 10,
-    gap: 8,
-    ...theme.shadows.sm,
-  },
-  newChatIcon: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  newChatText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "600",
-  },
   scroll: {
     maxHeight: "100%",
   },
   scrollContent: {
     padding: theme.spacing.md,
-    gap: 12,
+    gap: 16,
   },
-  itemCard: {
+  newChatButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 13,
+    borderRadius: theme.borderRadius.lg,
+    gap: 8,
+    ...theme.shadows.sm,
+  },
+  newChatButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  section: {
+    gap: 8,
+  },
+  sectionCaption: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  list: {
+    gap: 8,
+  },
+  recentItem: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
     padding: 12,
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     gap: 10,
-    ...theme.shadows.sm,
   },
-  itemClickableArea: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  itemIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: theme.colors.surfaceContainer,
+  recentItemIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.primaryLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  itemIcon: {
-    fontSize: 20,
-  },
-  itemDetails: {
+  recentItemTextCol: {
     flex: 1,
   },
-  itemTopRow: {
+  recentItemTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  },
+  recentItemTime: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  popularCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    padding: 12,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 12,
+    ...theme.shadows.sm,
+  },
+  popularIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surfaceContainerLow,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  popularContent: {
+    flex: 1,
+  },
+  popularHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  itemDestination: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.primary, // #581C87
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  itemPrice: {
+  popularTitle: {
     fontSize: 14,
     fontWeight: "700",
-    color: theme.colors.primary, // #581C87
-  },
-  itemHotelTitle: {
-    fontSize: 14,
-    fontWeight: "600",
     color: theme.colors.textPrimary,
-    marginTop: 2,
   },
-  itemDates: {
+  popularPrice: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.colors.primary,
+  },
+  popularDestination: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    marginTop: 1,
+    marginTop: 2,
   },
-  promptBubble: {
-    backgroundColor: theme.colors.surfaceContainer,
-    borderRadius: theme.borderRadius.sm,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginTop: 6,
-  },
-  promptText: {
+  popularPrompt: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
-    fontStyle: "italic",
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  deleteIcon: {
-    fontSize: 16,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    gap: 8,
-  },
-  emptyIcon: {
-    fontSize: 44,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  emptySub: {
-    fontSize: 13,
     color: theme.colors.textMuted,
-    textAlign: "center",
-    maxWidth: 240,
+    marginTop: 3,
+    fontStyle: "italic",
   },
 });

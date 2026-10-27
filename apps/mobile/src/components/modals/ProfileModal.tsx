@@ -6,7 +6,7 @@ import {
   Modal,
   ScrollView,
   TouchableOpacity,
-  Switch,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
@@ -15,14 +15,24 @@ import { Icon } from "../common/Icon";
 export interface ProfileModalProps {
   visible: boolean;
   onClose: () => void;
-  onSavePreferences?: (city: string) => void;
+  onSavePreferences?: (city: string, currency: string) => void;
 }
 
-export const CITIES = [
-  { id: "MOW", name: "Москва (DME/SVO/VKO)" },
-  { id: "LED", name: "Санкт-Петербург (Пулково)" },
+export const POPULAR_CITIES = [
+  { id: "MOW", name: "Москва (MOW)" },
+  { id: "LED", name: "Санкт-Петербург (LED)" },
+  { id: "SVX", name: "Екатеринбург (SVX)" },
   { id: "KZN", name: "Казань (KZN)" },
-  { id: "SVX", name: "Екатеринбург (Кольцово)" },
+  { id: "OVB", name: "Новосибирск (OVB)" },
+  { id: "AER", name: "Сочи (AER)" },
+];
+
+export const POPULAR_CURRENCIES = [
+  { code: "RUB", symbol: "₽", label: "Российский рубль" },
+  { code: "USD", symbol: "$", label: "Доллар США" },
+  { code: "EUR", symbol: "€", label: "Евро" },
+  { code: "AED", symbol: "AED", label: "Дирхам ОАЭ" },
+  { code: "TRY", symbol: "₺", label: "Турецкая лира" },
 ];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -32,13 +42,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [selectedCity, setSelectedCity] = useState("MOW");
-  const [pushEnabled, setPushEnabled] = useState(true);
-  const [discountAlerts, setDiscountAlerts] = useState(true);
+  const [selectedCurrency, setSelectedCurrency] = useState("RUB");
+  const [travelerName, setTravelerName] = useState("Иван Иванов");
+  const [travelerPhone, setTravelerPhone] = useState("+7 (999) 123-45-67");
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   const handleSave = () => {
-    const cityName = CITIES.find((c) => c.id === selectedCity)?.name || "Москва";
-    onSavePreferences?.(cityName);
-    onClose();
+    const cityName = POPULAR_CITIES.find((c) => c.id === selectedCity)?.name || "Москва";
+    onSavePreferences?.(cityName, selectedCurrency);
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      onClose();
+    }, 400);
   };
 
   return (
@@ -57,7 +73,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Профиль путешественника</Text>
+            <View style={styles.headerTitleCol}>
+              <Text style={styles.headerTitle}>Настройки и профиль</Text>
+              <Text style={styles.headerSub}>Параметры поиска и данные туриста</Text>
+            </View>
             <TouchableOpacity
               style={styles.closeBtn}
               onPress={onClose}
@@ -73,38 +92,71 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* User Identity Card */}
-            <View style={styles.userCard}>
-              <View style={styles.avatarLarge}>
-                <Icon name="user" size={24} color={theme.colors.primary} />
-              </View>
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>Алексей Смирнов</Text>
-                <Text style={styles.userEmail}>alex.smirnov@example.com</Text>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusPillDot}>●</Text>
-                  <Text style={styles.statusPillText}>Аккаунт подтверждён</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Departure City Preference */}
+            {/* Preferred Departure City */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Основной город вылета</Text>
-              <View style={styles.cityList}>
-                {CITIES.map((c) => {
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="plane" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>Основной город вылета</Text>
+              </View>
+
+              <View style={styles.chipsGrid}>
+                {POPULAR_CITIES.map((c) => {
                   const isSelected = selectedCity === c.id;
                   return (
                     <TouchableOpacity
                       key={c.id}
-                      style={[styles.cityRow, isSelected && styles.cityRowSelected]}
+                      style={[styles.cityChip, isSelected && styles.cityChipActive]}
                       onPress={() => setSelectedCity(c.id)}
                       activeOpacity={0.7}
                     >
-                      <Text style={[styles.cityName, isSelected && styles.cityNameSelected]}>
+                      <Text
+                        style={[
+                          styles.cityChipText,
+                          isSelected && styles.cityChipTextActive,
+                        ]}
+                      >
                         {c.name}
                       </Text>
-                      <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Currency Selector */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="sparkles" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>Валюта отображения цен</Text>
+              </View>
+
+              <View style={styles.currencyList}>
+                {POPULAR_CURRENCIES.map((cur) => {
+                  const isSelected = selectedCurrency === cur.code;
+                  return (
+                    <TouchableOpacity
+                      key={cur.code}
+                      style={[styles.currencyRow, isSelected && styles.currencyRowActive]}
+                      onPress={() => setSelectedCurrency(cur.code)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.currencyCodeCol}>
+                        <Text style={styles.currencySymbol}>{cur.symbol}</Text>
+                        <Text
+                          style={[
+                            styles.currencyName,
+                            isSelected && styles.currencyNameActive,
+                          ]}
+                        >
+                          {cur.label} ({cur.code})
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.radioCircle,
+                          isSelected && styles.radioCircleActive,
+                        ]}
+                      >
                         {isSelected && <View style={styles.radioInner} />}
                       </View>
                     </TouchableOpacity>
@@ -113,64 +165,46 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </View>
             </View>
 
-            {/* Notification and Personalization Toggles */}
+            {/* Default Traveler Information */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Уведомления и рекомендации</Text>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="user" size={14} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>Данные основного туриста</Text>
+              </View>
 
-              <View style={styles.settingRow}>
-                <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Push-уведомления о статусе брони</Text>
-                  <Text style={styles.settingSub}>
-                    Мгновенные оповещения об изменении времени вылета и подтверждении ваучеров
-                  </Text>
-                </View>
-                <Switch
-                  value={pushEnabled}
-                  onValueChange={setPushEnabled}
-                  trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
-                  thumbColor={pushEnabled ? theme.colors.primary : "#F3F4F6"}
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>ФИО для бронирования</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={travelerName}
+                  onChangeText={setTravelerName}
+                  placeholder="Иван Иванов"
+                  placeholderTextColor={theme.colors.textMuted}
                 />
               </View>
 
-              <View style={styles.divider} />
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Алерты снижения цен</Text>
-                  <Text style={styles.settingSub}>
-                    Оповещать, если отель или билеты по выбранным датам подешевеют
-                  </Text>
-                </View>
-                <Switch
-                  value={discountAlerts}
-                  onValueChange={setDiscountAlerts}
-                  trackColor={{ false: "#D1D5DB", true: "#E9D5FF" }}
-                  thumbColor={discountAlerts ? theme.colors.primary : "#F3F4F6"}
+              <View style={styles.formGroup}>
+                <Text style={styles.fieldLabel}>Телефон для СМС и ваучера</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={travelerPhone}
+                  onChangeText={setTravelerPhone}
+                  placeholder="+7 (999) 000-00-00"
+                  keyboardType="phone-pad"
+                  placeholderTextColor={theme.colors.textMuted}
                 />
-              </View>
-            </View>
-
-            {/* App Currency and Locale */}
-            <View style={styles.sectionCard}>
-              <Text style={styles.sectionCaption}>Региональные настройки</Text>
-              <View style={styles.settingRow}>
-                <View style={styles.settingTextCol}>
-                  <Text style={styles.settingTitle}>Основная валюта расчётов</Text>
-                  <Text style={styles.settingSub}>Цены авиабилетов и гостиничных ваучеров</Text>
-                </View>
-                <View style={styles.currencyBadge}>
-                  <Text style={styles.currencyBadgeText}>RUB (₽)</Text>
-                </View>
               </View>
             </View>
 
             {/* Save Button */}
             <TouchableOpacity
-              style={styles.saveButton}
+              style={[styles.saveButton, savedSuccess && styles.saveButtonSuccess]}
               onPress={handleSave}
               activeOpacity={0.8}
             >
-              <Text style={styles.saveButtonText}>Сохранить настройки профиля</Text>
+              <Text style={styles.saveButtonText}>
+                {savedSuccess ? "✓ Настройки сохранены" : "Сохранить настройки"}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -189,8 +223,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
-    overflow: "hidden",
     maxHeight: "88%",
+    overflow: "hidden",
   },
   header: {
     flexDirection: "row",
@@ -202,10 +236,19 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
   },
+  headerTitleCol: {
+    flex: 1,
+    marginRight: 10,
+  },
   headerTitle: {
     fontSize: 17,
     fontWeight: "700",
     color: theme.colors.textPrimary,
+  },
+  headerSub: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   closeBtn: {
     width: 32,
@@ -215,72 +258,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  closeBtnText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: "600",
-  },
   scroll: {
     maxHeight: "100%",
   },
   scrollContent: {
     padding: theme.spacing.md,
-    gap: 14,
-  },
-  userCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: 14,
-    ...theme.shadows.sm,
-  },
-  avatarLarge: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: theme.colors.surfaceContainer,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarLargeText: {
-    fontSize: 24,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
-  },
-  userEmail: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  statusPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: theme.colors.badgeRecommendBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.full,
-    alignSelf: "flex-start",
-    marginTop: 6,
-    gap: 4,
-  },
-  statusPillDot: {
-    fontSize: 6,
-    color: theme.colors.badgeRecommendText,
-  },
-  statusPillText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.badgeRecommendText,
+    gap: 12,
   },
   sectionCard: {
     backgroundColor: theme.colors.surface,
@@ -291,39 +274,80 @@ const styles = StyleSheet.create({
     gap: 10,
     ...theme.shadows.sm,
   },
-  sectionCaption: {
-    fontSize: 11,
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 12,
     fontWeight: "700",
     color: theme.colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-  cityList: {
+  chipsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  cityChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSubtle,
+  },
+  cityChipActive: {
+    backgroundColor: theme.colors.primaryLight,
+    borderColor: theme.colors.primary,
+  },
+  cityChipText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: theme.colors.textPrimary,
+  },
+  cityChipTextActive: {
+    color: theme.colors.primary,
+    fontWeight: "700",
+  },
+  currencyList: {
     gap: 6,
   },
-  cityRow: {
+  currencyRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 12,
     borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderSubtle,
   },
-  cityRowSelected: {
+  currencyRowActive: {
     backgroundColor: theme.colors.primaryLight,
     borderColor: theme.colors.primary,
   },
-  cityName: {
+  currencyCodeCol: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  currencySymbol: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.colors.primary,
+    width: 28,
+  },
+  currencyName: {
     fontSize: 13,
-    fontWeight: "500",
     color: theme.colors.textPrimary,
   },
-  cityNameSelected: {
+  currencyNameActive: {
     fontWeight: "700",
-    color: theme.colors.primary, // #581C87
+    color: theme.colors.primary,
   },
   radioCircle: {
     width: 18,
@@ -334,58 +358,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  radioCircleSelected: {
+  radioCircleActive: {
     borderColor: theme.colors.primary,
   },
   radioInner: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary, // #581C87
+    backgroundColor: theme.colors.primary,
   },
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 4,
+  formGroup: {
+    gap: 4,
   },
-  settingTextCol: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  settingTitle: {
-    fontSize: 13,
+  fieldLabel: {
+    fontSize: 12,
     fontWeight: "600",
+    color: theme.colors.textSecondary,
+  },
+  fieldInput: {
+    backgroundColor: theme.colors.surfaceContainerLow,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
     color: theme.colors.textPrimary,
   },
-  settingSub: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.borderSubtle,
-  },
-  currencyBadge: {
-    backgroundColor: theme.colors.surfaceContainer,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.md,
-  },
-  currencyBadgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: theme.colors.primary, // #581C87
-  },
   saveButton: {
-    backgroundColor: theme.colors.primary, // #581C87
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.lg,
     paddingVertical: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 6,
+    marginTop: 4,
     ...theme.shadows.md,
+  },
+  saveButtonSuccess: {
+    backgroundColor: "#047857",
   },
   saveButtonText: {
     fontSize: 14,
