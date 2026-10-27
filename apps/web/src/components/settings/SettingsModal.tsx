@@ -25,7 +25,6 @@ import { CITIES_DATABASE, CityOption } from "@corvax/shared";
 import {
   usePreferences,
   CurrencyCode,
-  SettingsTab,
   TravelPreferences,
   UserProfile,
 } from "../../context/PreferencesContext";

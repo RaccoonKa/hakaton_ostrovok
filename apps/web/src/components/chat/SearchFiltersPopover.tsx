@@ -306,15 +306,6 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     }
   };
 
-  const handleReset = () => {
-    setStartDate(null);
-    setEndDate(null);
-    setMinBudget(40000);
-    setMaxBudget(180000);
-    setAdults(2);
-    setChildren(0);
-  };
-
   const handleApply = () => {
     const parts: string[] = [];
 

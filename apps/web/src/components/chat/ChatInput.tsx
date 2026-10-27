@@ -4,7 +4,6 @@ import {
   Send,
   SlidersHorizontal,
   Mic,
-  Sparkles,
 } from "lucide-react";
 
 interface ChatInputProps {

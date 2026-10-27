@@ -1,5 +1,4 @@
 import React from "react";
-import { Sparkles } from "lucide-react";
 import { ChatMessage, TripOption } from "../../types/travel";
 import { ClarificationChips } from "./ClarificationChips";
 import { TripOptionCard } from "../cards/TripOptionCard";

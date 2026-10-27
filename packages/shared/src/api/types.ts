@@ -1,4 +1,4 @@
-import { ChatMessage, ServiceMetadata, TripOption } from "../domain/types";
+import { ChatMessage, TripOption } from "../domain/types";
 
 export enum AgUiEventType {
   RUN_START = "RUN_START",

@@ -18,7 +18,14 @@ export function useTravelAgent() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const clientRef = useRef(new TravelApiClient());
+  const clientRef = useRef(
+    new TravelApiClient({
+      baseUrl: (import.meta.env.VITE_API_URL as string) || "",
+      agentId: (import.meta.env.VITE_AGENT_ID as string) || "travel",
+      authSecret: (import.meta.env.VITE_AUTH_SECRET as string) || undefined,
+      useAgUi: import.meta.env.VITE_USE_AGUI === "true",
+    })
+  );
 
   // Cancel any running query
   const cancelRequest = useCallback(() => {
