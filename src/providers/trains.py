@@ -15,6 +15,33 @@ logger = logging.getLogger(__name__)
 
 TZ_MSK = timezone(timedelta(hours=3))
 
+CITY_ALIASES: dict[str, str] = {
+    "moscow": "москва",
+    "mow": "москва",
+    "sochi": "сочи",
+    "адлер": "сочи",
+    "adler": "сочи",
+    "saint petersburg": "санкт-петербург",
+    "st. petersburg": "санкт-петербург",
+    "st petersburg": "санкт-петербург",
+    "spb": "санкт-петербург",
+    "спб": "санкт-петербург",
+    "питер": "санкт-петербург",
+    "петербург": "санкт-петербург",
+}
+
+
+def _parse_date(d_val: date | datetime | str) -> date:
+    """Безопасный парсинг даты из date, datetime или ISO-строки."""
+    if isinstance(d_val, datetime):
+        return d_val.date()
+    if isinstance(d_val, date):
+        return d_val
+    s = d_val.strip()
+    if "T" in s or " " in s:
+        return datetime.fromisoformat(s).date()
+    return date.fromisoformat(s)
+
 
 def _load_raw_trains(origin: str, destination: str) -> list[dict[str, Any]]:
     """
@@ -46,21 +73,33 @@ def _load_raw_trains(origin: str, destination: str) -> list[dict[str, Any]]:
     return trains
 
 
+def _match_train_point(query: str, point_full: str, point_city: str) -> bool:
+    """Сопоставляет вокзал или город отправления/прибытия с учетом синонимов."""
+    q = query.strip().lower()
+    full = point_full.lower()
+    city = point_city.lower()
+
+    if q in full or full in q or q == city or city in q:
+        return True
+
+    norm_q = CITY_ALIASES.get(q)
+    if norm_q and (norm_q in full or norm_q == city or norm_q in city):
+        return True
+
+    return False
+
+
 def _match_train_route(t: dict[str, Any], origin: str, destination: str) -> bool:
     """Проверяет соответствие маршрута поезда городам или вокзалам."""
-    o = origin.strip().lower()
-    d = destination.strip().lower()
+    t_orig = t.get("origin", "")
+    t_orig_city = t.get("origin_city", "")
 
-    t_orig = t.get("origin", "").lower()
-    t_orig_city = t.get("origin_city", "").lower()
+    t_dest = t.get("destination", "")
+    t_dest_city = t.get("destination_city", "")
 
-    t_dest = t.get("destination", "").lower()
-    t_dest_city = t.get("destination_city", "").lower()
-
-    orig_matches = (o in t_orig) or (o == t_orig_city)
-    dest_matches = (d in t_dest) or (d == t_dest_city)
-
-    return orig_matches and dest_matches
+    return _match_train_point(origin, t_orig, t_orig_city) and _match_train_point(
+        destination, t_dest, t_dest_city
+    )
 
 
 def search_trains(
@@ -72,11 +111,8 @@ def search_trains(
     """
     Поиск поездов по направлению и дате с подстановкой времени и расчётом стоимости.
     """
-    dep_date = (
-        date.fromisoformat(departure_date)
-        if isinstance(departure_date, str)
-        else departure_date
-    )
+    dep_date = _parse_date(departure_date)
+    travelers = max(1, travelers)
 
     raw_trains = _load_raw_trains(origin, destination)
     result: list[Transport] = []
@@ -91,10 +127,14 @@ def search_trains(
             dep_date.year, dep_date.month, dep_date.day, dep_h, dep_m, tzinfo=TZ_MSK
         )
 
-        day_offset = int(t.get("day_offset", 0))
-        arr_date = dep_date + timedelta(days=day_offset)
         arr_time_str = t.get("arrival_time", "18:00")
         arr_h, arr_m = map(int, arr_time_str.split(":"))
+
+        day_offset = int(t.get("day_offset", 0))
+        if day_offset == 0 and (arr_h, arr_m) < (dep_h, dep_m):
+            day_offset = 1
+
+        arr_date = dep_date + timedelta(days=day_offset)
         arr_dt = datetime(
             arr_date.year, arr_date.month, arr_date.day, arr_h, arr_m, tzinfo=TZ_MSK
         )

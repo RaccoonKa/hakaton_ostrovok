@@ -4,7 +4,7 @@
 
 import json
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from domain.common import Currency, MealPlan
@@ -12,6 +12,49 @@ from domain.hotel import Hotel
 from memory.db_storage import fetch_payloads, get_data_dir, is_db_available
 
 logger = logging.getLogger(__name__)
+
+CITY_ALIASES: dict[str, str] = {
+    "moscow": "москва",
+    "mow": "москва",
+    "sochi": "сочи",
+    "адлер": "сочи",
+    "adler": "сочи",
+    "saint petersburg": "санкт-петербург",
+    "st. petersburg": "санкт-петербург",
+    "st petersburg": "санкт-петербург",
+    "spb": "санкт-петербург",
+    "спб": "санкт-петербург",
+    "питер": "санкт-петербург",
+    "петербург": "санкт-петербург",
+    "kaliningrad": "калининград",
+    "кёнигсберг": "калининград",
+    "кенигсберг": "калининград",
+    "istanbul": "стамбул",
+    "antalya": "анталья",
+}
+
+AMENITY_ALIASES: dict[str, tuple[str, ...]] = {
+    "pool": ("бассейн", "pool"),
+    "spa": ("spa", "спа"),
+    "wifi": ("wi-fi", "wifi", "вай-фай"),
+    "wi-fi": ("wi-fi", "wifi", "вай-фай"),
+    "beach": ("пляж", "beach"),
+    "gym": ("фитнес", "gym", "тренажер"),
+    "parking": ("парковк", "parking"),
+    "kids": ("детск", "kids", "child"),
+}
+
+
+def _parse_date(d_val: date | datetime | str) -> date:
+    """Безопасный парсинг даты из date, datetime или ISO-строки."""
+    if isinstance(d_val, datetime):
+        return d_val.date()
+    if isinstance(d_val, date):
+        return d_val
+    s = d_val.strip()
+    if "T" in s or " " in s:
+        return datetime.fromisoformat(s).date()
+    return date.fromisoformat(s)
 
 
 def _load_raw_hotels(city: str, district: str | None = None) -> list[dict[str, Any]]:
@@ -44,8 +87,8 @@ def _load_raw_hotels(city: str, district: str | None = None) -> list[dict[str, A
 
 def calculate_hotel_price(
     base_price_per_night: float,
-    check_in: date,
-    check_out: date,
+    check_in: date | str,
+    check_out: date | str,
     hotel_name: str = "",
     district: str | None = None,
 ) -> float:
@@ -56,10 +99,11 @@ def calculate_hotel_price(
     - зима для гор (декабрь-март) x1.4
     - межсезонье x0.85
     """
-    nights = (check_out - check_in).days
-    nights = max(1, nights)
+    cin = _parse_date(check_in)
+    cout = _parse_date(check_out)
+    nights = max(1, (cout - cin).days)
 
-    month = check_in.month
+    month = cin.month
     dist_str = (district or "").lower()
     name_str = hotel_name.lower()
     is_mountain = any(
@@ -90,21 +134,21 @@ def search_hotels(
     """
     Поиск отелей по параметрам с фильтрацией и расчётом сезонной цены.
     """
-    check_in_date = (
-        date.fromisoformat(check_in) if isinstance(check_in, str) else check_in
-    )
-    check_out_date = (
-        date.fromisoformat(check_out) if isinstance(check_out, str) else check_out
-    )
+    check_in_date = _parse_date(check_in)
+    check_out_date = _parse_date(check_out)
+    guests = max(1, guests)
 
     raw_hotels = _load_raw_hotels(city=city, district=district)
     city_query = city.strip().lower()
+    norm_city = CITY_ALIASES.get(city_query, city_query)
     district_query = district.strip().lower() if district else None
 
-    # Приведение meal_plan к строковому значению enum
-    target_meal_plan = (
-        meal_plan.value if isinstance(meal_plan, MealPlan) else meal_plan
-    )
+    # Приведение meal_plan к нормализованному строковому значению
+    target_meal_plan: str | None = None
+    if isinstance(meal_plan, MealPlan):
+        target_meal_plan = meal_plan.value.lower()
+    elif isinstance(meal_plan, str):
+        target_meal_plan = meal_plan.strip().lower()
 
     result: list[Hotel] = []
 
@@ -112,12 +156,16 @@ def search_hotels(
         h_city = h.get("city", "").lower()
         h_district = (h.get("district") or "").lower()
 
-        # Фильтр по городу / району (если город не совпал точно, но совпал район)
-        if (
-            city_query not in h_city
-            and city_query not in h_district
-            and h_city not in city_query
-        ):
+        # Фильтр по городу / району (с учетом синонимов города)
+        city_match = (
+            city_query in h_city
+            or city_query in h_district
+            or h_city in city_query
+            or norm_city in h_city
+            or norm_city in h_district
+            or h_city in norm_city
+        )
+        if not city_match:
             continue
 
         # Фильтр по району
@@ -134,16 +182,23 @@ def search_hotels(
                 continue
 
         # Фильтр по питанию
-        if target_meal_plan and h.get("meal_plan") != target_meal_plan:
+        if target_meal_plan and (h.get("meal_plan") or "").lower() != target_meal_plan:
             continue
 
         # Фильтр по удобствам
         if amenities:
             hotel_amenities = [a.lower() for a in h.get("amenities", [])]
-            if not all(
-                any(req.strip().lower() in a for a in hotel_amenities)
-                for req in amenities
-            ):
+            match_all = True
+            for req in amenities:
+                req_lower = req.strip().lower()
+                req_variants = AMENITY_ALIASES.get(req_lower, (req_lower,))
+                if not any(
+                    any(variant in a for variant in req_variants)
+                    for a in hotel_amenities
+                ):
+                    match_all = False
+                    break
+            if not match_all:
                 continue
 
         # Расчет стоимости

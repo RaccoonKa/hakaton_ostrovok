@@ -36,6 +36,57 @@ def _load_raw_transfers() -> list[dict[str, Any]]:
     return transfers
 
 
+HUB_CITY_KEYWORDS = {
+    "aer": ("сочи", "sochi", "адлер", "adler"),
+    "adler_station": ("сочи", "sochi", "адлер", "adler"),
+    "sochi_station": ("сочи", "sochi", "адлер", "adler"),
+    "kgd": ("калининград", "kaliningrad", "кёнигсберг", "кенигсберг"),
+    "led": (
+        "санкт-петербург",
+        "петербург",
+        "питер",
+        "spb",
+        "saint petersburg",
+        "st. petersburg",
+    ),
+    "moscow_station_spb": (
+        "санкт-петербург",
+        "петербург",
+        "питер",
+        "spb",
+        "saint petersburg",
+        "st. petersburg",
+    ),
+    "ist": ("стамбул", "istanbul"),
+    "ayt": ("анталья", "antalya"),
+}
+
+DESTINATION_KEYWORDS = (
+    "полян",
+    "роза",
+    "сириус",
+    "центр",
+    "адлер",
+    "светлогорск",
+    "янтарн",
+    "зеленоградск",
+    "лахта",
+    "петергоф",
+    "белек",
+    "кемер",
+    "лара",
+    "бейглу",
+    "бейогл",
+    "султанахмет",
+    "таксим",
+    "бешикташ",
+    "коньяалт",
+    "кунду",
+    "васильевск",
+    "невск",
+)
+
+
 def _match_hub(tr: dict[str, Any], hub: str) -> bool:
     """Проверяет совпадение транспортного хаба."""
     h = hub.strip().lower()
@@ -45,9 +96,16 @@ def _match_hub(tr: dict[str, Any], hub: str) -> bool:
     return (h == tr_hub) or (h in tr_orig) or (tr_hub in h)
 
 
-def _match_transfer_destination(tr: dict[str, Any], destination: str) -> bool:
+def _match_transfer_destination(
+    tr: dict[str, Any],
+    destination: str,
+    hub: str = "",
+) -> bool:
     """Проверяет соответствие точки назначения или отеля."""
     d = destination.strip().lower()
+    if not d:
+        return True
+
     tr_dest = tr.get("destination", "").lower()
     hotels = [h.lower() for h in tr.get("destination_hotels", [])]
 
@@ -57,24 +115,14 @@ def _match_transfer_destination(tr: dict[str, Any], destination: str) -> bool:
         return True
 
     # Сопоставление по ключевым курортным локациям
-    for kw in (
-        "полян",
-        "роза",
-        "сириус",
-        "центр",
-        "адлер",
-        "светлогорск",
-        "янтарн",
-        "зеленоградск",
-        "лахта",
-        "петергоф",
-        "белек",
-        "кемер",
-        "лара",
-        "бейглу",
-        "султанахмет",
-    ):
+    for kw in DESTINATION_KEYWORDS:
         if kw in d and kw in tr_dest:
+            return True
+
+    # Сопоставление хаба и города назначения
+    if hub:
+        city_keywords = HUB_CITY_KEYWORDS.get(hub.strip().lower(), ())
+        if any(ck in d for ck in city_keywords):
             return True
 
     return False
@@ -84,7 +132,7 @@ def get_transfer(
     hub: str,
     destination: str,
     arrival_at: datetime | str,
-    transport_type: str = "flight",
+    transport_type: TransportType | str = "flight",
     travelers: int = 1,
     has_kids: bool = False,
     has_sports_equipment: bool = False,
@@ -94,14 +142,23 @@ def get_transfer(
     - Буфер: +30 мин для самолёта, +15 мин для поезда.
     - Класс авто: при travelers > 3, наличии детей или спортинвентаря выбирается minivan.
     """
-    arr_dt = (
-        datetime.fromisoformat(arrival_at)
-        if isinstance(arrival_at, str)
-        else arrival_at
-    )
+    if isinstance(arrival_at, str):
+        if "T" in arrival_at or " " in arrival_at:
+            arr_dt = datetime.fromisoformat(arrival_at)
+        else:
+            arr_date = datetime.fromisoformat(arrival_at)
+            arr_dt = arr_date
+    else:
+        arr_dt = arrival_at
+
+    travelers = max(1, travelers)
 
     # Расчет буферного времени на получение багажа и выход к трансферу
-    t_type = transport_type.lower()
+    t_type = (
+        transport_type.value.lower()
+        if isinstance(transport_type, TransportType)
+        else str(transport_type).strip().lower()
+    )
     if t_type in ("flight", "plane", "airplane"):
         buffer_minutes = 30
     elif t_type in ("train", "railway"):
@@ -121,7 +178,8 @@ def get_transfer(
     matching_transfers = [
         tr
         for tr in raw_transfers
-        if _match_hub(tr, hub) and _match_transfer_destination(tr, destination)
+        if _match_hub(tr, hub)
+        and _match_transfer_destination(tr, destination, hub=hub)
     ]
 
     if not matching_transfers:
@@ -153,8 +211,9 @@ def get_transfer(
         else TransportType.CAR
     )
 
+    extra_notes = chosen_tr.get("conditions") or chosen_tr.get("notes") or ""
     conditions = (
-        f"Класс: {chosen_tr.get('vehicle_class')}. {chosen_tr.get('notes', '')}".strip()
+        f"Класс: {chosen_tr.get('vehicle_class')}. {extra_notes}".strip()
     )
 
     return Transfer(

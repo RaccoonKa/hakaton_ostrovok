@@ -16,17 +16,56 @@ logger = logging.getLogger(__name__)
 
 TZ_MSK = timezone(timedelta(hours=3))
 
+CITY_ALIASES: dict[str, str] = {
+    "moscow": "москва",
+    "mow": "москва",
+    "sochi": "сочи",
+    "адлер": "сочи",
+    "adler": "сочи",
+    "saint petersburg": "санкт-петербург",
+    "st. petersburg": "санкт-петербург",
+    "st petersburg": "санкт-петербург",
+    "spb": "санкт-петербург",
+    "спб": "санкт-петербург",
+    "питер": "санкт-петербург",
+    "петербург": "санкт-петербург",
+    "kaliningrad": "калининград",
+    "кёнигсберг": "калининград",
+    "кенигсберг": "калининград",
+    "храброво": "калининград",
+    "istanbul": "стамбул",
+    "antalya": "анталья",
+}
+
+
+def _parse_date(d_val: date | datetime | str) -> date:
+    """Безопасный парсинг даты из date, datetime или ISO-строки."""
+    if isinstance(d_val, datetime):
+        return d_val.date()
+    if isinstance(d_val, date):
+        return d_val
+    s = d_val.strip()
+    if "T" in s or " " in s:
+        return datetime.fromisoformat(s).date()
+    return date.fromisoformat(s)
+
 
 def _parse_iso_duration(duration_str: str | None) -> timedelta | None:
     """Парсит ISO duration формат вида PT3H55M в timedelta."""
     if not duration_str:
         return None
-    match = re.match(r"^PT(?:(\d+)H)?(?:(\d+)M)?$", duration_str)
-    if not match:
+    cleaned = duration_str.strip().upper()
+    match = re.match(r"^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$", cleaned)
+    if not match or (
+        match.group(1) is None
+        and match.group(2) is None
+        and match.group(3) is None
+    ):
         return None
     hours = int(match.group(1) or 0)
     minutes = int(match.group(2) or 0)
-    return timedelta(hours=hours, minutes=minutes)
+    seconds = int(match.group(3) or 0)
+    return timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
 
 def _load_raw_flights(origin: str, destination: str) -> list[dict[str, Any]]:
@@ -61,23 +100,38 @@ def _load_raw_flights(origin: str, destination: str) -> list[dict[str, Any]]:
     return flights
 
 
+def _match_point(
+    query: str, point_full: str, point_city: str, point_code: str
+) -> bool:
+    """Сопоставляет точку маршрута с учетом кода аэропорта и синонимов города."""
+    q = query.strip().lower()
+    full = point_full.lower()
+    city = point_city.lower()
+    code = point_code.lower()
+
+    if q in full or full in q or q == city or q == code:
+        return True
+
+    norm_q = CITY_ALIASES.get(q)
+    if norm_q and (norm_q in full or norm_q == city or norm_q in city):
+        return True
+
+    return False
+
+
 def _match_route(f: dict[str, Any], origin: str, destination: str) -> bool:
     """Проверяет совпадение города или кода аэропорта в маршруте."""
-    o = origin.strip().lower()
-    d = destination.strip().lower()
+    f_orig = f.get("origin", "")
+    f_orig_city = f.get("origin_city", "")
+    f_orig_code = f.get("origin_code", "")
 
-    f_origin = f.get("origin", "").lower()
-    f_orig_city = f.get("origin_city", "").lower()
-    f_orig_code = f.get("origin_code", "").lower()
+    f_dest = f.get("destination", "")
+    f_dest_city = f.get("destination_city", "")
+    f_dest_code = f.get("destination_code", "")
 
-    f_dest = f.get("destination", "").lower()
-    f_dest_city = f.get("destination_city", "").lower()
-    f_dest_code = f.get("destination_code", "").lower()
-
-    orig_matches = (o in f_origin) or (o == f_orig_city) or (o == f_orig_code)
-    dest_matches = (d in f_dest) or (d == f_dest_city) or (d == f_dest_code)
-
-    return orig_matches and dest_matches
+    return _match_point(origin, f_orig, f_orig_city, f_orig_code) and _match_point(
+        destination, f_dest, f_dest_city, f_dest_code
+    )
 
 
 def _build_flight_leg(
@@ -87,6 +141,7 @@ def _build_flight_leg(
     max_price: float | None,
 ) -> Flight | None:
     """Формирует объект Flight с подстановкой даты и расчётом стоимости."""
+    travelers = max(1, travelers)
     price_per_person = float(f.get("price", 0.0))
     total_price = round(price_per_person * travelers, 2)
 
@@ -139,11 +194,8 @@ def search_flights(
     """
     Поиск авиабилетов по маршруту, дате отправления и возврата с расчётом цены.
     """
-    dep_date = (
-        date.fromisoformat(departure_date)
-        if isinstance(departure_date, str)
-        else departure_date
-    )
+    dep_date = _parse_date(departure_date)
+    travelers = max(1, travelers)
 
     raw_flights = _load_raw_flights(origin, destination)
     result: list[Flight] = []
@@ -157,11 +209,7 @@ def search_flights(
 
     # 2. Поиск обратного направления (return leg) если запрошен return_date
     if return_date is not None:
-        ret_date = (
-            date.fromisoformat(return_date)
-            if isinstance(return_date, str)
-            else return_date
-        )
+        ret_date = _parse_date(return_date)
         ret_raw_flights = _load_raw_flights(destination, origin)
         for f in ret_raw_flights:
             if _match_route(f, destination, origin):

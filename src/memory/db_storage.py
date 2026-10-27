@@ -90,6 +90,16 @@ async def init_db_and_seed() -> bool:
                 # 1. Создание схемы таблиц
                 await cur.execute(
                     """
+                    CREATE TABLE IF NOT EXISTS destinations (
+                        id TEXT PRIMARY KEY,
+                        city TEXT NOT NULL,
+                        country TEXT,
+                        region TEXT,
+                        payload JSONB NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_destinations_city ON destinations(city);
+                    CREATE INDEX IF NOT EXISTS idx_destinations_payload ON destinations USING gin (payload);
+
                     CREATE TABLE IF NOT EXISTS hotels (
                         id TEXT PRIMARY KEY,
                         city TEXT NOT NULL,
@@ -103,6 +113,7 @@ async def init_db_and_seed() -> bool:
                     );
                     CREATE INDEX IF NOT EXISTS idx_hotels_city ON hotels(city);
                     CREATE INDEX IF NOT EXISTS idx_hotels_pet ON hotels(pet_friendly);
+                    CREATE INDEX IF NOT EXISTS idx_hotels_payload ON hotels USING gin (payload);
 
                     CREATE TABLE IF NOT EXISTS flights (
                         id TEXT PRIMARY KEY,
@@ -112,6 +123,7 @@ async def init_db_and_seed() -> bool:
                         payload JSONB NOT NULL
                     );
                     CREATE INDEX IF NOT EXISTS idx_flights_route ON flights(origin, destination);
+                    CREATE INDEX IF NOT EXISTS idx_flights_payload ON flights USING gin (payload);
 
                     CREATE TABLE IF NOT EXISTS trains (
                         id TEXT PRIMARY KEY,
@@ -120,6 +132,8 @@ async def init_db_and_seed() -> bool:
                         train_number TEXT NOT NULL,
                         payload JSONB NOT NULL
                     );
+                    CREATE INDEX IF NOT EXISTS idx_trains_route ON trains(origin, destination);
+                    CREATE INDEX IF NOT EXISTS idx_trains_payload ON trains USING gin (payload);
 
                     CREATE TABLE IF NOT EXISTS transfers (
                         id TEXT PRIMARY KEY,
@@ -127,19 +141,43 @@ async def init_db_and_seed() -> bool:
                         destination TEXT NOT NULL,
                         payload JSONB NOT NULL
                     );
+                    CREATE INDEX IF NOT EXISTS idx_transfers_route ON transfers(origin, destination);
+                    CREATE INDEX IF NOT EXISTS idx_transfers_payload ON transfers USING gin (payload);
                     """
                 )
 
-                # 2. Проверка наполненности данными
+                # 2. Проверка наполненности данными и сидирование 5 датасетов
+                data_dir = get_data_dir()
+
+                # Сидирование направлений
+                await cur.execute("SELECT COUNT(*) FROM destinations;")
+                dest_row = await cur.fetchone()
+                if (dest_row[0] if dest_row else 0) == 0:
+                    dest_file = data_dir / "destinations.json"
+                    if dest_file.exists():
+                        with open(dest_file, encoding="utf-8") as f:
+                            destinations = json.load(f)
+                        for d in destinations:
+                            await cur.execute(
+                                """
+                                INSERT INTO destinations (id, city, country, region, payload)
+                                VALUES (%s, %s, %s, %s, %s)
+                                ON CONFLICT (id) DO NOTHING;
+                                """,
+                                (
+                                    d["id"],
+                                    d["city"],
+                                    d.get("country"),
+                                    d.get("region"),
+                                    Jsonb(d),
+                                ),
+                            )
+                        logger.info("Seeded %d destinations into database.", len(destinations))
+
+                # Сидирование отелей
                 await cur.execute("SELECT COUNT(*) FROM hotels;")
-                row = await cur.fetchone()
-                hotels_count = row[0] if row else 0
-
-                if hotels_count == 0:
-                    data_dir = get_data_dir()
-                    logger.info("Database is empty. Seeding travel datasets from %s...", data_dir)
-
-                    # Сидирование отелей
+                hotel_row = await cur.fetchone()
+                if (hotel_row[0] if hotel_row else 0) == 0:
                     hotels_file = data_dir / "hotels.json"
                     if hotels_file.exists():
                         with open(hotels_file, encoding="utf-8") as f:
@@ -165,7 +203,10 @@ async def init_db_and_seed() -> bool:
                             )
                         logger.info("Seeded %d hotels into database.", len(hotels))
 
-                    # Сидирование рейсов
+                # Сидирование рейсов
+                await cur.execute("SELECT COUNT(*) FROM flights;")
+                flight_row = await cur.fetchone()
+                if (flight_row[0] if flight_row else 0) == 0:
                     flights_file = data_dir / "flights.json"
                     if flights_file.exists():
                         with open(flights_file, encoding="utf-8") as f:
@@ -188,7 +229,10 @@ async def init_db_and_seed() -> bool:
                             )
                         logger.info("Seeded %d flights into database.", len(flights))
 
-                    # Сидирование поездов
+                # Сидирование поездов
+                await cur.execute("SELECT COUNT(*) FROM trains;")
+                train_row = await cur.fetchone()
+                if (train_row[0] if train_row else 0) == 0:
                     trains_file = data_dir / "trains.json"
                     if trains_file.exists():
                         with open(trains_file, encoding="utf-8") as f:
@@ -211,7 +255,10 @@ async def init_db_and_seed() -> bool:
                             )
                         logger.info("Seeded %d trains into database.", len(trains))
 
-                    # Сидирование трансферов
+                # Сидирование трансферов
+                await cur.execute("SELECT COUNT(*) FROM transfers;")
+                transfer_row = await cur.fetchone()
+                if (transfer_row[0] if transfer_row else 0) == 0:
                     transfers_file = data_dir / "transfers.json"
                     if transfers_file.exists():
                         with open(transfers_file, encoding="utf-8") as f:
@@ -231,8 +278,6 @@ async def init_db_and_seed() -> bool:
                                 ),
                             )
                         logger.info("Seeded %d transfers into database.", len(transfers))
-                else:
-                    logger.info("Database already seeded (%d hotels present).", hotels_count)
 
         _DB_AVAILABLE = True
         return True
@@ -247,7 +292,15 @@ async def init_db_and_seed() -> bool:
         return False
 
 
-def query_db(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any]] | None:
+async def seed_database_if_empty() -> bool:
+    """Инициализирует таблицы и наполняет пустую БД начальными данными."""
+    return await init_db_and_seed()
+
+
+def query_db(
+    query: str,
+    params: tuple[Any, ...] | list[Any] | dict[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
     """Выполняет синхронный SQL-запрос к PostgreSQL."""
     if not is_db_available():
         return None
@@ -255,14 +308,17 @@ def query_db(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any
         conn_str = get_postgres_connection_string()
         with psycopg.connect(conn_str, connect_timeout=2) as conn:
             with conn.cursor(row_factory=dict_row) as cur:
-                cur.execute(sql.SQL(cast(LiteralString, query)), params)
+                cur.execute(sql.SQL(cast(LiteralString, query)), params if params else None)
                 return cast(list[dict[str, Any]], cur.fetchall())
     except Exception as e:
         logger.warning("Database query execution failed (%s). Falling back to JSON.", e)
         return None
 
 
-def fetch_payloads(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any]] | None:
+def fetch_payloads(
+    query: str,
+    params: tuple[Any, ...] | list[Any] | dict[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
     """
     Выполняет SQL-запрос и извлекает столбец payload (JSONB) из каждой строки.
     Возвращает список словарей payload или None, если база недоступна.
@@ -273,7 +329,10 @@ def fetch_payloads(query: str, params: tuple | list | dict = ()) -> list[dict[st
     return [row["payload"] for row in rows if "payload" in row]
 
 
-async def aquery_db(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any]] | None:
+async def aquery_db(
+    query: str,
+    params: tuple[Any, ...] | list[Any] | dict[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
     """Выполняет асинхронный SQL-запрос к PostgreSQL."""
     if not is_db_available():
         return None
@@ -283,7 +342,7 @@ async def aquery_db(query: str, params: tuple | list | dict = ()) -> list[dict[s
             conn_str, connect_timeout=2
         ) as aconn:
             async with aconn.cursor(row_factory=dict_row) as cur:
-                await cur.execute(sql.SQL(cast(LiteralString, query)), params)
+                await cur.execute(sql.SQL(cast(LiteralString, query)), params if params else None)
                 return cast(list[dict[str, Any]], await cur.fetchall())
     except Exception as e:
         logger.warning("Async database query execution failed (%s). Falling back to JSON.", e)
