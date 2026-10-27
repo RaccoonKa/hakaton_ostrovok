@@ -469,3 +469,94 @@ def test_flights_dynamic_transit_synthesis():
     assert "Москва" in (transit_flight.transit_point or "")
     assert transit_flight.layover_duration is not None
     assert transit_flight.price is not None and transit_flight.price > 0
+
+
+def test_trains_regional_network():
+    """Тест поиска поездов по региональной сети: Казань, Нижний Новгород, Екатеринбург."""
+    # Казань -> Москва (001Г «Татарстан Премиум»)
+    t_kzn_mow = search_trains(origin="Казань", destination="Москва", departure_date="2026-07-01")
+    assert len(t_kzn_mow) >= 1
+    assert any("татарстан" in (t.conditions or "").lower() or "казань" in t.origin.lower() for t in t_kzn_mow)
+
+    # Нижний Новгород (синоним "НН") -> Москва (727М «Ласточка»)
+    t_nn_mow = search_trains(origin="НН", destination="Москва", departure_date="2026-07-01")
+    assert len(t_nn_mow) >= 1
+    assert any("ласточка" in (t.conditions or "").lower() for t in t_nn_mow)
+
+    # Екатеринбург -> Москва (055Е «Урал»)
+    t_ekb_mow = search_trains(origin="Екатеринбург", destination="Москва", departure_date="2026-07-01")
+    assert len(t_ekb_mow) >= 1
+    assert any("екатеринбург" in t.origin.lower() or "ярославский" in t.destination.lower() for t in t_ekb_mow)
+
+
+def test_trains_long_distance_day_offset():
+    """Тест дальних многодневных маршрутов со сдвигом на 2 дня (Северная Пальмира)."""
+    # Санкт-Петербург -> Адлер (035А, day_offset=2, в пути ~38 часов)
+    t_spb_aer = search_trains(origin="Санкт-Петербург", destination="Адлер", departure_date="2026-07-01")
+    assert len(t_spb_aer) >= 1
+    t035 = next((t for t in t_spb_aer if "пальмира" in (t.conditions or "").lower()), t_spb_aer[0])
+    assert t035.departure_at.date() == date(2026, 7, 1)
+    assert t035.arrival_at.date() == date(2026, 7, 3)  # +2 days
+    assert t035.duration is not None and t035.duration >= timedelta(hours=36)
+
+
+def test_trains_kaliningrad_yantar_visa_trap():
+    """Тест поезда 029Ч «Янтарь» в Калининград с транзитом через Литву (УПД-ЖД, заграничный паспорт)."""
+    t_kgd = search_trains(origin="Москва", destination="Калининград", departure_date="2026-07-01")
+    assert len(t_kgd) >= 1
+    yantar = next((t for t in t_kgd if "янтарь" in (t.conditions or "").lower()), t_kgd[0])
+    assert "УПД-ЖД" in (yantar.conditions or "")
+    assert "заграничный паспорт" in (yantar.conditions or "").lower()
+    assert yantar.departure_at.date() == date(2026, 7, 1)
+    assert yantar.arrival_at.date() == date(2026, 7, 2)  # +1 day
+
+
+def test_trains_transit_synthesis():
+    """Тест синтеза пересадки поезд-поезд через Москву (Казань -> Санкт-Петербург)."""
+    # Прямого поезда Казань -> СПб в базе нет, синтезируется пересадка 001Г (прибытие 07:10 на Казанский) -> 772А Сапсан (отправление 13:30 с Ленинградского)
+    t_kzn_spb = search_trains(origin="Казань", destination="Санкт-Петербург", departure_date="2026-07-01")
+    assert len(t_kzn_spb) >= 1
+    transit_t = t_kzn_spb[0]
+    assert transit_t.stops == 1
+    assert "Москва" in (transit_t.transit_point or "")
+    assert "Площадь трех вокзалов" in (transit_t.transit_point or "")
+    assert transit_t.layover_duration is not None
+    assert transit_t.layover_duration >= timedelta(minutes=30)
+    assert transit_t.arrival_at > transit_t.departure_at
+    assert transit_t.price is not None and transit_t.price > 0
+
+
+def test_trains_return_date_and_max_stops():
+    """Тест round-trip поиска поездов и фильтрации по max_stops."""
+    # Round-trip Москва <-> Санкт-Петербург
+    rt_trains = search_trains(
+        origin="Москва",
+        destination="Санкт-Петербург",
+        departure_date="2026-07-01",
+        return_date="2026-07-05",
+        travelers=2,
+    )
+    outbound = [t for t in rt_trains if t.departure_at.date() == date(2026, 7, 1)]
+    inbound = [t for t in rt_trains if t.departure_at.date() == date(2026, 7, 5)]
+    assert len(outbound) >= 2
+    assert len(inbound) >= 1
+
+    # max_stops=0 исключает синтезированные маршруты с пересадкой
+    direct_kzn_spb = search_trains(
+        origin="Казань",
+        destination="Санкт-Петербург",
+        departure_date="2026-07-01",
+        max_stops=0,
+    )
+    assert len(direct_kzn_spb) == 0
+
+    # max_stops=1 разрешает пересадку
+    transit_kzn_spb = search_trains(
+        origin="Казань",
+        destination="Санкт-Петербург",
+        departure_date="2026-07-01",
+        max_stops=1,
+    )
+    assert len(transit_kzn_spb) >= 1
+    assert transit_kzn_spb[0].stops == 1
+

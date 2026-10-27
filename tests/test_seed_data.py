@@ -144,16 +144,32 @@ def test_trains_json_valid():
     with open(trains_path, encoding="utf-8") as f:
         trains = json.load(f)
 
-    assert len(trains) >= 4
+    assert len(trains) >= 20
     train_numbers = {t["train_number"] for t in trains}
-    for req in ["104В", "103В", "772А", "771А"]:
-        assert req in train_numbers
+    for req in [
+        "104В", "103В", "772А", "771А",
+        "029Ч", "030Ч", "035А", "036А",
+        "001Г", "002Г", "727М", "732М",
+        "055Е", "056Е", "491Э", "492Э",
+        "079Ч", "080Ч",
+    ]:
+        assert req in train_numbers, f"Поезд {req} отсутствует в trains.json"
 
-    # Проверка 104В двухэтажный поезд
+    # Проверка 104В двухэтажный поезд (+1 день)
     train104 = next(t for t in trains if t["train_number"] == "104В")
     assert train104["departure_time"] == "10:52"
     assert train104["arrival_time"] == "10:32"
     assert train104["day_offset"] == 1
+
+    # Проверка 035А Северная Пальмира (+2 дня)
+    train035 = next(t for t in trains if t["train_number"] == "035А")
+    assert train035["day_offset"] == 2
+    assert train035["duration_minutes"] >= 2200
+
+    # Проверка 029Ч «Янтарь» транзитных требований Литвы
+    train029 = next(t for t in trains if t["train_number"] == "029Ч")
+    assert "УПД-ЖД" in train029.get("conditions", "")
+    assert "заграничный паспорт" in train029.get("conditions", "").lower()
 
     # Pydantic валидация
     for t in trains:
@@ -168,8 +184,11 @@ def test_trains_json_valid():
             price=t.get("price"),
             currency=Currency(t["currency"]) if t.get("currency") else None,
             conditions=t.get("conditions"),
+            stops=t.get("stops", 0),
+            transit_point=t.get("transit_point"),
         )
         assert t_obj.carrier == t["carrier"]
+        assert t_obj.stops == 0
 
 
 def test_transfers_json_valid():

@@ -72,6 +72,8 @@ export const flightSchema = z.object({
   currency: currencySchema.nullable().optional(),
   refundable: z.boolean().nullable().optional(),
   changeable: z.boolean().nullable().optional(),
+  transit_point: z.string().nullable().optional(),
+  layover_duration: z.string().nullable().optional(),
 });
 
 export const hotelSchema = z.object({
@@ -122,6 +124,9 @@ export const transportSchema = z.object({
   price: z.number().nonnegative().nullable().optional(),
   currency: currencySchema.nullable().optional(),
   conditions: z.string().nullable().optional(),
+  stops: z.number().int().nonnegative().default(0),
+  transit_point: z.string().nullable().optional(),
+  layover_duration: z.string().nullable().optional(),
 });
 
 export const itinerarySchema = z.object({
