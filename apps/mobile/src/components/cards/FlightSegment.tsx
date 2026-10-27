@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Flight, formatDuration } from "@corvax/shared";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 
 export interface FlightSegmentProps {
   flight: Flight;
@@ -16,7 +17,7 @@ export const FlightSegment: React.FC<FlightSegmentProps> = ({ flight, compact = 
     <View style={[styles.container, compact && styles.compactContainer]}>
       <View style={styles.topRow}>
         <View style={styles.routeCol}>
-          <Text style={styles.planeIcon}>✈️</Text>
+          <Icon name="plane" size={14} color={theme.colors.primary} />
           <Text style={styles.routeText}>
             {flight.origin} → {flight.destination}
           </Text>
@@ -64,9 +65,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     flex: 1,
-  },
-  planeIcon: {
-    fontSize: 13,
   },
   routeText: {
     fontSize: 13,

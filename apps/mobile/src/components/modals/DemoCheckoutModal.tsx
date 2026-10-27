@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TripOption, formatPrice, formatDateRange, PAYMENT_SIMULATION } from "@corvax/shared";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 import { TravelerEditModal, TravelerData } from "./TravelerEditModal";
 
 export interface DemoCheckoutModalProps {
@@ -94,7 +95,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               accessibilityLabel="Закрыть"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -105,7 +106,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
           >
             {/* Trust and Safety Banner */}
             <View style={styles.trustBanner}>
-              <Text style={styles.trustBannerIcon}>🛡️</Text>
+              <Icon name="shield" size={18} color="#047857" />
               <View style={styles.trustBannerContent}>
                 <Text style={styles.trustBannerTitle}>
                   Безопасное оформление бронирования
@@ -131,7 +132,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               <View style={styles.divider} />
 
               <View style={styles.paramRow}>
-                <Text style={styles.paramIcon}>✈️</Text>
+                <Icon name="plane" size={14} color={theme.colors.primary} />
                 <Text style={styles.paramText}>
                   {flight
                     ? `${flight.origin} ⇄ ${flight.destination} (${flight.carrier || "Air Arabia"}) • Багаж включён`
@@ -140,7 +141,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               </View>
 
               <View style={styles.paramRow}>
-                <Text style={styles.paramIcon}>👥</Text>
+                <Icon name="user" size={14} color={theme.colors.primary} />
                 <Text style={styles.paramText}>1 взрослый + 1 ребёнок (5 лет)</Text>
               </View>
             </View>
@@ -256,7 +257,7 @@ export const DemoCheckoutModal: React.FC<DemoCheckoutModalProps> = ({
               activeOpacity={0.8}
             >
               <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
-                {agreed && <Text style={styles.checkMark}>✓</Text>}
+                {agreed && <Icon name="check" size={12} color="#FFFFFF" />}
               </View>
               <Text style={styles.checkboxText}>
                 Я согласен с правилами бронирования и подтверждаю проведение тестовой транзакции

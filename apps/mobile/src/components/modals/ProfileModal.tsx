@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 
 export interface ProfileModalProps {
   visible: boolean;
@@ -63,7 +64,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               accessibilityLabel="Закрыть"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -75,7 +76,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             {/* User Identity Card */}
             <View style={styles.userCard}>
               <View style={styles.avatarLarge}>
-                <Text style={styles.avatarLargeText}>👤</Text>
+                <Icon name="user" size={24} color={theme.colors.primary} />
               </View>
               <View style={styles.userInfo}>
                 <Text style={styles.userName}>Алексей Смирнов</Text>

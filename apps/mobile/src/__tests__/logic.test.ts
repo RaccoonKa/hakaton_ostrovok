@@ -16,10 +16,10 @@ test("booking discount calculation matches production expectations", () => {
 
 test("quick reply suggestions are valid and informative", () => {
   const suggestions = [
-    "🔥 На выходные в Сочи до 50 000 ₽",
-    "✈️ В Калининград на 5 дней с перелётом",
-    "🏖️ Отели у моря с завтраком",
-    "🏨 5★ в центре Москвы на двоих",
+    "На выходные в Сочи до 50 000 ₽",
+    "В Калининград на 5 дней с перелётом",
+    "Отели у моря с завтраком",
+    "5★ в центре Москвы на двоих",
   ];
 
   assert.equal(suggestions.length, 4);

@@ -4,6 +4,7 @@ import { TripOption } from "@corvax/shared";
 import { theme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
+import { Icon } from "../common/Icon";
 
 export interface ChatMessageItemProps {
   message: MobileChatMessage;
@@ -19,10 +20,17 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   selectedOptionId,
 }) => {
   const isUser = message.role === "user";
+  const hasContent = Boolean(message.content && message.content.trim().length > 0);
+  const hasOptions = Boolean(message.tripOptions && message.tripOptions.length > 0);
+
+  // Guard against empty bubbles during state initialization or before first stream token
+  if (!hasContent && !hasOptions) {
+    return null;
+  }
 
   return (
     <View style={[styles.container, isUser ? styles.userContainer : styles.assistantContainer]}>
-      {/* Assistant Header with "О!" avatar badge, brand title and engine pill */}
+      {/* Assistant Header with "О!" avatar badge, brand title and timestamp */}
       {!isUser && (
         <View style={styles.assistantHeaderRow}>
           <View style={styles.assistantAvatar}>
@@ -33,31 +41,30 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             {message.timestamp && (
               <Text style={styles.assistantTimestamp}>• {message.timestamp}</Text>
             )}
-            <View style={styles.engineBadge}>
-              <Text style={styles.engineBadgeText}>Умный движок v2.4</Text>
-            </View>
           </View>
         </View>
       )}
 
       <View style={[styles.contentCol, isUser ? styles.userContentCol : styles.assistantContentCol]}>
-        <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-          <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
-            {message.content}
-          </Text>
+        {hasContent && (
+          <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
+            <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
+              {message.content}
+            </Text>
 
-          {isUser && (
-            <View style={styles.userMetaRow}>
-              {message.timestamp && (
-                <Text style={styles.userTimestamp}>{message.timestamp}</Text>
-              )}
-              <Text style={styles.readCheckmark}>✓✓</Text>
-            </View>
-          )}
-        </View>
+            {isUser && (
+              <View style={styles.userMetaRow}>
+                {message.timestamp && (
+                  <Text style={styles.userTimestamp}>{message.timestamp}</Text>
+                )}
+                <Icon name="check" size={12} color={theme.colors.primary} />
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Embedded trip options if provided in this message */}
-        {message.tripOptions && message.tripOptions.length > 0 && (
+        {hasOptions && message.tripOptions && (
           <View style={styles.tripOptionsList}>
             {message.tripOptions.map((opt) => (
               <TripCardMobile
@@ -113,7 +120,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    flexWrap: "wrap",
   },
   assistantBrandName: {
     fontSize: 13,
@@ -123,17 +129,6 @@ const styles = StyleSheet.create({
   assistantTimestamp: {
     fontSize: 11,
     color: theme.colors.textMuted,
-  },
-  engineBadge: {
-    backgroundColor: theme.colors.surfaceContainer,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  engineBadgeText: {
-    fontSize: 9,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
   },
   contentCol: {
     width: "100%",
@@ -183,11 +178,6 @@ const styles = StyleSheet.create({
   userTimestamp: {
     fontSize: 11,
     color: theme.colors.textMuted,
-  },
-  readCheckmark: {
-    fontSize: 12,
-    color: theme.colors.primary, // #581C87
-    fontWeight: "700",
   },
   tripOptionsList: {
     width: "100%",

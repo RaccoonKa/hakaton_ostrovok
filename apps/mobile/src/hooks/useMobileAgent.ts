@@ -49,7 +49,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     "Поиск: прямой рейс ≤ 5.5ч, t° воды ≥ +25°C, пологий берег"
   );
   const [isStreaming, setIsStreaming] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [checkoutOption, setCheckoutOption] = useState<TripOption | null>(null);
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
@@ -93,17 +92,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         "Анализ запроса: подбор перелетов, отелей и расчет параметров..."
       );
 
-      // Create an assistant placeholder message
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantMsgId,
-          role: "assistant",
-          content: "",
-          timestamp: timeStr,
-        },
-      ]);
-
       let accumulatedContent = "";
 
       try {
@@ -114,26 +102,51 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
             onToken: (token: string) => {
               accumulatedContent += token;
               setIsThinking(false);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, content: accumulatedContent }
-                    : msg
-                )
-              );
+              setMessages((prev) => {
+                const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
+                if (existingIndex >= 0) {
+                  return prev.map((msg) =>
+                    msg.id === assistantMsgId
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  );
+                }
+                return [
+                  ...prev,
+                  {
+                    id: assistantMsgId,
+                    role: "assistant",
+                    content: accumulatedContent,
+                    timestamp: formatCurrentTime(),
+                  },
+                ];
+              });
             },
             onTripOptions: (options: TripOption[]) => {
               setTripOptions(options);
               if (options.length > 0) {
                 setSelectedOption(options[0]);
               }
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === assistantMsgId
-                    ? { ...msg, tripOptions: options }
-                    : msg
-                )
-              );
+              setMessages((prev) => {
+                const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
+                if (existingIndex >= 0) {
+                  return prev.map((msg) =>
+                    msg.id === assistantMsgId
+                      ? { ...msg, tripOptions: options }
+                      : msg
+                  );
+                }
+                return [
+                  ...prev,
+                  {
+                    id: assistantMsgId,
+                    role: "assistant",
+                    content: accumulatedContent,
+                    timestamp: formatCurrentTime(),
+                    tripOptions: options,
+                  },
+                ];
+              });
             },
             onComplete: () => {
               setIsThinking(false);
@@ -143,9 +156,24 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               console.warn("Client message error:", err);
               setIsThinking(false);
               setIsStreaming(false);
-              // Fallback ensure options are populated
               setTripOptions(MOCK_TRIP_OPTIONS);
               setSelectedOption(MOCK_TRIP_OPTIONS[0]);
+              setMessages((prev) => {
+                const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
+                const fallbackMsg: MobileChatMessage = {
+                  id: assistantMsgId,
+                  role: "assistant",
+                  content:
+                    accumulatedContent ||
+                    "Я подобрал подходящие варианты путешествия с прямыми рейсами и проверенными отелями. Ознакомьтесь с предложениями ниже:",
+                  timestamp: formatCurrentTime(),
+                  tripOptions: MOCK_TRIP_OPTIONS,
+                };
+                if (existingIndex >= 0) {
+                  return prev.map((msg) => (msg.id === assistantMsgId ? fallbackMsg : msg));
+                }
+                return [...prev, fallbackMsg];
+              });
             },
           }
         );
@@ -155,6 +183,22 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         setIsStreaming(false);
         setTripOptions(MOCK_TRIP_OPTIONS);
         setSelectedOption(MOCK_TRIP_OPTIONS[0]);
+        setMessages((prev) => {
+          const existingIndex = prev.findIndex((m) => m.id === assistantMsgId);
+          const fallbackMsg: MobileChatMessage = {
+            id: assistantMsgId,
+            role: "assistant",
+            content:
+              accumulatedContent ||
+              "Я подобрал подходящие варианты путешествия с прямыми рейсами и проверенными отелями. Ознакомьтесь с предложениями ниже:",
+            timestamp: formatCurrentTime(),
+            tripOptions: MOCK_TRIP_OPTIONS,
+          };
+          if (existingIndex >= 0) {
+            return prev.map((msg) => (msg.id === assistantMsgId ? fallbackMsg : msg));
+          }
+          return [...prev, fallbackMsg];
+        });
       }
     },
     [isThinking]
@@ -205,10 +249,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setConfirmedBookingId(null);
   }, []);
 
-  const toggleListening = useCallback(() => {
-    setIsListening((prev) => !prev);
-  }, []);
-
   return {
     messages,
     tripOptions,
@@ -216,7 +256,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     isThinking,
     thinkingText,
     isStreaming,
-    isListening,
     checkoutVisible,
     checkoutOption,
     confirmedBookingId,
@@ -226,6 +265,5 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     closeCheckout,
     handleBookingConfirmed,
     resetChat,
-    toggleListening,
   };
 }

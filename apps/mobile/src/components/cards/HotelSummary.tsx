@@ -7,6 +7,7 @@ import {
 } from "@corvax/shared";
 import { theme } from "../../theme";
 import { PriceTag } from "./PriceTag";
+import { Icon } from "../common/Icon";
 
 export interface HotelSummaryProps {
   hotel: Hotel;
@@ -21,22 +22,35 @@ export const HotelSummary: React.FC<HotelSummaryProps> = ({ hotel, showPrice = f
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <View style={styles.titleCol}>
-          <Text style={styles.hotelName} numberOfLines={1}>
-            🏨 {hotel.hotel}
-          </Text>
+          <View style={styles.hotelTitleRow}>
+            <Icon name="hotel" size={15} color={theme.colors.primary} />
+            <Text style={styles.hotelName} numberOfLines={1}>
+              {hotel.hotel}
+            </Text>
+          </View>
           <Text style={styles.locationText}>{hotel.city}</Text>
         </View>
 
         {hotel.rating ? (
           <View style={styles.ratingBadge}>
-            <Text style={styles.ratingText}>★ {hotel.rating}</Text>
+            <Icon name="star" size={11} color="#B45309" filled />
+            <Text style={styles.ratingText}>{hotel.rating}</Text>
           </View>
         ) : null}
       </View>
 
       <View style={styles.infoRow}>
-        <Text style={styles.infoText}>📅 {dates}</Text>
-        {meal ? <Text style={styles.infoText}> • 🍽️ {meal}</Text> : null}
+        <View style={styles.infoItem}>
+          <Icon name="calendar" size={12} color={theme.colors.textMuted} />
+          <Text style={styles.infoText}>{dates}</Text>
+        </View>
+        {meal ? (
+          <View style={styles.infoItem}>
+            <Text style={styles.dotSeparator}>•</Text>
+            <Icon name="restaurant" size={12} color={theme.colors.textMuted} />
+            <Text style={styles.infoText}>{meal}</Text>
+          </View>
+        ) : null}
       </View>
 
       {hotel.amenities && hotel.amenities.length > 0 && (
@@ -81,17 +95,27 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 6,
   },
+  hotelTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   hotelName: {
     fontSize: 14,
     fontWeight: "700",
     color: theme.colors.textPrimary,
+    flex: 1,
   },
   locationText: {
     fontSize: 11,
     color: theme.colors.textSecondary,
     marginTop: 1,
+    marginLeft: 21,
   },
   ratingBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
     backgroundColor: "#FEF3C7",
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -106,6 +130,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
+    gap: 4,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  dotSeparator: {
+    fontSize: 10,
+    color: theme.colors.textMuted,
+    marginRight: 2,
   },
   infoText: {
     fontSize: 11,

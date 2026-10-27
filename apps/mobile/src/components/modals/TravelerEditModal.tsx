@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 
 export interface TravelerData {
   name: string;
@@ -72,7 +73,7 @@ export const TravelerEditModal: React.FC<TravelerEditModalProps> = ({
               accessibilityLabel="Закрыть"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={16} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 

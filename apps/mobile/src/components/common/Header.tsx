@@ -2,6 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
+import { Icon } from "./Icon";
 
 export interface HeaderProps {
   title?: string;
@@ -37,7 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               activeOpacity={0.7}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Icon name="arrow-left" size={18} color="#FFFFFF" />
             </TouchableOpacity>
           ) : (
             <View style={styles.leftButtons}>
@@ -48,17 +49,17 @@ export const Header: React.FC<HeaderProps> = ({
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.iconText}>☰</Text>
+                <Icon name="menu" size={18} color="#FFFFFF" />
               </TouchableOpacity>
               {onNewChatPress && (
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={onNewChatPress}
-                  accessibilityLabel="Новый диалог"
+                  accessibilityLabel="Очистить диалог"
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.iconText}>✎</Text>
+                  <Icon name="refresh" size={16} color="#FFFFFF" />
                 </TouchableOpacity>
               )}
             </View>
@@ -86,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             activeOpacity={0.7}
           >
-            <Text style={styles.avatarIcon}>👤</Text>
+            <Icon name="user" size={17} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -141,16 +142,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  iconText: {
-    fontSize: 16,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  backArrow: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
   title: {
     fontSize: 16,
     fontWeight: "700",
@@ -162,8 +153,5 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "rgba(255, 255, 255, 0.8)",
     marginTop: 1,
-  },
-  avatarIcon: {
-    fontSize: 15,
   },
 });

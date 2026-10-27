@@ -9,6 +9,7 @@ import {
 import { TripOption, formatPrice } from "@corvax/shared";
 import { theme } from "../../theme";
 import { PriceTag } from "./PriceTag";
+import { Icon } from "../common/Icon";
 
 export interface TripCardMobileProps {
   option: TripOption;
@@ -38,7 +39,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
       : "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80");
 
   const hotelRating = mainHotel?.rating || 4.8;
-  const ratingBadgeText = hotelRating >= 4.8 ? "4★ Оптимально" : "5★ Премиум";
+  const ratingBadgeText = hotelRating >= 4.8 ? "4.9 ★ Оптимально" : "4.8 ★ Премиум";
 
   return (
     <View style={[styles.card, isSelected && styles.selectedCard]}>
@@ -53,18 +54,18 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
           />
         ) : (
           <View style={styles.imageFallback}>
-            <Text style={styles.fallbackIcon}>🏨</Text>
+            <Icon name="hotel" size={32} color={theme.colors.primary} />
             <Text style={styles.fallbackText}>{mainHotel?.hotel || option.title}</Text>
           </View>
         )}
 
         {/* Top-Left Rating Pill */}
         <View style={styles.topRatingBadge}>
-          <Text style={styles.starIcon}>★</Text>
+          <Icon name="star" size={12} color="#F59E0B" filled />
           <Text style={styles.ratingBadgeLabel}>{ratingBadgeText}</Text>
         </View>
 
-        {/* Top-Right "Рекомендуем" badge */}
+        {/* Top-Right "Рекомендуем" badge matching web emerald style */}
         <View style={styles.topRecommendBadge}>
           <Text style={styles.recommendBadgeText}>Рекомендуем</Text>
         </View>
@@ -91,7 +92,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
 
           {option.score ? (
             <View style={styles.aiScoreBadge}>
-              <Text style={styles.aiScoreSparkle}>✦</Text>
+              <Icon name="sparkles" size={12} color={theme.colors.primary} />
               <Text style={styles.aiScoreText}>{option.score} / 100</Text>
             </View>
           ) : null}
@@ -104,23 +105,23 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
           </View>
         ) : null}
 
-        {/* Key Features Bullets */}
+        {/* Key Features Bullets with Clean Vector Icons */}
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🏖️</Text>
+            <Icon name="sun" size={14} color={theme.colors.primary} />
             <Text style={styles.featureText}>1-я береговая линия, пологий песчаный пляж</Text>
           </View>
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🍽️</Text>
+            <Icon name="restaurant" size={14} color={theme.colors.primary} />
             <Text style={styles.featureText}>Все включено (шведский стол + а-ля карт)</Text>
           </View>
           <View style={styles.featureItem}>
-            <Text style={styles.featureIcon}>🏊</Text>
+            <Icon name="water" size={14} color={theme.colors.primary} />
             <Text style={styles.featureText}>Подогреваемый бассейн и детская зона</Text>
           </View>
           {mainFlight ? (
             <View style={styles.featureItem}>
-              <Text style={styles.featureIcon}>✈️</Text>
+              <Icon name="plane" size={14} color={theme.colors.primary} />
               <Text style={styles.featureText}>
                 Прямой рейс {mainFlight.carrier || "Авиа"} • Багаж 20 кг включён
               </Text>
@@ -135,11 +136,15 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
           activeOpacity={0.7}
         >
           <View style={styles.expandButtonContent}>
-            <Text style={styles.timelineLabelIcon}>📅</Text>
+            <Icon name="calendar" size={14} color={theme.colors.textSecondary} />
             <Text style={styles.expandButtonText}>
               {isExpanded ? "Свернуть маршрут" : "Посмотреть маршрут по дням (4 этапа)"}
             </Text>
-            <Text style={styles.expandChevron}>{isExpanded ? "▲" : "▼"}</Text>
+            <Icon
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={14}
+              color={theme.colors.textSecondary}
+            />
           </View>
         </TouchableOpacity>
 
@@ -157,7 +162,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
             <View style={styles.timelineStep}>
               <View style={styles.timelineSpine}>
                 <View style={styles.timelineNodeCirclePrimary}>
-                  <Text style={styles.timelineNodeEmoji}>🛫</Text>
+                  <Icon name="plane" size={12} color="#FFFFFF" />
                 </View>
                 <View style={styles.timelineLine} />
               </View>
@@ -179,7 +184,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
             <View style={styles.timelineStep}>
               <View style={styles.timelineSpine}>
                 <View style={styles.timelineNodeCircle}>
-                  <Text style={styles.timelineNodeEmoji}>🚗</Text>
+                  <Icon name="bus" size={12} color={theme.colors.primary} />
                 </View>
                 <View style={styles.timelineLine} />
               </View>
@@ -199,7 +204,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
             <View style={styles.timelineStep}>
               <View style={styles.timelineSpine}>
                 <View style={styles.timelineNodeCircle}>
-                  <Text style={styles.timelineNodeEmoji}>🏨</Text>
+                  <Icon name="hotel" size={12} color={theme.colors.primary} />
                 </View>
                 <View style={styles.timelineLine} />
               </View>
@@ -219,7 +224,7 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
             <View style={styles.timelineStep}>
               <View style={styles.timelineSpine}>
                 <View style={styles.timelineNodeCircle}>
-                  <Text style={styles.timelineNodeEmoji}>🛬</Text>
+                  <Icon name="plane" size={12} color={theme.colors.primary} />
                 </View>
               </View>
               <View style={styles.timelineStepDetails}>
@@ -256,14 +261,17 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
                 onPress={() => onSelect(option)}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={[
-                    styles.selectButtonText,
-                    isSelected && styles.selectButtonTextActive,
-                  ]}
-                >
-                  {isSelected ? "✓ Выбран" : "Выбрать"}
-                </Text>
+                <View style={styles.buttonInner}>
+                  {isSelected && <Icon name="check" size={13} color="#FFFFFF" />}
+                  <Text
+                    style={[
+                      styles.selectButtonText,
+                      isSelected && styles.selectButtonTextActive,
+                    ]}
+                  >
+                    {isSelected ? "Выбран" : "Выбрать"}
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
 
@@ -273,7 +281,10 @@ export const TripCardMobile: React.FC<TripCardMobileProps> = ({
                 onPress={() => onBookDemo(option)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.bookButtonText}>Забронировать →</Text>
+                <View style={styles.buttonInner}>
+                  <Text style={styles.bookButtonText}>Забронировать</Text>
+                  <Icon name="arrow-right" size={13} color="#FFFFFF" />
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -316,9 +327,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceContainer,
     gap: 6,
   },
-  fallbackIcon: {
-    fontSize: 40,
-  },
   fallbackText: {
     fontSize: 14,
     fontWeight: "600",
@@ -331,103 +339,91 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(24, 24, 27, 0.85)",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.sm,
     gap: 4,
-  },
-  starIcon: {
-    color: theme.colors.star, // #F59E0B
-    fontSize: 13,
   },
   ratingBadgeLabel: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
   },
   topRecommendBadge: {
     position: "absolute",
     top: 12,
     right: 12,
-    backgroundColor: theme.colors.badgeRecommendBg, // #ECFDF5
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: "#ECFDF5",
     borderWidth: 1,
-    borderColor: "rgba(5, 150, 105, 0.2)",
+    borderColor: "#A7F3D0",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
   },
   recommendBadgeText: {
-    color: theme.colors.badgeRecommendText, // #047857
-    fontSize: 11,
+    color: "#047857",
+    fontSize: 10,
     fontWeight: "700",
+    letterSpacing: 0.2,
   },
   priceOverlayBadge: {
     position: "absolute",
     bottom: 12,
     right: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: "rgba(24, 24, 27, 0.88)",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.md,
     alignItems: "flex-end",
-    ...theme.shadows.sm,
   },
   savingsLabel: {
+    color: "rgba(255, 255, 255, 0.7)",
     fontSize: 10,
-    fontWeight: "600",
-    color: theme.colors.badgeRecommendText,
-    textTransform: "uppercase",
-    letterSpacing: 0.3,
+    fontWeight: "500",
   },
   priceOverlayValue: {
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.primary, // #581C87
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   contentBody: {
     padding: theme.spacing.md,
-    gap: 12,
   },
   headerInfo: {
     flexDirection: "row",
     alignItems: "flex-start",
     justifyContent: "space-between",
-    gap: 8,
+    marginBottom: theme.spacing.sm,
   },
   titleColumn: {
     flex: 1,
+    marginRight: 8,
   },
   destinationTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: theme.colors.primary, // #581C87
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 17,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    letterSpacing: -0.3,
   },
   hotelTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: theme.colors.textPrimary,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     marginTop: 2,
-    lineHeight: 23,
   },
   aiScoreBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.primaryLight, // #FAF5FF
+    gap: 4,
+    backgroundColor: theme.colors.surfaceContainer,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: "rgba(88, 28, 135, 0.2)",
-    gap: 4,
-  },
-  aiScoreSparkle: {
-    color: theme.colors.primary,
-    fontSize: 12,
+    borderColor: theme.colors.border,
   },
   aiScoreText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     color: theme.colors.primary,
   },
@@ -435,62 +431,53 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.canvasMuted,
     borderRadius: theme.borderRadius.md,
     padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    marginBottom: theme.spacing.sm,
   },
   descriptionText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
+    fontSize: 12,
     lineHeight: 18,
+    color: theme.colors.textSecondary,
   },
   featuresList: {
-    backgroundColor: theme.colors.surfaceContainer,
-    borderRadius: theme.borderRadius.lg,
-    padding: 12,
-    gap: 8,
+    gap: 6,
+    marginBottom: theme.spacing.md,
   },
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  featureIcon: {
-    fontSize: 15,
-  },
   featureText: {
-    fontSize: 13,
+    fontSize: 12,
     color: theme.colors.textPrimary,
-    fontWeight: "500",
     flex: 1,
   },
   expandButton: {
-    backgroundColor: theme.colors.surfaceContainer,
+    backgroundColor: theme.colors.canvasMuted,
     borderRadius: theme.borderRadius.md,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   expandButtonContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-  timelineLabelIcon: {
-    fontSize: 14,
+    justifyContent: "space-between",
   },
   expandButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  expandChevron: {
-    fontSize: 10,
-    color: theme.colors.textMuted,
+    color: theme.colors.textSecondary,
+    flex: 1,
+    marginHorizontal: 8,
   },
   timelineContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.canvasMuted,
     borderRadius: theme.borderRadius.lg,
     padding: 14,
+    marginBottom: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -498,108 +485,110 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 14,
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   timelineSectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
   timelineSynthesisBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.full,
     gap: 4,
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.full,
   },
   timelineSynthesisDot: {
-    fontSize: 6,
-    color: theme.colors.primary,
+    fontSize: 8,
+    color: "#059669",
   },
   timelineSynthesisText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.primary,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#047857",
   },
   timelineStep: {
     flexDirection: "row",
-    minHeight: 56,
+    marginBottom: 8,
   },
   timelineSpine: {
     alignItems: "center",
-    width: 32,
     marginRight: 10,
+    width: 24,
   },
   timelineNodeCirclePrimary: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.colors.primary, // #581C87
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   timelineNodeCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: theme.colors.surfaceContainer,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
     justifyContent: "center",
   },
-  timelineNodeEmoji: {
-    fontSize: 14,
-  },
   timelineLine: {
-    width: 2,
     flex: 1,
+    width: 2,
     backgroundColor: theme.colors.border,
-    marginVertical: 4,
+    marginVertical: 2,
+    minHeight: 24,
   },
   timelineStepDetails: {
     flex: 1,
-    paddingBottom: 14,
+    paddingBottom: 8,
   },
   stepHeader: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 6,
+    marginBottom: 2,
   },
   stepTime: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
   stepPill: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
-    color: theme.colors.textSecondary,
+    color: theme.colors.primary,
     backgroundColor: theme.colors.surfaceContainer,
     paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 1,
+    borderRadius: theme.borderRadius.xs,
   },
   stepTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: theme.colors.textPrimary,
-    marginTop: 2,
+    marginBottom: 2,
   },
   stepDescription: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-    lineHeight: 16,
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    lineHeight: 15,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingTop: theme.spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: 12,
-    marginTop: 4,
+    borderTopColor: theme.colors.border,
   },
   footerPriceCol: {
     flex: 1,
@@ -607,7 +596,6 @@ const styles = StyleSheet.create({
   footerPriceCaption: {
     fontSize: 11,
     color: theme.colors.textMuted,
-    fontWeight: "500",
     marginBottom: 2,
   },
   actionButtonGroup: {
@@ -615,40 +603,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  buttonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
   selectButton: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.surface,
+    paddingVertical: 9,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: theme.colors.surface,
   },
   selectButtonActive: {
-    backgroundColor: theme.colors.surfaceContainer,
+    backgroundColor: theme.colors.primary, // #581C87
     borderColor: theme.colors.primary,
   },
   selectButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
     color: theme.colors.textPrimary,
   },
   selectButtonTextActive: {
-    color: theme.colors.primary,
-    fontWeight: "700",
+    color: "#FFFFFF",
   },
   bookButton: {
+    backgroundColor: theme.colors.primary, // #581C87
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.secondary, // Ostrovok Orange #FF7A30
-    alignItems: "center",
-    justifyContent: "center",
+    paddingVertical: 9,
+    borderRadius: 10,
     ...theme.shadows.sm,
   },
   bookButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
   },

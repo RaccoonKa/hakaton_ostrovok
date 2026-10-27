@@ -11,6 +11,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { theme } from "./src/theme";
+import { Icon } from "./src/components/common/Icon";
 import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
 import { ChatInputBar } from "./src/components/chat/ChatInputBar";
@@ -37,7 +38,6 @@ function MainApp() {
     isThinking,
     thinkingText,
     isStreaming,
-    isListening,
     checkoutVisible,
     checkoutOption,
     sendMessage,
@@ -46,7 +46,6 @@ function MainApp() {
     closeCheckout,
     handleBookingConfirmed,
     resetChat,
-    toggleListening,
   } = useMobileAgent();
 
   const handleSend = () => {
@@ -58,19 +57,6 @@ function MainApp() {
 
   const handleSelectChip = (chipText: string) => {
     sendMessage(chipText);
-  };
-
-  const handleToggleVoiceInput = () => {
-    if (!isListening) {
-      toggleListening();
-      // Simulate real-time speech-to-text recognition
-      setTimeout(() => {
-        setInputText("Хочу к тёплому морю в ноябре с ребёнком 5 лет, бюджет до 200 000 рублей");
-        toggleListening();
-      }, 1800);
-    } else {
-      toggleListening();
-    }
   };
 
   const handleSelectHistorySession = (session: HistoryTripItem) => {
@@ -120,7 +106,7 @@ function MainApp() {
           {isInitialState && (
             <View style={styles.welcomeHero}>
               <View style={styles.heroIconBadge}>
-                <Text style={styles.heroIcon}>🌍</Text>
+                <Icon name="compass" size={26} color={theme.colors.primary} />
               </View>
               <Text style={styles.heroTitle}>Куда хотите поехать?</Text>
               <Text style={styles.heroDescription}>
@@ -138,12 +124,12 @@ function MainApp() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.starterChipIconBox}>
-                    <Text style={styles.starterIcon}>🏖️</Text>
+                    <Icon name="sun" size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.starterChipText} numberOfLines={1}>
                     Тёплое море в ноябре с ребёнком до 200 000 ₽
                   </Text>
-                  <Text style={styles.starterArrow}>↗</Text>
+                  <Icon name="arrow-up-right" size={16} color={theme.colors.textMuted} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -154,12 +140,12 @@ function MainApp() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.starterChipIconBox}>
-                    <Text style={styles.starterIcon}>⛷️</Text>
+                    <Icon name="mountain" size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.starterChipText} numberOfLines={1}>
                     Горные лыжи в Сочи на двоих в январе
                   </Text>
-                  <Text style={styles.starterArrow}>↗</Text>
+                  <Icon name="arrow-up-right" size={16} color={theme.colors.textMuted} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -170,12 +156,12 @@ function MainApp() {
                   activeOpacity={0.7}
                 >
                   <View style={styles.starterChipIconBox}>
-                    <Text style={styles.starterIcon}>🏛️</Text>
+                    <Icon name="building" size={18} color={theme.colors.primary} />
                   </View>
                   <Text style={styles.starterChipText} numberOfLines={1}>
                     Выходные в Стамбуле: уютный бутик-отель
                   </Text>
-                  <Text style={styles.starterArrow}>↗</Text>
+                  <Icon name="arrow-up-right" size={16} color={theme.colors.textMuted} />
                 </TouchableOpacity>
               </View>
 
@@ -185,17 +171,9 @@ function MainApp() {
                 onPress={() => setHistoryVisible(true)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.historyLinkIcon}>🕒</Text>
+                <Icon name="clock" size={14} color={theme.colors.textSecondary} />
                 <Text style={styles.historyLinkText}>История диалогов</Text>
               </TouchableOpacity>
-
-              {/* Step Synthesis Feature Badge */}
-              <View style={styles.heroFeatureBadge}>
-                <Text style={styles.heroFeatureIcon}>⚡</Text>
-                <Text style={styles.heroFeatureText}>
-                  Синтез билетов, жилья и трансферов за один шаг
-                </Text>
-              </View>
             </View>
           )}
 
@@ -252,10 +230,10 @@ function MainApp() {
           chips={
             tripOptions.length > 0
               ? [
-                  "🏨 Показать отели в ОАЭ",
-                  "⚖️ Сравнить отели",
-                  "📅 А если на 2 дня позже?",
-                  "✈️ Только прямые рейсы",
+                  "Показать отели в ОАЭ",
+                  "Сравнить отели",
+                  "А если на 2 дня позже?",
+                  "Только прямые рейсы",
                 ]
               : undefined
           }
@@ -268,10 +246,7 @@ function MainApp() {
           onChangeText={setInputText}
           onSend={handleSend}
           disabled={isThinking || isStreaming}
-          isListening={isListening}
-          onToggleMic={handleToggleVoiceInput}
           onFilterPress={() => setFiltersVisible(true)}
-          placeholder="Например: Хочу к теплому морю в ноябре..."
         />
 
         {/* Booking & Checkout Modal */}
@@ -399,11 +374,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     flex: 1,
   },
-  starterArrow: {
-    fontSize: 16,
-    color: theme.colors.primary, // #581C87
-    fontWeight: "600",
-  },
   historyLink: {
     flexDirection: "row",
     alignItems: "center",
@@ -414,30 +384,10 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surfaceContainer,
   },
-  historyLinkIcon: {
-    fontSize: 13,
-  },
   historyLinkText: {
     fontSize: 12,
     fontWeight: "600",
     color: theme.colors.textSecondary,
-  },
-  heroFeatureBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  heroFeatureIcon: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-  },
-  heroFeatureText: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontWeight: "500",
   },
   messagesList: {
     gap: 12,

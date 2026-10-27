@@ -17,8 +17,10 @@ export interface QuickReplyChipsProps {
 }
 
 export const DEFAULT_QUICK_CHIPS: readonly string[] = [
-  ...SHARED_QUICK_CHIPS,
-  ...SHARED_SUGGESTIONS.slice(0, 2),
+  "Показать отели в ОАЭ",
+  "Только прямые рейсы",
+  "Сравнить отели",
+  "А если на 2 дня позже?",
 ];
 
 export const QuickReplyChips: React.FC<QuickReplyChipsProps> = ({

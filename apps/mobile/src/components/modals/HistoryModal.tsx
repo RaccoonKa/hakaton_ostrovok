@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 
 export interface HistoryTripItem {
   id: string;
@@ -17,7 +18,7 @@ export interface HistoryTripItem {
   dates: string;
   price: string;
   previewPrompt: string;
-  icon: string;
+  iconName?: "sun" | "mountain" | "building";
 }
 
 export interface HistoryModalProps {
@@ -35,7 +36,7 @@ export const INITIAL_HISTORY: HistoryTripItem[] = [
     dates: "14–21 ноября (7 ночей)",
     price: "163 900 ₽",
     previewPrompt: "Тёплое море в ноябре с ребёнком до 200 000 ₽",
-    icon: "🏖️",
+    iconName: "sun",
   },
   {
     id: "hist-2",
@@ -44,7 +45,7 @@ export const INITIAL_HISTORY: HistoryTripItem[] = [
     dates: "5–10 января (5 ночей)",
     price: "98 000 ₽",
     previewPrompt: "Горные лыжи в Сочи на двоих в январе",
-    icon: "⛷️",
+    iconName: "mountain",
   },
   {
     id: "hist-3",
@@ -53,7 +54,7 @@ export const INITIAL_HISTORY: HistoryTripItem[] = [
     dates: "12–15 октября (3 ночи)",
     price: "64 000 ₽",
     previewPrompt: "Выходные в Стамбуле: уютный бутик-отель",
-    icon: "🏛️",
+    iconName: "building",
   },
 ];
 
@@ -99,7 +100,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               accessibilityLabel="Закрыть"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -113,7 +114,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
               }}
               activeOpacity={0.8}
             >
-              <Text style={styles.newChatIcon}>✎</Text>
+              <Icon name="refresh" size={15} color="#FFFFFF" />
               <Text style={styles.newChatText}>Начать новый диалог</Text>
             </TouchableOpacity>
           </View>
@@ -143,7 +144,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     activeOpacity={0.7}
                   >
                     <View style={styles.itemIconBox}>
-                      <Text style={styles.itemIcon}>{item.icon}</Text>
+                      <Icon name={item.iconName || "sun"} size={16} color={theme.colors.primary} />
                     </View>
 
                     <View style={styles.itemDetails}>
@@ -169,7 +170,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                     accessibilityLabel="Удалить из истории"
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
-                    <Text style={styles.deleteIcon}>🗑️</Text>
+                    <Icon name="close" size={14} color={theme.colors.textMuted} />
                   </TouchableOpacity>
                 </View>
               ))

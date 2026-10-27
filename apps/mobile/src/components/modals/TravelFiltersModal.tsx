@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
+import { Icon } from "../common/Icon";
 
 export interface TravelFiltersModalProps {
   visible: boolean;
@@ -66,7 +67,7 @@ export const TravelFiltersModal: React.FC<TravelFiltersModalProps> = ({
               accessibilityLabel="Закрыть"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={styles.closeBtnText}>✕</Text>
+              <Icon name="close" size={18} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
