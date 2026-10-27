@@ -1,0 +1,235 @@
+[
+  {
+    "train_number": "104В",
+    "train_name": "Двухэтажный состав",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Москва (Казанский вокзал)",
+    "destination": "Адлер / Сочи (Вокзал Адлер)",
+    "origin_city": "Москва",
+    "destination_city": "Сочи",
+    "departure_time": "10:52",
+    "arrival_time": "10:32",
+    "day_offset": 1,
+    "duration": "PT23H40M",
+    "duration_minutes": 1420,
+    "price": 5800.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 5800.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс двухместный)",
+        "price": 16500.0
+      }
+    ],
+    "conditions": "Фирменный скорый двухэтажный поезд. Кондиционер, биотуалеты, Wi-Fi, купе с питанием и прессой.",
+    "reference_departure": "2026-07-01T10:52:00+03:00",
+    "reference_arrival": "2026-07-02T10:32:00+03:00",
+    "tags": [
+      "double_decker",
+      "branded",
+      "comfortable_rail"
+    ],
+    "notes": "Фирменный двухэтажный поезд до Адлера/Сочи. В пути 23ч 40мин."
+  },
+  {
+    "train_number": "103В",
+    "train_name": "Двухэтажный состав",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Адлер / Сочи (Вокзал Адлер)",
+    "destination": "Москва (Казанский вокзал)",
+    "origin_city": "Сочи",
+    "destination_city": "Москва",
+    "departure_time": "19:08",
+    "arrival_time": "18:40",
+    "day_offset": 1,
+    "duration": "PT23H32M",
+    "duration_minutes": 1412,
+    "price": 5800.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 5800.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 16500.0
+      }
+    ],
+    "conditions": "Фирменный скорый двухэтажный поезд. Кондиционер, биотуалеты, ресторан.",
+    "reference_departure": "2026-07-08T19:08:00+03:00",
+    "reference_arrival": "2026-07-09T18:40:00+03:00",
+    "tags": [
+      "return",
+      "double_decker",
+      "branded"
+    ],
+    "notes": "Обратный фирменный поезд из Сочи/Адлера в Москву."
+  },
+  {
+    "train_number": "772А",
+    "train_name": "Сапсан",
+    "carrier": "РЖД Сапсан",
+    "transport_type": "train",
+    "origin": "Москва (Ленинградский вокзал)",
+    "destination": "Санкт-Петербург (Московский вокзал)",
+    "origin_city": "Москва",
+    "destination_city": "Санкт-Петербург",
+    "departure_time": "13:30",
+    "arrival_time": "17:20",
+    "day_offset": 0,
+    "duration": "PT3H50M",
+    "duration_minutes": 230,
+    "price": 3800.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "economy",
+        "name": "Эконом-класс",
+        "price": 3800.0
+      },
+      {
+        "class_type": "comfort",
+        "name": "Эконом-плюс",
+        "price": 5100.0
+      },
+      {
+        "class_type": "business",
+        "name": "Бизнес-класс с питанием",
+        "price": 8900.0
+      }
+    ],
+    "conditions": "Высокоскоростной поезд «Сапсан». Скорость до 250 км/ч, медиацентр, розетки у каждого места, кулер с водой.",
+    "reference_departure": "2026-07-01T13:30:00+03:00",
+    "reference_arrival": "2026-07-01T17:20:00+03:00",
+    "tags": [
+      "high_speed",
+      "sapsan",
+      "central_to_central"
+    ],
+    "notes": "Скоростной Сапсан из центра Москвы в центр Петербурга ровно за 3ч 50мин."
+  },
+  {
+    "train_number": "771А",
+    "train_name": "Сапсан",
+    "carrier": "РЖД Сапсан",
+    "transport_type": "train",
+    "origin": "Санкт-Петербург (Московский вокзал)",
+    "destination": "Москва (Ленинградский вокзал)",
+    "origin_city": "Санкт-Петербург",
+    "destination_city": "Москва",
+    "departure_time": "15:00",
+    "arrival_time": "18:50",
+    "day_offset": 0,
+    "duration": "PT3H50M",
+    "duration_minutes": 230,
+    "price": 3800.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "economy",
+        "name": "Эконом-класс",
+        "price": 3800.0
+      },
+      {
+        "class_type": "business",
+        "name": "Бизнес-класс",
+        "price": 8900.0
+      }
+    ],
+    "conditions": "Высокоскоростной поезд «Сапсан».",
+    "reference_departure": "2026-07-08T15:00:00+03:00",
+    "reference_arrival": "2026-07-08T18:50:00+03:00",
+    "tags": [
+      "return",
+      "high_speed",
+      "sapsan"
+    ],
+    "notes": "Обратный дневной Сапсан из Санкт-Петербурга в Москву."
+  },
+  {
+    "train_number": "756А",
+    "train_name": "Сапсан",
+    "carrier": "РЖД Сапсан",
+    "transport_type": "train",
+    "origin": "Москва (Ленинградский вокзал)",
+    "destination": "Санкт-Петербург (Московский вокзал)",
+    "origin_city": "Москва",
+    "destination_city": "Санкт-Петербург",
+    "departure_time": "07:00",
+    "arrival_time": "10:45",
+    "day_offset": 0,
+    "duration": "PT3H45M",
+    "duration_minutes": 225,
+    "price": 4200.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "economy",
+        "name": "Эконом",
+        "price": 4200.0
+      },
+      {
+        "class_type": "business",
+        "name": "Бизнес",
+        "price": 9400.0
+      }
+    ],
+    "conditions": "Утренний экспресс Сапсан.",
+    "reference_departure": "2026-07-01T07:00:00+03:00",
+    "reference_arrival": "2026-07-01T10:45:00+03:00",
+    "tags": [
+      "morning",
+      "high_speed",
+      "sapsan"
+    ],
+    "notes": "Самый ранний скоростной рейс Сапсана."
+  },
+  {
+    "train_number": "054Ч",
+    "train_name": "Гранд Экспресс",
+    "carrier": "Гранд Сервис Экспресс",
+    "transport_type": "train",
+    "origin": "Москва (Ленинградский вокзал)",
+    "destination": "Санкт-Петербург (Московский вокзал)",
+    "origin_city": "Москва",
+    "destination_city": "Санкт-Петербург",
+    "departure_time": "23:40",
+    "arrival_time": "08:36",
+    "day_offset": 1,
+    "duration": "PT8H56M",
+    "duration_minutes": 536,
+    "price": 6400.0,
+    "currency": "RUB",
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Премиум Купе",
+        "price": 6400.0
+      },
+      {
+        "class_type": "grand_single",
+        "name": "Гранд Сингл с душем",
+        "price": 18500.0
+      }
+    ],
+    "conditions": "Ночной поезд-отель повышенной комфортности. Завтрак включен, приватные купе с душем.",
+    "reference_departure": "2026-07-01T23:40:00+03:00",
+    "reference_arrival": "2026-07-02T08:36:00+03:00",
+    "tags": [
+      "hotel_train",
+      "night",
+      "luxury"
+    ],
+    "notes": "Легендарный отель на колесах, прибытие прямо к началу рабочего/экскурсионного дня в СПб."
+  }
+]

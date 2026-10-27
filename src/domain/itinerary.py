@@ -10,6 +10,7 @@ from domain.route import RouteStop
 from domain.transfer import Transfer
 from domain.transport import Transport
 
+
 # для реализации туров
 class Itinerary(BaseModel):
     """Последовательность элементов путешествия."""

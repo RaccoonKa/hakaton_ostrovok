@@ -76,6 +76,7 @@ def get_model(model_name: AllModelEnum, /) -> ModelT:
     if model_name in GigaChatModelName:
         if not settings.GIGACHAT_CREDENTIALS:
             raise ValueError("GigaChat credentials must be configured")
+
         return GigaChat(
             credentials=settings.GIGACHAT_CREDENTIALS.get_secret_value(),
             model=api_model_name,
