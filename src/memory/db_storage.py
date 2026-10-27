@@ -1,14 +1,14 @@
 """
-PostgreSQL 16 хранилище сущностей туризма (отели, перелёты, поезда, трансферы)
-с поддержкой автосидирования и fallback на локальные data/*.json.
+PostgreSQL хранилище сущностей туризма с поддержкой автосидирования и fallback на data/*.json.
 """
 
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, LiteralString, cast
 
 import psycopg
+from psycopg import sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
@@ -248,18 +248,15 @@ async def init_db_and_seed() -> bool:
 
 
 def query_db(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any]] | None:
-    """
-    Выполняет синхронный SQL-запрос к PostgreSQL.
-    Если база недоступна или запрос завершился ошибкой, возвращает None.
-    """
+    """Выполняет синхронный SQL-запрос к PostgreSQL."""
     if not is_db_available():
         return None
     try:
         conn_str = get_postgres_connection_string()
-        with psycopg.connect(conn_str, connect_timeout=2, row_factory=dict_row) as conn:
-            with conn.cursor() as cur:
-                cur.execute(query, params)
-                return cur.fetchall()
+        with psycopg.connect(conn_str, connect_timeout=2) as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(sql.SQL(cast(LiteralString, query)), params)
+                return cast(list[dict[str, Any]], cur.fetchall())
     except Exception as e:
         logger.warning("Database query execution failed (%s). Falling back to JSON.", e)
         return None
@@ -277,20 +274,17 @@ def fetch_payloads(query: str, params: tuple | list | dict = ()) -> list[dict[st
 
 
 async def aquery_db(query: str, params: tuple | list | dict = ()) -> list[dict[str, Any]] | None:
-    """
-    Выполняет асинхронный SQL-запрос к PostgreSQL.
-    Если база недоступна или запрос завершился ошибкой, возвращает None.
-    """
+    """Выполняет асинхронный SQL-запрос к PostgreSQL."""
     if not is_db_available():
         return None
     try:
         conn_str = get_postgres_connection_string()
         async with await psycopg.AsyncConnection.connect(
-            conn_str, connect_timeout=2, row_factory=dict_row
+            conn_str, connect_timeout=2
         ) as aconn:
-            async with aconn.cursor() as cur:
-                await cur.execute(query, params)
-                return await cur.fetchall()
+            async with aconn.cursor(row_factory=dict_row) as cur:
+                await cur.execute(sql.SQL(cast(LiteralString, query)), params)
+                return cast(list[dict[str, Any]], await cur.fetchall())
     except Exception as e:
         logger.warning("Async database query execution failed (%s). Falling back to JSON.", e)
         return None
