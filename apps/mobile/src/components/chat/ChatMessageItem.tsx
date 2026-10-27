@@ -23,9 +23,10 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
   onSelectChip,
   selectedOptionId,
 }) => {
-  const isUser = message.role === "user";
+  const isUser = message.role === "user" || message.type === "human";
   const hasContent = Boolean(message.content && message.content.trim().length > 0);
-  const hasOptions = Boolean(message.tripOptions && message.tripOptions.length > 0);
+  const optionsToRender = message.trip_options || message.tripOptions;
+  const hasOptions = Boolean(optionsToRender && optionsToRender.length > 0);
   const isThinking = Boolean(message.isThinking);
 
   // Guard against uninitialized empty bubbles
@@ -69,9 +70,16 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
               {message.content}
             </Text>
 
-            {/* Inline Clarification Chips for assistant turn (1:1 with Web AssistantMessage) */}
+            {/* Inline Clarification / Dynamic Suggestion Chips for assistant turn */}
             {showClarification && (
-              <ClarificationChipsMobile onSelectChip={onSelectChip} />
+              <ClarificationChipsMobile
+                chips={
+                  message.suggestions && message.suggestions.length > 0
+                    ? message.suggestions
+                    : undefined
+                }
+                onSelectChip={onSelectChip}
+              />
             )}
 
             {isUser && (
@@ -86,9 +94,9 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
         )}
 
         {/* Embedded trip options if provided in this message */}
-        {hasOptions && message.tripOptions && (
+        {hasOptions && optionsToRender && (
           <View style={styles.tripOptionsList}>
-            {message.tripOptions.map((opt) => (
+            {optionsToRender.map((opt: TripOption) => (
               <TripCardMobile
                 key={opt.id || opt.title}
                 option={opt}

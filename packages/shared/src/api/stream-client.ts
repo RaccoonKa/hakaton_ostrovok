@@ -100,6 +100,9 @@ export class FastApiStreamClient {
                     if (msg.custom_data?.trip_options) {
                       callbacks.onTripOptions?.(normalizeTripOptions(msg.custom_data.trip_options));
                     }
+                    if (Array.isArray(msg.custom_data?.suggestions) && msg.custom_data.suggestions.length > 0) {
+                      callbacks.onSuggestions?.(msg.custom_data.suggestions);
+                    }
                     break;
                   }
                   case "error":

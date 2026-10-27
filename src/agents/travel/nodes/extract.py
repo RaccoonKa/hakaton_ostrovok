@@ -76,6 +76,17 @@ def call_extract(state: TravelState | dict) -> dict:
         # Несколько городов без выбора — направление не выбрано.
         destination_confirmed = False
 
+    # Если пользователь отверг страны или города, фильтруем кандидатов
+    if patch.excluded_countries or patch.excluded_destinations:
+        ex_countries = set(patch.excluded_countries or [])
+        ex_cities = set(patch.excluded_destinations or [])
+        candidates = [
+            c for c in candidates
+            if c.country not in ex_countries and c.city not in ex_cities
+        ]
+        if not request_confirmed:
+            destination_confirmed = False
+
     request = merge_user_request(current_request, patch)
 
     # Город вылета по умолчанию, если пользователь его не указал.

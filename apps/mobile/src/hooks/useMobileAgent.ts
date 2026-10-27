@@ -2,8 +2,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { NativeModules } from "react-native";
 import {
   TripOption,
-  MOCK_TRIP_OPTIONS,
   TravelApiClient,
+  normalizeTripOptions,
+  UnifiedChatMessage,
 } from "@corvax/shared";
 import { MobileChatMessage } from "../types";
 
@@ -29,34 +30,23 @@ function getDefaultBackendUrl(): string {
     if (match && match[1]) {
       const host = match[1];
       if (host.includes("exp.direct") || host.includes("ngrok")) {
-        return "http://10.238.31.123:8000";
+        return "http://192.168.1.79:8000";
       }
       return `http://${host}:8000`;
     }
   }
-  return "http://10.238.31.123:8000";
+  return "http://192.168.1.79:8000";
 }
 
 export function useMobileAgent(options: UseMobileAgentOptions = {}) {
-  const [messages, setMessages] = useState<MobileChatMessage[]>([]);
-  const [historySessions, setHistorySessions] = useState<HistorySessionRecord[]>([
-    {
-      id: "hist-default-1",
-      query: "Тёплое море в ноябре с ребёнком до 200 000 ₽",
-      timestamp: "Сегодня",
-    },
-    {
-      id: "hist-default-2",
-      query: "Горные лыжи в Сочи на двоих в январе",
-      timestamp: "Вчера",
-    },
-  ]);
+  const [messages, setMessages] = useState<UnifiedChatMessage[]>([]);
+  const [historySessions, setHistorySessions] = useState<HistorySessionRecord[]>([]);
 
   const [tripOptions, setTripOptions] = useState<TripOption[]>([]);
   const [selectedOption, setSelectedOption] = useState<TripOption | null>(null);
   const [isThinking, setIsThinking] = useState(false);
   const [thinkingText, setThinkingText] = useState(
-    "Поиск: прямой рейс ≤ 5.5ч, t° воды ≥ +25°C, пологий берег"
+    "Анализирую параметры поездки и подбираю варианты..."
   );
   const [isStreaming, setIsStreaming] = useState(false);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
@@ -64,6 +54,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   const [confirmedBookingId, setConfirmedBookingId] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const threadIdRef = useRef<string | null>(null);
   const timer1Ref = useRef<any>(null);
   const timer2Ref = useRef<any>(null);
 
@@ -78,6 +69,10 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     }
   }, []);
 
+  const [backendUrl, setBackendUrlState] = useState<string>(
+    options.baseUrl || getDefaultBackendUrl()
+  );
+
   const clientRef = useRef<TravelApiClient>(
     new TravelApiClient({
       baseUrl: options.baseUrl || getDefaultBackendUrl(),
@@ -85,6 +80,15 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       useAgUi: false,
     })
   );
+
+  const setBackendUrl = useCallback((url: string) => {
+    setBackendUrlState(url);
+    clientRef.current = new TravelApiClient({
+      baseUrl: url,
+      agentId: "travel_agent",
+      useAgUi: false,
+    });
+  }, []);
 
   const formatCurrentTime = () => {
     const d = new Date();
@@ -183,12 +187,16 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         }
       }, 1500);
 
+      if (!threadIdRef.current) {
+        threadIdRef.current = `mobile-session-${Date.now()}`;
+      }
+
       let accumulatedContent = "";
 
       try {
         await clientRef.current.sendMessage(
           trimmed,
-          { mockFallback: true },
+          { threadId: threadIdRef.current, mockFallback: false },
           {
             onToken: (token: string) => {
               clearTimers();
@@ -206,14 +214,68 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                 )
               );
             },
+            onMessage: (msg: any) => {
+              clearTimers();
+              setIsThinking(false);
+              setIsStreaming(false);
+
+              const content = typeof msg === "string" ? msg : msg.content || "";
+              const rawOptions =
+                msg.custom_data?.trip_options || msg.additional_kwargs?.trip_options;
+              const normalized = rawOptions
+                ? normalizeTripOptions(rawOptions)
+                : undefined;
+              const suggestions =
+                msg.custom_data?.suggestions ||
+                msg.additional_kwargs?.suggestions ||
+                [];
+
+              if (normalized) {
+                setTripOptions(normalized);
+              }
+
+              if (content) {
+                accumulatedContent = content;
+              }
+
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        isThinking: false,
+                        content: content || m.content,
+                        trip_options: normalized ?? m.trip_options,
+                        tripOptions: normalized ?? m.tripOptions,
+                        suggestions:
+                          suggestions.length > 0 ? suggestions : m.suggestions,
+                      }
+                    : m
+                )
+              );
+            },
             onTripOptions: (options: TripOption[]) => {
-              setTripOptions(options);
+              const normalized = normalizeTripOptions(options);
+              setTripOptions(normalized);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === assistantMsgId
                     ? {
                         ...msg,
-                        tripOptions: options,
+                        trip_options: normalized,
+                        tripOptions: normalized,
+                      }
+                    : msg
+                )
+              );
+            },
+            onSuggestions: (sugs: string[]) => {
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        suggestions: sugs,
                       }
                     : msg
                 )
@@ -239,8 +301,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               console.warn("Client message error:", err);
               setIsThinking(false);
               setIsStreaming(false);
-              setTripOptions(MOCK_TRIP_OPTIONS);
-              setSelectedOption(null);
               setMessages((prev) =>
                 prev.map((msg) =>
                   msg.id === assistantMsgId
@@ -249,8 +309,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                         isThinking: false,
                         content:
                           accumulatedContent ||
-                          "Я подобрал подходящие варианты путешествия с прямыми рейсами и проверенными отелями. Ознакомьтесь с предложениями ниже:",
-                        tripOptions: MOCK_TRIP_OPTIONS,
+                          "Не удалось получить ответ от ассистента. Проверьте соединение с сервером.",
                       }
                     : msg
                 )
@@ -264,8 +323,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
         console.warn("Error sending message:", err);
         setIsThinking(false);
         setIsStreaming(false);
-        setTripOptions(MOCK_TRIP_OPTIONS);
-        setSelectedOption(null);
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === assistantMsgId
@@ -274,8 +331,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                   isThinking: false,
                   content:
                     accumulatedContent ||
-                    "Я подобрал подходящие варианты путешествия с прямыми рейсами и проверенными отелями. Ознакомьтесь с предложениями ниже:",
-                  tripOptions: MOCK_TRIP_OPTIONS,
+                    "Ошибка подключения к сервису. Попробуйте повторить запрос позже.",
                 }
               : msg
           )
@@ -315,6 +371,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
 
   const resetChat = useCallback(() => {
     cancelRequest();
+    threadIdRef.current = null;
     setMessages([]);
     setTripOptions([]);
     setSelectedOption(null);
@@ -334,6 +391,8 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     checkoutOption,
     confirmedBookingId,
     historySessions,
+    backendUrl,
+    setBackendUrl,
     sendMessage,
     selectOption,
     openCheckout,

@@ -1,3 +1,7 @@
+import { formatFilterQuery, formatGuestsCount } from "@corvax/shared";
+
+export { formatGuestsCount };
+
 export const ORIGIN_CITIES = [
   { label: "Любой", val: "" },
   { label: "Москва (MOW)", val: "Москва" },
@@ -43,21 +47,6 @@ export const DEFAULT_CLARIFICATION_CHIPS = [
   "Достаточно завтраков, главное короткий трансфер",
   "Напишу своими словами...",
 ];
-
-export function formatGuestsCount(adults: number, children: number): string {
-  const parts: string[] = [];
-  if (adults > 0) {
-    parts.push(`${adults} ${adults === 1 ? "взрослый" : "взрослых"}`);
-  }
-  if (children > 0) {
-    parts.push(
-      `${children} ${
-        children === 1 ? "ребёнок" : children < 5 ? "ребёнка" : "детей"
-      }`
-    );
-  }
-  return parts.join(", ");
-}
 
 export function buildFilterPrompt({
   originCity,

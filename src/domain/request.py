@@ -127,3 +127,11 @@ class UserRequest(BaseModel):
         default=[],
         examples=[["pool", "breakfast", "sea_view"]],
     )
+    excluded_destinations: list[str] = Field(
+        description="Список исключённых направлений/городов.",
+        default=[],
+    )
+    excluded_countries: list[str] = Field(
+        description="Список исключённых стран.",
+        default=[],
+    )

@@ -16,62 +16,24 @@ interface SidebarProps {
   activeHistoryId?: string;
 }
 
-const SAMPLE_HISTORY: HistorySessionItem[] = [
-  {
-    id: "hist-1",
-    title: "К тёплому морю в ноябре с ребёнком",
-    dateGroup: "today",
-    query: "Хочу куда-нибудь к тёплому морю в ноябре, недорого, с ребёнком, без долгих перелётов",
-    createdAt: "14:32",
-  },
-  {
-    id: "hist-2",
-    title: "Уикенд в Стамбуле на двоих",
-    dateGroup: "today",
-    query: "Уикенд в Стамбуле на двоих с уютным отелем в Бейоглу",
-    createdAt: "11:15",
-  },
-  {
-    id: "hist-3",
-    title: "Горные лыжи в Сочи на 5 дней",
-    dateGroup: "yesterday",
-    query: "Горные лыжи в Сочи на 5 дней без очередей на подъёмники",
-    createdAt: "Вчера",
-  },
-  {
-    id: "hist-4",
-    title: "Винный маршрут по Кахетии",
-    dateGroup: "yesterday",
-    query: "Винный маршрут по Кахетии на 4 дня с дегустациями",
-    createdAt: "Вчера",
-  },
-  {
-    id: "hist-5",
-    title: "Лёд Байкала: Ольхон и Листвянка",
-    dateGroup: "past7days",
-    query: "Путешествие на Байкал зимой, увидеть прозрачный лёд",
-    createdAt: "3 дня назад",
-  },
-  {
-    id: "hist-6",
-    title: "Стыковка в Дубае 36 часов",
-    dateGroup: "past7days",
-    query: "Что посмотреть в Дубае за 36 часов со стыковкой",
-    createdAt: "5 дней назад",
-  },
-];
-
 export const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onSelectHistoryItem,
-  activeHistoryId = "hist-1",
+  activeHistoryId,
 }) => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
   const { openSettingsModal, profile } = usePreferences();
-
-  const todayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "today");
-  const yesterdayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "yesterday");
-  const pastItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "past7days");
+  const [historyItems] = React.useState<HistorySessionItem[]>(() => {
+    try {
+      const stored = localStorage.getItem("travel_chat_history");
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // fallback
+    }
+    return [];
+  });
 
   const handleSelect = (query: string) => {
     onSelectHistoryItem(query);
@@ -145,27 +107,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onNewChat();
                 if (window.innerWidth < 768) closeSidebar();
               }}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white/95 dark:hover:bg-white/15 backdrop-blur-md text-content-primary border border-black/[0.06] dark:border-white/[0.08] transition-all shadow-xs group"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white/95 dark:hover:bg-white/15 backdrop-blur-md text-content-primary border border-black/[0.06] dark:border-white/[0.08] transition-all shadow-xs group cursor-pointer"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
                 <Plus className="w-4 h-4 text-primary" />
                 <span>Новый маршрут</span>
               </span>
-              <kbd className="font-mono text-[10px] text-content-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-black/[0.06] dark:border-white/[0.08]">
-                ⌘K
-              </kbd>
             </button>
           </div>
 
           {/* Dialog history feed */}
           <div className="flex-1 overflow-y-auto px-2 py-1 space-y-3">
-            {/* Today */}
-            <div>
-              <div className="px-2.5 pt-2 pb-1 text-[10px] font-bold text-content-muted uppercase tracking-wider">
-                Сегодня
+            {historyItems.length === 0 ? (
+              <div className="px-3 py-8 text-center text-xs text-content-muted">
+                История диалогов пуста
               </div>
+            ) : (
               <div className="flex flex-col gap-0.5">
-                {todayItems.map((item) => (
+                {historyItems.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -181,47 +140,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Yesterday */}
-            <div>
-              <div className="px-2.5 pt-2 pb-1 text-[10px] font-bold text-content-muted uppercase tracking-wider">
-                Вчера
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {yesterdayItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelect(item.query)}
-                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary transition-colors flex items-center gap-2"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                    <span className="truncate">{item.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Previous 7 days */}
-            <div>
-              <div className="px-2.5 pt-2 pb-1 text-[10px] font-bold text-content-muted uppercase tracking-wider">
-                Предыдущие 7 дней
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {pastItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleSelect(item.query)}
-                    className="w-full text-left truncate px-2.5 py-1.5 rounded-lg text-xs text-content-secondary hover:bg-white/60 dark:hover:bg-white/10 hover:text-content-primary transition-colors flex items-center gap-2"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5 shrink-0 opacity-60" />
-                    <span className="truncate">{item.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Footer User & Settings — frosted glass footer */}
@@ -234,10 +153,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div className="flex flex-col truncate">
                   <span className="text-base font-bold text-content-primary truncate leading-tight">
-                    {profile?.fullName ? profile.fullName.split(" ")[0] + " " + (profile.fullName.split(" ")[1]?.[0] || "") + "." : "Алексей С."}
+                    {profile?.fullName || "Путешественник"}
                   </span>
                   <span className="text-[13px] font-medium text-content-secondary truncate leading-tight mt-0.5">
-                    {profile?.tier || "Премиум"}
+                    {profile?.tier || "Личный кабинет"}
                   </span>
                 </div>
               </div>

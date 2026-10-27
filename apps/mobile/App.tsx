@@ -61,6 +61,8 @@ function MainApp() {
     isStreaming,
     checkoutVisible,
     checkoutOption,
+    backendUrl,
+    setBackendUrl,
     sendMessage,
     selectOption,
     openCheckout,
@@ -251,7 +253,7 @@ function MainApp() {
               <View style={styles.sessionPillRow}>
                 <View style={styles.sessionStatusBadge}>
                   <View style={styles.sessionDotPulse} />
-                  <Text style={styles.sessionPillText}>Сессия #RU-8821</Text>
+                  <Text style={styles.sessionPillText}>Активный маршрут</Text>
                 </View>
                 <View style={styles.sessionFilterBadge}>
                   <Icon name="shield" size={12} color="#059669" />
@@ -274,36 +276,12 @@ function MainApp() {
               </View>
 
               {/* Screen 3 & 4: Detailed Tour Dossier when an option is selected */}
-              {selectedOption ? (
+              {selectedOption && (
                 <TripDossierView
                   option={selectedOption}
                   onBackToList={() => handleSelectOption(null)}
                   onBookTour={openCheckout}
                 />
-              ) : (
-                /* Screen 2: Trip Options Comparison Cards List */
-                tripOptions.length > 0 && (
-                  <View style={styles.tripCardsContainer}>
-                    <View style={styles.tripSectionHeader}>
-                      <Text style={styles.tripSectionTitle}>
-                        Рекомендованные направления
-                      </Text>
-                      <Text style={styles.tripSectionCount}>
-                        {tripOptions.length} варианта
-                      </Text>
-                    </View>
-
-                    {tripOptions.map((opt) => (
-                      <TripCardMobile
-                        key={opt.id || opt.title}
-                        option={opt}
-                        isSelected={false}
-                        onSelect={(chosen) => handleSelectOption(chosen)}
-                        onBookDemo={openCheckout}
-                      />
-                    ))}
-                  </View>
-                )
               )}
             </View>
           )}
@@ -347,6 +325,8 @@ function MainApp() {
         <ProfileModal
           visible={profileVisible}
           onClose={() => setProfileVisible(false)}
+          backendUrl={backendUrl}
+          onUpdateBackendUrl={setBackendUrl}
         />
 
         {/* Travel Search Filters Modal */}

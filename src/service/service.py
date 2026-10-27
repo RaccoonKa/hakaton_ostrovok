@@ -231,7 +231,15 @@ async def message_generator(
                     if node == "__interrupt__":
                         interrupt: Interrupt
                         for interrupt in updates:
-                            new_messages.append(AIMessage(content=interrupt.value))
+                            content = str(interrupt.value)
+                            additional_kwargs = {}
+                            if hasattr(interrupt.value, "suggestions"):
+                                additional_kwargs["suggestions"] = getattr(interrupt.value, "suggestions")
+                            if hasattr(interrupt.value, "stage"):
+                                additional_kwargs["stage"] = getattr(interrupt.value, "stage")
+                            new_messages.append(
+                                AIMessage(content=content, additional_kwargs=additional_kwargs)
+                            )
                         continue
                     updates = updates or {}
                     update_messages = updates.get("messages", [])

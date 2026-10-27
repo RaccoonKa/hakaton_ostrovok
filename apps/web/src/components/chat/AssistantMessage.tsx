@@ -60,9 +60,6 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           <span className="text-xs text-content-muted">
             • {formatTime(message.created_at)}
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-surface-container text-content-secondary hidden sm:inline-block">
-            Умный движок v2.4
-          </span>
         </div>
       </div>
 
@@ -75,9 +72,16 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
               {message.content}
             </p>
 
-            {/* Clarification Chips if no option selected yet */}
+            {/* Clarification / Dynamic Suggestion Chips if no option selected yet */}
             {!showDossier && !isStreaming && (
-              <ClarificationChips onSelectChip={onSelectChip} />
+              <ClarificationChips
+                chips={
+                  message.suggestions && message.suggestions.length > 0
+                    ? message.suggestions
+                    : undefined
+                }
+                onSelectChip={onSelectChip}
+              />
             )}
           </div>
         )}
@@ -87,7 +91,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
           <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 shadow-xs border border-surface-container-highest/60 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs sm:text-sm font-semibold text-content-primary">
-                Рекомендованные направления (с гарантией тёплого моря):
+                Рекомендованные варианты поездки:
               </span>
             </div>
 
@@ -112,10 +116,12 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant text-xs font-semibold">
-                    Семейный тур
+                    {selectedOption.isDemo ? "Демо-маршрут" : "Тур сформирован"}
                   </span>
                   <span className="text-xs text-content-muted">
-                    7 ночей • 2 взр + 1 реб
+                    {selectedOption.hotels?.[0]?.check_in && selectedOption.hotels?.[0]?.check_out
+                      ? `${selectedOption.hotels[0].check_in} – ${selectedOption.hotels[0].check_out}`
+                      : "Даты согласованы"}
                   </span>
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-content-primary">

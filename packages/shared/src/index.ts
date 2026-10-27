@@ -4,6 +4,7 @@ export * from "./domain/types";
 export * from "./domain/schemas";
 export * from "./domain/cities";
 export * from "./domain/normalize";
+export * from "./domain/filters";
 
 // Formatting utilities
 export * from "./formatters/travel";

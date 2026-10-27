@@ -11,7 +11,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { useSidebar } from "../../context/SidebarContext";
+import { formatFilterQuery } from "@corvax/shared";
 
 export interface SearchFilters {
   startDate: Date | null;
@@ -78,49 +78,6 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   initialFilters,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { isSidebarOpen } = useSidebar();
-
-  // Custom position if dragged by user
-  const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Synchronous position calculation: perfectly docked beside sidebar, never overlapping
-  const calculateDefaultPosition = () => {
-    const panelWidth = 295;
-    const panelHeight = 440;
-    const headerHeight = 56;
-    const margin = 16;
-
-    // 1. Determine the right boundary of the open sidebar
-    let sidebarRight = 0;
-    if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
-      sidebarRight = 256;
-    }
-
-    // 2. Position beside sidebar on desktop, centered on mobile
-    const x =
-      typeof window !== "undefined" && window.innerWidth < 768
-        ? Math.max(8, (window.innerWidth - panelWidth) / 2)
-        : sidebarRight + margin;
-
-    // 3. Vertical position (y): lowered slightly per user request and clamped
-    const targetY = headerHeight + 30;
-    const maxY =
-      typeof window !== "undefined"
-        ? Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin)
-        : targetY;
-    const y = Math.min(targetY, maxY);
-
-    return { x, y };
-  };
-
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef<{ startX: number; startY: number; initX: number; initY: number }>({
-    startX: 0,
-    startY: 0,
-    initX: 0,
-    initY: 0,
-  });
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -141,149 +98,19 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   const [adults, setAdults] = useState<number>(initialFilters?.adults ?? 2);
   const [children, setChildren] = useState<number>(initialFilters?.children ?? 0);
 
-  // Reset dragged position when closed
-  useEffect(() => {
-    if (!isOpen) {
-      setDraggedPos(null);
-      setIsDragging(false);
-    }
-  }, [isOpen]);
-
-  // If sidebar opens on desktop and custom dragged pos overlaps it, clamp to safe area
-  useEffect(() => {
-    if (!isOpen || !draggedPos) return;
-    if (isSidebarOpen && typeof window !== "undefined" && window.innerWidth >= 768) {
-      const minX = 256 + 16;
-      if (draggedPos.x < minX) {
-        setDraggedPos((prev) => (prev ? { ...prev, x: minX } : null));
-      }
-    }
-  }, [isSidebarOpen, isOpen, draggedPos]);
-
-  // Window resize/scroll listener to update position when not manually dragged
-  const [, setRepositionTick] = useState(0);
+  // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
-    const handleReposition = () => {
-      if (!isDraggingRef.current && !draggedPos) {
-        setRepositionTick((t) => t + 1);
-      }
-    };
-    window.addEventListener("resize", handleReposition);
-    window.addEventListener("scroll", handleReposition, true);
-    return () => {
-      window.removeEventListener("resize", handleReposition);
-      window.removeEventListener("scroll", handleReposition, true);
-    };
-  }, [isOpen, draggedPos]);
-
-  // Close on Escape or click outside (ignoring sidebar toggle, sidebar aside, and filters toggle)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (isDraggingRef.current) return;
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-
-      // 1. Click inside popover -> do not close
-      if (containerRef.current && containerRef.current.contains(target)) {
-        return;
-      }
-
-      // 2. Click on sidebar toggle button -> DO NOT close
-      if (
-        target.closest("[data-sidebar-toggle]") ||
-        target.closest("button[title*='боковую панель']")
-      ) {
-        return;
-      }
-
-      // 3. Click inside sidebar aside -> DO NOT close
-      if (target.closest("#main-sidebar") || target.closest("aside")) {
-        return;
-      }
-
-      // 4. Click on mobile sidebar backdrop -> DO NOT close
-      if (target.closest("[data-sidebar-backdrop]")) {
-        return;
-      }
-
-      // 5. Click on filter toggle button -> DO NOT close (button handles its own toggle)
-      if (
-        target.closest("[data-filters-toggle]") ||
-        target.closest("button[title*='Параметры']")
-      ) {
-        return;
-      }
-
-      onClose();
-    };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
       }
     };
-
-    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Dragging logic by header
-  const handleDragStart = (e: React.PointerEvent) => {
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("input")) return;
-
-    const current = draggedPos ?? calculateDefaultPosition();
-    e.preventDefault();
-    isDraggingRef.current = true;
-    setIsDragging(true);
-    dragStartRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initX: current.x,
-      initY: current.y,
-    };
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      const panelWidth = 295;
-      const panelHeight = 440;
-
-      const deltaX = moveEvent.clientX - dragStartRef.current.startX;
-      const deltaY = moveEvent.clientY - dragStartRef.current.startY;
-
-      const nextX = dragStartRef.current.initX + deltaX;
-      const nextY = dragStartRef.current.initY + deltaY;
-
-      const clampedX = Math.max(8, Math.min(window.innerWidth - panelWidth - 8, nextX));
-      const clampedY = Math.max(8, Math.min(window.innerHeight - panelHeight - 8, nextY));
-
-      setDraggedPos({ x: clampedX, y: clampedY });
-    };
-
-    const handlePointerUp = () => {
-      setTimeout(() => {
-        isDraggingRef.current = false;
-        setIsDragging(false);
-      }, 50);
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
-  };
-
   if (!isOpen) return null;
-
-  const currentPos = draggedPos ?? calculateDefaultPosition();
 
   // Calendar calculations
   const currentYear = viewDate.getFullYear();
@@ -334,43 +161,15 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   };
 
   const handleApply = () => {
-    const parts: string[] = [];
+    const formattedText = formatFilterQuery({
+      startDate,
+      endDate,
+      minBudget,
+      maxBudget,
+      adults,
+      children,
+    });
 
-    // Dates
-    if (startDate && endDate && !isSameDay(startDate, endDate)) {
-      const datesText =
-        startDate.getMonth() === endDate.getMonth()
-          ? `${startDate.getDate()}–${endDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`
-          : `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} – ${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`;
-      parts.push(`+ Даты: ${datesText}`);
-    } else if (startDate) {
-      parts.push(`+ Даты: с ${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]}`);
-    }
-
-    // Budget
-    if (minBudget > MIN_POSSIBLE_BUDGET || maxBudget < MAX_POSSIBLE_BUDGET) {
-      if (minBudget > MIN_POSSIBLE_BUDGET && maxBudget < MAX_POSSIBLE_BUDGET) {
-        parts.push(`+ Бюджет: ${formatRubles(minBudget)} – ${formatRubles(maxBudget)}`);
-      } else if (maxBudget < MAX_POSSIBLE_BUDGET) {
-        parts.push(`+ Бюджет: до ${formatRubles(maxBudget)}`);
-      } else {
-        parts.push(`+ Бюджет: от ${formatRubles(minBudget)}`);
-      }
-    }
-
-    // Guests
-    const guestParts: string[] = [];
-    if (adults > 0) {
-      guestParts.push(`${adults} ${adults === 1 ? "взрослый" : "взрослых"}`);
-    }
-    if (children > 0) {
-      guestParts.push(`${children} ${children === 1 ? "ребёнок" : children < 5 ? "ребёнка" : "детей"}`);
-    }
-    if (guestParts.length > 0) {
-      parts.push(`+ ${guestParts.join(", ")}`);
-    }
-
-    const formattedText = parts.join(" ");
     onApply(formattedText, {
       startDate,
       endDate,
@@ -403,33 +202,33 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
   return createPortal(
     <div
-      ref={containerRef}
-      onPointerDown={handleDragStart}
-      className={`fixed z-[100] w-[295px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in ${
-        isDragging ? "transition-none" : "transition-[left,top] duration-300 ease-in-out"
-      }`}
-      style={{
-        left: `${currentPos.x}px`,
-        top: `${currentPos.y}px`,
-        boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0,0,0,0.1)",
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
+      onClick={onClose}
     >
-      {/* 1. Header (Drag handle) */}
-      <div className="flex items-center justify-between px-0.5 cursor-grab active:cursor-grabbing border-b border-surface-border dark:border-[#2d2744] pb-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-content-primary">
-            Параметры поездки
-          </span>
+      <div
+        ref={containerRef}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[320px] max-h-[calc(100vh-60px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none flex flex-col gap-2"
+        style={{
+          boxShadow: "0 20px 45px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0,0,0,0.1)",
+        }}
+      >
+        {/* 1. Header */}
+        <div className="flex items-center justify-between px-0.5 border-b border-surface-border dark:border-[#2d2744] pb-1.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-content-primary">
+              Параметры поездки
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
+            title="Закрыть"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
-          title="Закрыть"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      </div>
 
       {/* 2. Top: Mini-Calendar */}
       <div className="flex flex-col gap-1 bg-surface-muted/50 dark:bg-[#231e38] p-2 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
@@ -701,6 +500,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
           <span>Применить параметры</span>
         </button>
       </div>
+    </div>
     </div>,
     document.body
   );

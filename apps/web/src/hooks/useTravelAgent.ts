@@ -1,14 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import {
-  ChatMessage,
   TripOption,
   AgentStepPhase,
+  ChatMessage,
 } from "../types/travel";
 import { PriceOptimizationDiff } from "../components/cards/PriceBreakdown";
-import { TravelApiClient } from "@corvax/shared";
+import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage } from "@corvax/shared";
 
 export function useTravelAgent() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<UnifiedChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<AgentStepPhase>("idle");
   const [tripOptions, setTripOptions] = useState<TripOption[]>([]);
@@ -18,6 +18,7 @@ export function useTravelAgent() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const threadIdRef = useRef<string | null>(null);
   const clientRef = useRef(
     new TravelApiClient({
       baseUrl: (import.meta.env.VITE_API_URL as string) || "",
@@ -74,12 +75,18 @@ export function useTravelAgent() {
         }
       }, 1500);
 
+      if (!threadIdRef.current) {
+        threadIdRef.current = `thread-${Date.now()}`;
+      }
+
       try {
         await clientRef.current.sendMessage(
           text,
-          { mockFallback: true },
+          { threadId: threadIdRef.current, mockFallback: false },
           {
             onToken: (token) => {
+              clearTimeout(stepTimer1);
+              clearTimeout(stepTimer2);
               accumulatedTokens += token;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
@@ -100,8 +107,86 @@ export function useTravelAgent() {
                 ];
               });
             },
+            onMessage: (msg: any) => {
+              clearTimeout(stepTimer1);
+              clearTimeout(stepTimer2);
+              setIsLoading(false);
+              setCurrentStep("ready");
+
+              const messageText = typeof msg === "string" ? msg : msg.content || "";
+              const rawOptions =
+                msg.custom_data?.trip_options || msg.additional_kwargs?.trip_options;
+              const normalizedOptions = rawOptions
+                ? normalizeTripOptions(rawOptions)
+                : undefined;
+              const suggestions =
+                msg.custom_data?.suggestions ||
+                msg.additional_kwargs?.suggestions ||
+                [];
+
+              if (normalizedOptions) {
+                setTripOptions(normalizedOptions);
+              }
+
+              if (messageText) {
+                accumulatedTokens = messageText;
+                setMessages((prev) => {
+                  const last = prev[prev.length - 1];
+                  if (last && last.id === assistantMsgId) {
+                    return [
+                      ...prev.slice(0, -1),
+                      {
+                        ...last,
+                        content: messageText,
+                        trip_options: normalizedOptions ?? last.trip_options,
+                        tripOptions: normalizedOptions ?? last.tripOptions,
+                        suggestions:
+                          suggestions.length > 0 ? suggestions : last.suggestions,
+                      },
+                    ];
+                  }
+                  return [
+                    ...prev,
+                    {
+                      id: assistantMsgId,
+                      type: "ai",
+                      role: "assistant",
+                      content: messageText,
+                      created_at: new Date().toISOString(),
+                      trip_options: normalizedOptions,
+                      tripOptions: normalizedOptions,
+                      suggestions,
+                    },
+                  ];
+                });
+              }
+            },
             onTripOptions: (options) => {
-              setTripOptions(options);
+              const normalized = normalizeTripOptions(options);
+              setTripOptions(normalized);
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        trip_options: normalized,
+                        tripOptions: normalized,
+                      }
+                    : m
+                )
+              );
+            },
+            onSuggestions: (sugs) => {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsgId
+                    ? {
+                        ...m,
+                        suggestions: sugs,
+                      }
+                    : m
+                )
+              );
             },
             onError: (err) => {
               clearTimeout(stepTimer1);
@@ -154,6 +239,7 @@ export function useTravelAgent() {
   // Reset entire dialog
   const resetChat = useCallback(() => {
     cancelRequest();
+    threadIdRef.current = null;
     setMessages([]);
     setTripOptions([]);
     setSelectedOption(null);

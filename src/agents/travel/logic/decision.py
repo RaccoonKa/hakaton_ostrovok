@@ -82,6 +82,8 @@ SEARCH_CRITICAL_FIELDS = [
     "constraints",
     "hotel_requirements",
     "preference_status",
+    "excluded_destinations",
+    "excluded_countries",
 ]
 
 
@@ -190,6 +192,23 @@ def merge_user_request(
                 continue
             if req not in base.hotel_requirements:
                 base.hotel_requirements.append(req)
+
+    # --- Исключения стран и городов ---
+    if patch.excluded_countries:
+        merged_c = set(base.excluded_countries) | set(patch.excluded_countries)
+        base.excluded_countries = sorted(merged_c)
+        if base.destination_country and base.destination_country in merged_c:
+            base.destination_country = None
+        if base.destination:
+            dest_obj = ds.get_destination_by_city(base.destination)
+            if dest_obj and dest_obj.country in merged_c:
+                base.destination = None
+
+    if patch.excluded_destinations:
+        merged_d = set(base.excluded_destinations) | set(patch.excluded_destinations)
+        base.excluded_destinations = sorted(merged_d)
+        if base.destination and base.destination in merged_d:
+            base.destination = None
 
     # --- Явная очистка полей ---
     for field in patch.clear_fields:
@@ -434,13 +453,19 @@ def suggest_destinations(
             month = request.date_preferences.month[0]
 
     target_country = country or (request.destination_country if request else None)
+    excluded_countries = set(request.excluded_countries) if request else set()
+    excluded_dests = set(request.excluded_destinations) if request else set()
+
+    if target_country and target_country in excluded_countries:
+        target_country = None
 
     pool = ds.DESTINATIONS
     if target_country:
         pool = ds.cities_in_country(target_country)
 
+    pool = [d for d in pool if d.country not in excluded_countries and d.city not in excluded_dests]
     if not pool:
-        pool = ds.DESTINATIONS
+        pool = [d for d in ds.DESTINATIONS if d.country not in excluded_countries and d.city not in excluded_dests]
 
     scored: list[tuple[float, ds.Destination]] = []
     for dest in pool:

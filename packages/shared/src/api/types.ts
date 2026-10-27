@@ -52,6 +52,7 @@ export interface ClientCallbacks {
   onToken?: (token: string) => void;
   onMessage?: (message: ChatMessage) => void;
   onTripOptions?: (options: TripOption[]) => void;
+  onSuggestions?: (suggestions: string[]) => void;
   onError?: (error: Error | string) => void;
   onComplete?: () => void;
 }

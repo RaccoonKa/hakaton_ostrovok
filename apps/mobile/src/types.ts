@@ -10,6 +10,7 @@ import {
   Currency,
   UserRequest,
   ChatMessage,
+  UnifiedChatMessage,
   TravelState,
 } from "@corvax/shared";
 
@@ -38,14 +39,4 @@ export { Currency };
 export const DEMO_DISCLAIMER_TEXT =
   "Все параметры смоделированы ИИ «О!дин запрос». Реальное списание средств не производится.";
 
-export interface MobileChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp?: string;
-  tripOptions?: TripOption[];
-  selectedOption?: TripOption;
-  isThinking?: boolean;
-  thinkingStep?: "analyzing_flights" | "finding_hotels" | "calculating_budget" | "ready" | string;
-  thinkingText?: string;
-}
+export type MobileChatMessage = UnifiedChatMessage;

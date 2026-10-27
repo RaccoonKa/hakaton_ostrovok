@@ -98,6 +98,19 @@ def _get(state, key, default=None):
     return getattr(state, key, default)
 
 
+class InterruptPrompt(str):
+    """Строка запроса прерывания с дополнительными подсказками для UI."""
+
+    suggestions: list[str]
+    stage: str
+
+    def __new__(cls, content: str, suggestions: list[str] | None = None, stage: str = ""):
+        obj = super().__new__(cls, content)
+        obj.suggestions = list(suggestions or [])
+        obj.stage = stage
+        return obj
+
+
 def _city_name(city: str | None) -> str:
     if not city:
         return "не выбран"
@@ -260,8 +273,18 @@ def call_ask(state: TravelState | dict) -> dict:
             "Уточните, пожалуйста, детали поездки."
         )
 
+    # Подготавливаем интерактивные подсказки (chips) для фронтенда
+    suggestions: list[str] = []
+    if candidates:
+        suggestions = [_city_name(c.city) for c in candidates[:4]]
+    elif stage == "confirmation":
+        suggestions = ["Да, всё верно! Искать", "Хочу изменить параметры"]
+    elif stage in {"preferences", "awaiting_preferences"}:
+        suggestions = ["Море и пляжи", "История и культура", "Природа и горы", "Спокойный отдых"]
+
     # Единственный interrupt на весь сгруппированный набор.
-    response = interrupt(prompt)
+    interrupt_payload = InterruptPrompt(prompt, suggestions=suggestions, stage=str(stage))
+    response = interrupt(interrupt_payload)
 
     return {"messages": [HumanMessage(content=str(response))]}
 

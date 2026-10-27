@@ -15,23 +15,7 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
     proxy: {
-      "/health": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/agui": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/info": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/stream": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/travel": {
+      "^/(health|agui|info|stream|travel|travel_agent)": {
         target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
         changeOrigin: true,
       },

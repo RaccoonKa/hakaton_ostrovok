@@ -611,35 +611,81 @@ def _extract_origin(text: str) -> str | None:
     return None
 
 
-def _mentioned_destination_cities(text: str) -> list:
-    """Все города dataset, явно упомянутые в тексте (без дублей)."""
+def _extract_excluded_locations(text: str) -> tuple[list[str], list[str]]:
+    """Извлечь явно отвергнутые/исключённые города и страны.
+
+    Возвращает (excluded_cities, excluded_countries).
+    """
     lowered = _normalize(text)
+    excluded_cities: set[str] = set()
+    excluded_countries: set[str] = set()
+
+    for country_key, stems in ds.COUNTRY_ALIASES.items():
+        canonical = None
+        for dest in ds.DESTINATIONS:
+            if dest.country.lower() == country_key:
+                canonical = dest.country
+                break
+        if not canonical:
+            continue
+
+        for stem in stems:
+            p1 = rf"(?:не\s+(?:хочу\s+)?(?:в\s+|ехать\s+в\s+|лететь\s+в\s+)?|без\s+|кроме\s+|только\s+не\s+|не\s+надо\s+(?:в\s+)?|не\s+нужн\w*\s+(?:в\s+)?|убери\s+|исключ\w*\s+|никак\w*\s+){stem}\w*"
+            p2 = rf"{stem}\w*\s+(?:не\s+(?:хочу|надо|нужно|предлагай|рассматривай)|точно\s+нет|мимо)"
+            p3 = rf"\bне\s+{stem}\w*\b"
+            if re.search(p1, lowered) or re.search(p2, lowered) or re.search(p3, lowered):
+                excluded_countries.add(canonical)
+
+    for dest in ds.DESTINATIONS:
+        city_lower = dest.city.lower()
+        stems = [city_lower] + ds.CITY_ALIASES.get(city_lower, [])
+        for stem in stems:
+            p1 = rf"(?:не\s+(?:хочу\s+)?(?:в\s+|ехать\s+в\s+|лететь\s+в\s+)?|без\s+|кроме\s+|только\s+не\s+|не\s+надо\s+(?:в\s+)?|не\s+нужн\w*\s+(?:в\s+)?|убери\s+|исключ\w*\s+|никак\w*\s+){stem}\w*"
+            p2 = rf"{stem}\w*\s+(?:не\s+(?:хочу|надо|нужно|предлагай|рассматривай)|точно\s+нет|мимо)"
+            p3 = rf"\bне\s+{stem}\w*\b"
+            if re.search(p1, lowered) or re.search(p2, lowered) or re.search(p3, lowered):
+                excluded_cities.add(dest.city)
+
+    return sorted(excluded_cities), sorted(excluded_countries)
+
+
+def _mentioned_destination_cities(text: str, excluded_cities: set[str] | None = None) -> list:
+    """Все города dataset, явно упомянутые в тексте (без дублей и исключений)."""
+    lowered = _normalize(text)
+    ex = excluded_cities or set()
     found: dict[str, object] = {}
     for dest in ds.DESTINATIONS:
+        if dest.city in ex:
+            continue
         if dest.city.lower() in lowered:
             found[dest.city] = dest
     for city_key, stems in ds.CITY_ALIASES.items():
         for stem in stems:
             if stem in lowered:
                 if d := ds.get_destination_by_city(city_key):
-                    found[d.city] = d
+                    if d.city not in ex:
+                        found[d.city] = d
     return list(found.values())
 
 
-def _extract_destination(text: str) -> tuple[str | None, str | None, bool]:
+def _extract_destination(
+    text: str,
+    excluded_cities: set[str] | None = None,
+    excluded_countries: set[str] | None = None,
+) -> tuple[str | None, str | None, bool]:
     """Вернуть (city, country, ambiguous).
 
     ``ambiguous=True`` означает, что упомянуто несколько городов и один
     выбрать нельзя: направление должно остаться невыбранным.
     """
-    cities = _mentioned_destination_cities(text)
+    cities = _mentioned_destination_cities(text, excluded_cities)
     if len(cities) == 1:
         return cities[0].city, cities[0].country, False
     if len(cities) > 1:
         return None, None, True
 
     country = ds.resolve_country(text)
-    if country:
+    if country and (not excluded_countries or country not in excluded_countries):
         return None, country, False
     return None, None, False
 
@@ -696,7 +742,29 @@ def extract_user_request(
 
     patch = UserRequestPatch()
 
-    city, country, ambiguous = _extract_destination(text)
+    excluded_cities, excluded_countries = _extract_excluded_locations(text)
+    if excluded_cities:
+        patch.excluded_destinations = excluded_cities
+    if excluded_countries:
+        patch.excluded_countries = excluded_countries
+
+    # Если пользователь отверг страну/город, который был задан в текущем запросе,
+    # сбрасываем соответствующие поля
+    if current_request is not None:
+        curr_country = getattr(current_request, "destination_country", None)
+        curr_dest = getattr(current_request, "destination", None)
+        if curr_country and curr_country in excluded_countries:
+            patch.clear_fields.append("destination_country")
+        if curr_dest:
+            dest_obj = ds.get_destination_by_city(curr_dest)
+            if (dest_obj and dest_obj.country in excluded_countries) or curr_dest in excluded_cities:
+                patch.clear_fields.append("destination")
+
+    city, country, ambiguous = _extract_destination(
+        text,
+        excluded_cities=set(excluded_cities),
+        excluded_countries=set(excluded_countries),
+    )
     if city:
         patch.destination = city
         if country:

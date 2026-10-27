@@ -178,3 +178,34 @@ def test_extract_ignores_past_explicit_year():
 def test_extract_does_not_treat_city_number_as_preference():
     patch = _ex("город 2")
     assert patch.preferences is None
+
+
+def test_extract_negative_country_exclusion():
+    patch = _ex("турцию не хочу")
+    assert patch.excluded_countries == ["Turkey"]
+    assert patch.destination_country is None
+    assert patch.destination is None
+
+    patch2 = _ex("Хочу к тёплому морю, но кроме Турции и без Дубая")
+    assert "Turkey" in (patch2.excluded_countries or [])
+    assert "Dubai" in (patch2.excluded_destinations or [])
+
+
+def test_suggest_destinations_excludes_negated_country():
+    from agents.travel.logic.decision import merge_user_request, suggest_destinations
+    from domain.request import UserRequest
+
+    req = UserRequest()
+    patch1 = _ex("Хочу к тёплому морю")
+    req = merge_user_request(req, patch1)
+
+    patch2 = _ex("турцию не хочу")
+    req = merge_user_request(req, patch2)
+    assert "Turkey" in req.excluded_countries
+
+    candidates = suggest_destinations(req)
+    assert len(candidates) > 0
+    # Ни один кандидат не должен быть из Турции!
+    for c in candidates:
+        assert c.country != "Turkey"
+

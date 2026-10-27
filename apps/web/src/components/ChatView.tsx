@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { MessageList } from "./chat/MessageList";
 import { ChatInput } from "./chat/ChatInput";
 import { DemoBookingModal } from "./booking/DemoBookingModal";
@@ -39,18 +39,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const heroFormRef = useRef<HTMLFormElement>(null);
   const heroTextareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth >= 768 : true
-  );
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768);
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const focusHeroInputAtEnd = () => {
     if (heroTextareaRef.current) {
@@ -97,8 +85,6 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     return Sparkles;
   };
 
-  const chatShiftX = isFiltersOpen && isSidebarOpen && isDesktop ? "128px" : "0px";
-
   return (
     <div className="flex flex-col w-full relative min-h-[calc(100vh-3.5rem)]">
       {/* Background ambient radial glow matching Stitch */}
@@ -106,10 +92,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
 
       {/* Screen 1: Welcome / Empty Dashboard Hero */}
       {messages.length === 0 ? (
-        <div
-          className="relative w-full flex-1 flex flex-col justify-center transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(${chatShiftX})` }}
-        >
+        <div className="relative w-full flex-1 flex flex-col justify-center">
           <div className="w-full max-w-2xl mx-auto flex flex-col items-center text-center my-auto px-4 sm:px-6 py-12 z-10 animate-fade-in">
             {/* Heading */}
             <h1 className="text-3xl sm:text-4xl font-extrabold text-content-primary tracking-tight mb-2">
@@ -206,10 +189,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
         </div>
       ) : (
         /* Screens 2, 3, 4: Active Chat Flow */
-        <div
-          className="flex-1 flex flex-col w-full transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(${chatShiftX})` }}
-        >
+        <div className="flex-1 flex flex-col w-full">
           <MessageList
             messages={messages}
             isStreaming={isLoading}
@@ -227,10 +207,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
               isSidebarOpen ? "left-0 md:left-64" : "left-0"
             }`}
           >
-            <div
-              className="pointer-events-auto transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(${chatShiftX})` }}
-            >
+            <div className="pointer-events-auto">
               <ChatInput
                 onSendMessage={(text) => sendMessage(text)}
                 isLoading={isLoading}

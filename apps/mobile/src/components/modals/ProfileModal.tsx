@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   TextInput,
   Switch,
+  ActivityIndicator,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
@@ -17,6 +19,8 @@ export interface ProfileModalProps {
   visible: boolean;
   onClose: () => void;
   onSavePreferences?: (city: string, currency: string) => void;
+  backendUrl?: string;
+  onUpdateBackendUrl?: (url: string) => void;
 }
 
 export const POPULAR_CITIES = [
@@ -45,6 +49,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   visible,
   onClose,
   onSavePreferences,
+  backendUrl,
+  onUpdateBackendUrl,
 }) => {
   const insets = useSafeAreaInsets();
   const [selectedCity, setSelectedCity] = useState("MOW");
@@ -55,9 +61,41 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [priceAlerts, setPriceAlerts] = useState(true);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  const [serverUrl, setServerUrl] = useState(backendUrl || "http://192.168.1.79:8000");
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [statusMessage, setStatusMessage] = useState("");
+
+  useEffect(() => {
+    if (backendUrl) {
+      setServerUrl(backendUrl);
+    }
+  }, [backendUrl, visible]);
+
+  const testConnection = async () => {
+    setConnectionStatus("testing");
+    setStatusMessage("Проверка связи...");
+    try {
+      const trimmed = serverUrl.trim().replace(/\/$/, "");
+      const res = await fetch(`${trimmed}/health`);
+      if (res.ok) {
+        setConnectionStatus("ok");
+        setStatusMessage("✓ Связь установлена (200 OK)");
+      } else {
+        setConnectionStatus("error");
+        setStatusMessage(`Ошибка ${res.status}`);
+      }
+    } catch {
+      setConnectionStatus("error");
+      setStatusMessage("✗ Сервер недоступен (проверьте Wi-Fi / IP)");
+    }
+  };
+
   const handleSave = () => {
     const cityName = POPULAR_CITIES.find((c) => c.id === selectedCity)?.name || "Москва";
     onSavePreferences?.(cityName, selectedCurrency);
+    if (onUpdateBackendUrl && serverUrl.trim()) {
+      onUpdateBackendUrl(serverUrl.trim().replace(/\/$/, ""));
+    }
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
@@ -215,6 +253,62 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   placeholderTextColor={theme.colors.textMuted}
                 />
               </View>
+            </View>
+
+            {/* Backend Server Connection */}
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeaderRow}>
+                <Icon name="compass" size={16} color={theme.colors.primary} />
+                <Text style={styles.sectionTitle}>Подключение к ИИ-серверу</Text>
+              </View>
+
+              <Text style={styles.serverHintText}>
+                Адрес FastAPI бэкенда для связи с агентом планирования путешествий
+              </Text>
+
+              <View style={styles.serverInputRow}>
+                <TextInput
+                  style={[styles.fieldInput, styles.serverInput]}
+                  value={serverUrl}
+                  onChangeText={setServerUrl}
+                  placeholder="http://192.168.1.79:8000"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholderTextColor={theme.colors.textMuted}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.testConnBtn,
+                    connectionStatus === "testing" && styles.testConnBtnLoading,
+                    connectionStatus === "ok" && styles.testConnBtnOk,
+                    connectionStatus === "error" && styles.testConnBtnError,
+                  ]}
+                  onPress={testConnection}
+                  disabled={connectionStatus === "testing"}
+                  activeOpacity={0.7}
+                >
+                  {connectionStatus === "testing" ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.testConnBtnText}>
+                      {connectionStatus === "ok" ? "✓ ОК" : "Проверить"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {statusMessage ? (
+                <Text
+                  style={[
+                    styles.connStatusText,
+                    connectionStatus === "ok"
+                      ? styles.connStatusOk
+                      : styles.connStatusError,
+                  ]}
+                >
+                  {statusMessage}
+                </Text>
+              ) : null}
             </View>
 
             {/* Notification & Price Alerts */}
@@ -465,5 +559,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  serverHintText: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    lineHeight: 15,
+  },
+  serverInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  serverInput: {
+    flex: 1,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    fontSize: 12,
+  },
+  testConnBtn: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 84,
+  },
+  testConnBtnLoading: {
+    backgroundColor: theme.colors.textMuted,
+  },
+  testConnBtnOk: {
+    backgroundColor: "#059669",
+  },
+  testConnBtnError: {
+    backgroundColor: "#DC2626",
+  },
+  testConnBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  connStatusText: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  connStatusOk: {
+    color: "#059669",
+  },
+  connStatusError: {
+    color: "#DC2626",
   },
 });
