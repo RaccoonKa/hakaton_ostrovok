@@ -1,19 +1,21 @@
-<<<<<<< HEAD
+"""
+Планировщик travel-agent.
+
+В новой архитектуре планировщик НЕ полагается на LLM и историю сообщений.
+Он принимает решение на основании всего ``UserRequest`` плюс
+подтверждений пользователя (выбор города/периода).
+
+``call_planner`` — удобная композиция «извлечь → проверить готовность»,
+которая возвращает детерминированное решение о следующем шаге. Граф
+использует отдельные узлы ``extract`` и ``decide``; ``call_planner``
+предоставлен как единая точка для тестов и внешних вызовов.
+"""
+
 from __future__ import annotations
 
 from agents.travel.logic.decision import validate_travel_request
 from agents.travel.nodes.extract import call_extract
-=======
-import random
-
-from langchain_core.messages import SystemMessage
-
-from agents.travel.prompts import TRAVEL_AGENT_SYSTEM_PROMPT
->>>>>>> origin/main
 from agents.travel.state import TravelState
-from agents.travel.tools import TRAVEL_TOOLS
-from core.llm import get_model
-from core.settings import settings
 
 
 def next_step_from_validation(validation) -> str:

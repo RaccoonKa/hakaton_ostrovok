@@ -2,15 +2,13 @@
 Доменная модель структурированного запроса пользователя.
 """
 
-<<<<<<< HEAD
 from typing import Literal
-=======
->>>>>>> origin/main
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from domain.common import Currency, TransportType
 from domain.constraint import Constraint
+from domain.preference import DatePreferences, Preference
 from domain.preference import DatePreferences, Preference
 
 
