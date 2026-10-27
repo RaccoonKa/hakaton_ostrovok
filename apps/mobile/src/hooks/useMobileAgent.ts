@@ -273,7 +273,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       try {
         await clientRef.current.sendMessage(
           trimmed,
-          { threadId: threadIdRef.current, mockFallback: true },
+          { threadId: threadIdRef.current, mockFallback: false },
           {
             onToken: (token: string) => {
               clearTimers();
@@ -428,7 +428,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                     typeof err === "string"
                       ? err
                       : err?.message ||
-                        "Не удалось получить ответ от ассистента. Проверьте соединение с сервером.",
+                        "Сервис временно недоступен. Пожалуйста, проверьте соединение с сервером.",
                   timestamp: timeStr,
                 },
               ]);

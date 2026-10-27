@@ -67,7 +67,7 @@ export class TravelApiClient {
     callbacks: ClientCallbacks,
     signal?: AbortSignal
   ): Promise<void> {
-    const mockFallback = options.mockFallback ?? true;
+    const mockFallback = options.mockFallback ?? false;
 
     try {
       if (this.useAgUi) {
