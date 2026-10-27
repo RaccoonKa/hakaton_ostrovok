@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,7 @@ import {
   Animated,
   Dimensions,
   Modal,
-  Platform,
+  TextInput,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../common/Icon";
@@ -16,7 +16,7 @@ import { SavedMobileSession } from "../../hooks/useMobileAgent";
 import { getTheme } from "../../theme";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const DRAWER_WIDTH = Math.min(320, SCREEN_WIDTH * 0.82);
+const DRAWER_WIDTH = Math.min(270, Math.round(SCREEN_WIDTH * 0.78));
 
 export interface SidebarDrawerProps {
   visible: boolean;
@@ -36,6 +36,18 @@ export interface SidebarDrawerProps {
   onToggleTheme?: () => void;
 }
 
+// Multi-stop simulated linear gradient matching Web's CSS linear-gradient(180deg, rgba(92, 30, 134, 0.96) ...)
+const GRADIENT_STOPS = [
+  "rgba(92, 30, 134, 0.98)",
+  "rgba(92, 30, 134, 0.95)",
+  "rgba(92, 30, 134, 0.88)",
+  "rgba(92, 30, 134, 0.72)",
+  "rgba(92, 30, 134, 0.48)",
+  "rgba(92, 30, 134, 0.28)",
+  "rgba(92, 30, 134, 0.12)",
+  "rgba(92, 30, 134, 0.03)",
+];
+
 export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   visible,
   onClose,
@@ -53,6 +65,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   const currentTheme = getTheme(isDark);
   const colors = currentTheme.colors;
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -61,18 +76,20 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       Animated.parallel([
         Animated.timing(slideAnim, {
           toValue: 0,
-          duration: 260,
+          duration: 250,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 260,
+          duration: 250,
           useNativeDriver: true,
         }),
       ]).start();
     } else {
       slideAnim.setValue(-DRAWER_WIDTH);
       fadeAnim.setValue(0);
+      setSearchOpen(false);
+      setSearchQuery("");
     }
   }, [visible, slideAnim, fadeAnim]);
 
@@ -80,12 +97,12 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     Animated.parallel([
       Animated.timing(slideAnim, {
         toValue: -DRAWER_WIDTH,
-        duration: 220,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 220,
+        duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
@@ -108,6 +125,12 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
     handleClose();
   };
 
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return savedSessions;
+    const lower = searchQuery.toLowerCase();
+    return savedSessions.filter((s) => s.title.toLowerCase().includes(lower));
+  }, [savedSessions, searchQuery]);
+
   if (!visible) return null;
 
   return (
@@ -119,14 +142,14 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       statusBarTranslucent
     >
       <View style={styles.container}>
-        {/* Animated backdrop with subtle dim */}
+        {/* Mobile backdrop with smooth fade (matching Web's data-sidebar-backdrop) */}
         <Animated.View
           style={[
             styles.backdrop,
             {
               opacity: fadeAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, 0.45],
+                outputRange: [0, 0.4],
               }),
             },
           ]}
@@ -139,27 +162,40 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           />
         </Animated.View>
 
-        {/* Animated sliding sidebar from left */}
+        {/* Sidebar Aside — matching Web's aside #main-sidebar 1:1 */}
         <Animated.View
           style={[
             styles.drawer,
             {
               width: DRAWER_WIDTH,
-              backgroundColor: colors.surface,
+              backgroundColor: isDark ? "#151221" : "#FFFFFF",
               transform: [{ translateX: slideAnim }],
             },
           ]}
         >
-          {/* Top Brand Bar matching Web Header #581C87 */}
+          {/* Continuous frosted purple gradient top background matching Web */}
+          <View style={styles.gradientHeaderWrapper} pointerEvents="none">
+            {GRADIENT_STOPS.map((stopColor, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.gradientStopStrip,
+                  { backgroundColor: stopColor },
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Top Brand Bar matching Web's h-14 Header */}
           <View
             style={[
-              styles.drawerHeader,
+              styles.brandBar,
               {
                 paddingTop: Math.max(insets.top, 14),
-                backgroundColor: "#581C87",
               },
             ]}
           >
+            {/* Brand Logo & Title */}
             <View style={styles.brandRow}>
               <View style={styles.brandLogoBox}>
                 <Text style={styles.brandLogoText}>О!</Text>
@@ -170,147 +206,166 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
               </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={handleClose}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel="Закрыть панель"
-            >
-              <Icon name="close" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            {/* Actions: Search & Close */}
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerBtn}
+                onPress={() => setSearchOpen((prev) => !prev)}
+                accessibilityLabel="Поиск по диалогам"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Icon name="search" size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.headerBtn}
+                onPress={handleClose}
+                accessibilityLabel="Закрыть боковую панель"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Icon name="close" size={15} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* New Chat Action Button */}
-          <View style={[styles.newChatWrapper, { backgroundColor: colors.surface }]}>
+          {/* Optional inline search bar if toggled */}
+          {searchOpen && (
+            <View style={styles.searchBarContainer}>
+              <View
+                style={[
+                  styles.searchInputBox,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.12)"
+                      : "rgba(255, 255, 255, 0.90)",
+                    borderColor: isDark
+                      ? "rgba(255, 255, 255, 0.15)"
+                      : "rgba(0, 0, 0, 0.08)",
+                  },
+                ]}
+              >
+                <Icon name="search" size={13} color={colors.textMuted} />
+                <TextInput
+                  style={[styles.searchInput, { color: colors.textPrimary }]}
+                  placeholder="Поиск по диалогам..."
+                  placeholderTextColor={colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoFocus
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery("")}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Icon name="close" size={12} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* New route button section matching Web's px-3 pt-2.5 pb-1 */}
+          <View style={styles.newRouteContainer}>
             <TouchableOpacity
               style={[
-                styles.newChatButton,
+                styles.newRouteButton,
                 {
-                  backgroundColor: isDark ? colors.surfaceContainer : colors.primaryLight,
-                  borderColor: isDark ? colors.border : "rgba(88, 28, 135, 0.15)",
+                  backgroundColor: isDark
+                    ? "rgba(255, 255, 255, 0.10)"
+                    : "rgba(255, 255, 255, 0.85)",
+                  borderColor: isDark
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(0, 0, 0, 0.06)",
                 },
               ]}
               onPress={handleNewChat}
-              activeOpacity={0.8}
+              activeOpacity={0.75}
             >
-              <View style={styles.newChatContent}>
-                <View style={styles.newChatIconBox}>
-                  <Icon name="plus" size={16} color={colors.primary} />
-                </View>
-                <Text style={[styles.newChatText, { color: colors.textPrimary }]}>
+              <View style={styles.newRouteContent}>
+                <Icon
+                  name="plus"
+                  size={15}
+                  color={isDark ? "#C084FC" : "#581C87"}
+                />
+                <Text
+                  style={[styles.newRouteText, { color: colors.textPrimary }]}
+                >
                   Новый маршрут
                 </Text>
               </View>
-              <Icon name="arrow-right" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
-          {/* Scrollable list of saved sessions */}
+          {/* Dialog history feed matching Web's flex-1 overflow-y-auto px-2 py-2 space-y-1 */}
           <ScrollView
-            style={styles.scrollArea}
-            contentContainerStyle={styles.scrollContent}
+            style={styles.sessionsScrollView}
+            contentContainerStyle={styles.sessionsScrollContent}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>
-              История диалогов
-            </Text>
-
-            {savedSessions.length === 0 ? (
+            {filteredSessions.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <View
-                  style={[
-                    styles.emptyIconBox,
-                    { backgroundColor: colors.surfaceContainer },
-                  ]}
-                >
-                  <Icon name="history" size={24} color={colors.textMuted} />
-                </View>
-                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                  История диалогов пуста
-                </Text>
-                <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-                  Задайте пожелания ассистенту, и маршруты автоматически сохранятся здесь.
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                  {searchQuery ? "Ничего не найдено" : "История диалогов пуста"}
                 </Text>
               </View>
             ) : (
-              <View style={styles.sessionList}>
-                {savedSessions.map((session) => {
-                  const isActive = activeSessionId === session.id;
-                  const optionsCount = session.tripOptions?.length || 0;
+              <View style={styles.sessionsList}>
+                {filteredSessions.map((item) => {
+                  const isActive = activeSessionId === item.id;
 
                   return (
                     <View
-                      key={session.id}
+                      key={item.id}
                       style={[
                         styles.sessionItem,
                         {
                           backgroundColor: isActive
                             ? isDark
-                              ? colors.surfaceContainerHigh
-                              : colors.surfaceContainer
+                              ? "rgba(255, 255, 255, 0.12)"
+                              : "rgba(255, 255, 255, 0.90)"
                             : "transparent",
-                          borderColor: isActive ? colors.border : "transparent",
+                          borderColor: isActive
+                            ? isDark
+                              ? "rgba(255, 255, 255, 0.08)"
+                              : "rgba(0, 0, 0, 0.04)"
+                            : "transparent",
                         },
                       ]}
                     >
                       <TouchableOpacity
                         style={styles.sessionItemTouch}
-                        onPress={() => handleSelect(session)}
+                        onPress={() => handleSelect(item)}
                         activeOpacity={0.7}
                       >
                         <View style={styles.sessionIconBox}>
                           <Icon
-                            name="sparkles"
+                            name="message-square"
                             size={14}
-                            color={isActive ? colors.primary : colors.textMuted}
+                            color={isDark ? "#C084FC" : "#581C87"}
                           />
                         </View>
-                        <View style={styles.sessionTextCol}>
-                          <Text
-                            style={[
-                              styles.sessionTitle,
-                              {
-                                color: colors.textPrimary,
-                                fontWeight: isActive ? "700" : "500",
-                              },
-                            ]}
-                            numberOfLines={2}
-                          >
-                            {session.title}
-                          </Text>
-                          <View style={styles.sessionMetaRow}>
-                            <Text style={[styles.sessionTime, { color: colors.textMuted }]}>
-                              {session.timestamp}
-                            </Text>
-                            {optionsCount > 0 && (
-                              <View
-                                style={[
-                                  styles.optionsCountBadge,
-                                  { backgroundColor: colors.surfaceContainer },
-                                ]}
-                              >
-                                <Text
-                                  style={[
-                                    styles.optionsCountText,
-                                    { color: colors.primary },
-                                  ]}
-                                >
-                                  {optionsCount}{" "}
-                                  {optionsCount === 1 ? "вариант" : "варианта"}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
+                        <Text
+                          style={[
+                            styles.sessionTitle,
+                            {
+                              color: colors.textPrimary,
+                              fontWeight: isActive ? "600" : "400",
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {item.title}
+                        </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
-                        style={styles.deleteButton}
-                        onPress={() => onDeleteSession(session.id)}
+                        style={styles.sessionDeleteBtn}
+                        onPress={() => onDeleteSession(item.id)}
                         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         accessibilityLabel="Удалить диалог"
                       >
-                        <Icon name="trash" size={15} color={colors.textMuted} />
+                        <Icon name="trash" size={13} color={colors.textMuted} />
                       </TouchableOpacity>
                     </View>
                   );
@@ -319,23 +374,31 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             )}
           </ScrollView>
 
-          {/* Footer with Theme Switcher & Profile matching Web */}
+          {/* Footer User & Settings — frosted glass footer matching Web */}
           <View
             style={[
               styles.drawerFooter,
               {
-                paddingBottom: Math.max(insets.bottom, 16),
-                backgroundColor: colors.surface,
-                borderTopColor: colors.borderSubtle,
+                paddingBottom: Math.max(insets.bottom, 12),
+                backgroundColor: isDark
+                  ? "rgba(21, 18, 33, 0.95)"
+                  : "rgba(255, 255, 255, 0.92)",
+                borderTopColor: isDark
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(0, 0, 0, 0.06)",
               },
             ]}
           >
-            {/* Dark Mode Switcher Row */}
+            {/* Theme switcher toggle row */}
             {onToggleTheme && (
               <TouchableOpacity
                 style={[
                   styles.themeToggleRow,
-                  { backgroundColor: colors.surfaceContainer },
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.06)"
+                      : "rgba(0, 0, 0, 0.03)",
+                  },
                 ]}
                 onPress={onToggleTheme}
                 activeOpacity={0.75}
@@ -343,10 +406,15 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 <View style={styles.themeToggleLeft}>
                   <Icon
                     name={isDark ? "sun" : "moon"}
-                    size={16}
-                    color={isDark ? "#F59E0B" : colors.primary}
+                    size={14}
+                    color={isDark ? "#F59E0B" : "#581C87"}
                   />
-                  <Text style={[styles.themeToggleLabel, { color: colors.textPrimary }]}>
+                  <Text
+                    style={[
+                      styles.themeToggleText,
+                      { color: colors.textSecondary },
+                    ]}
+                  >
                     {isDark ? "Светлая тема" : "Тёмная тема"}
                   </Text>
                 </View>
@@ -354,54 +422,106 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                   style={[
                     styles.themeToggleBadge,
                     {
-                      backgroundColor: isDark ? "#F59E0B" : colors.primary,
+                      backgroundColor: isDark
+                        ? "rgba(245, 158, 11, 0.15)"
+                        : "rgba(88, 28, 135, 0.12)",
                     },
                   ]}
                 >
-                  <Text style={styles.themeToggleBadgeText}>
-                    {isDark ? "Вкл" : "Выкл"}
+                  <Text
+                    style={[
+                      styles.themeToggleBadgeText,
+                      { color: isDark ? "#F59E0B" : "#581C87" },
+                    ]}
+                  >
+                    {isDark ? "Тёмная" : "Светлая"}
                   </Text>
                 </View>
               </TouchableOpacity>
             )}
 
-            {/* Profile / Auth Button */}
-            <TouchableOpacity
-              style={[
-                styles.profileButton,
-                {
-                  backgroundColor: isDark ? colors.surfaceContainer : colors.primaryLight,
-                  borderColor: isDark ? colors.border : "rgba(88, 28, 135, 0.15)",
-                },
-              ]}
-              onPress={handleProfilePress}
-              activeOpacity={0.8}
-            >
-              <View style={styles.profileLeft}>
-                <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>
-                    {activeAccount?.avatarInitials || "ПУ"}
-                  </Text>
+            {/* Authenticated user profile or unauthenticated login button matching Web */}
+            {activeAccount?.name ? (
+              <TouchableOpacity
+                style={[
+                  styles.profileRow,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(255, 255, 255, 0.06)"
+                      : "rgba(0, 0, 0, 0.02)",
+                  },
+                ]}
+                onPress={handleProfilePress}
+                activeOpacity={0.75}
+              >
+                <View style={styles.profileLeft}>
+                  <View style={styles.profileAvatar}>
+                    <Text style={styles.profileAvatarText}>
+                      {activeAccount.avatarInitials ||
+                        activeAccount.name.slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.profileTextCol}>
+                    <Text
+                      style={[
+                        styles.profileName,
+                        { color: colors.textPrimary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {activeAccount.name}
+                    </Text>
+                    <Text
+                      style={[styles.profileTier, { color: colors.textMuted }]}
+                      numberOfLines={1}
+                    >
+                      {activeAccount.tier || "Путешественник"}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.profileInfo}>
-                  <Text
-                    style={[styles.profileName, { color: colors.textPrimary }]}
-                    numberOfLines={1}
-                  >
-                    {activeAccount?.name || "Вход в аккаунт"}
-                  </Text>
-                  <Text
-                    style={[styles.profileSubtitle, { color: colors.textMuted }]}
-                    numberOfLines={1}
-                  >
-                    {activeAccount?.tier
-                      ? `Тариф ${activeAccount.tier.toUpperCase()}`
-                      : "Сохранение маршрутов"}
-                  </Text>
+
+                <View style={styles.settingsIconBox}>
+                  <Icon name="settings" size={15} color={colors.textMuted} />
                 </View>
-              </View>
-              <Icon name="settings" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  {
+                    backgroundColor: isDark
+                      ? "rgba(88, 28, 135, 0.25)"
+                      : "rgba(88, 28, 135, 0.08)",
+                    borderColor: isDark
+                      ? "rgba(192, 132, 252, 0.25)"
+                      : "rgba(88, 28, 135, 0.18)",
+                  },
+                ]}
+                onPress={handleProfilePress}
+                activeOpacity={0.8}
+              >
+                <View style={styles.loginLeft}>
+                  <View style={styles.loginIconBox}>
+                    <Icon name="log-in" size={14} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.loginTextCol}>
+                    <Text
+                      style={[
+                        styles.loginTitle,
+                        { color: isDark ? "#C084FC" : "#581C87" },
+                      ]}
+                    >
+                      Вход в аккаунт
+                    </Text>
+                    <Text
+                      style={[styles.loginSubtitle, { color: colors.textMuted }]}
+                    >
+                      Сохранение маршрутов
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
       </View>
@@ -429,16 +549,32 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     left: 0,
-    elevation: 16,
+    elevation: 20,
     shadowColor: "#000000",
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.25,
-    shadowRadius: 18,
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    flexDirection: "column",
+    overflow: "hidden",
+  },
+  gradientHeaderWrapper: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 110,
+    zIndex: 0,
     flexDirection: "column",
   },
-  drawerHeader: {
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+  gradientStopStrip: {
+    flex: 1,
+    width: "100%",
+  },
+  brandBar: {
+    position: "relative",
+    zIndex: 10,
+    paddingHorizontal: 14,
+    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -446,20 +582,20 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 9,
   },
   brandLogoBox: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    backgroundColor: "rgba(255, 255, 255, 0.20)",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.35)",
+    borderColor: "rgba(255, 255, 255, 0.30)",
     alignItems: "center",
     justifyContent: "center",
   },
   brandLogoText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "900",
     color: "#FFFFFF",
   },
@@ -467,218 +603,239 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   brandTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
     color: "#FFFFFF",
     letterSpacing: -0.2,
+    lineHeight: 18,
   },
   brandSubtitle: {
     fontSize: 10,
     fontWeight: "500",
     color: "rgba(255, 255, 255, 0.85)",
+    lineHeight: 13,
   },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  headerBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.16)",
     alignItems: "center",
     justifyContent: "center",
   },
-  newChatWrapper: {
+  searchBarContainer: {
+    position: "relative",
+    zIndex: 10,
     paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 6,
+    paddingBottom: 4,
   },
-  newChatButton: {
+  searchInputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 12,
+    padding: 0,
+  },
+  newRouteContainer: {
+    position: "relative",
+    zIndex: 10,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  newRouteButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 11,
     borderWidth: 1,
   },
-  newChatContent: {
+  newRouteContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  newChatIconBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    alignItems: "center",
-    justifyContent: "center",
+  newRouteText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
-  newChatText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  scrollArea: {
+  sessionsScrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
+  sessionsScrollContent: {
+    paddingHorizontal: 8,
+    paddingTop: 6,
     paddingBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    paddingHorizontal: 6,
-    marginBottom: 8,
   },
   emptyContainer: {
     paddingVertical: 36,
     paddingHorizontal: 16,
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
-  emptyIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  emptyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  emptySubtitle: {
+  emptyText: {
     fontSize: 12,
-    lineHeight: 17,
     textAlign: "center",
   },
-  sessionList: {
-    gap: 4,
+  sessionsList: {
+    gap: 3,
   },
   sessionItem: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
+    borderRadius: 11,
     borderWidth: 1,
-    overflow: "hidden",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
   },
   sessionItemTouch: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    gap: 10,
+    gap: 8,
+    minWidth: 0,
   },
   sessionIconBox: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sessionTextCol: {
-    flex: 1,
-    gap: 3,
+    opacity: 0.8,
   },
   sessionTitle: {
+    flex: 1,
     fontSize: 12,
     lineHeight: 16,
   },
-  sessionMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  sessionTime: {
-    fontSize: 10,
-  },
-  optionsCountBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  optionsCountText: {
-    fontSize: 10,
-    fontWeight: "700",
-  },
-  deleteButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+  sessionDeleteBtn: {
+    padding: 4,
+    opacity: 0.7,
   },
   drawerFooter: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
+    paddingHorizontal: 10,
+    paddingTop: 8,
     borderTopWidth: 1,
-    gap: 10,
+    gap: 8,
   },
   themeToggleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 9,
   },
   themeToggleLeft: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  themeToggleLabel: {
-    fontSize: 12,
+  themeToggleText: {
+    fontSize: 11,
     fontWeight: "600",
   },
   themeToggleBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   themeToggleBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
-  profileButton: {
+  profileRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 11,
   },
   profileLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 9,
     flex: 1,
+    minWidth: 0,
   },
   profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: "#581C87",
     alignItems: "center",
     justifyContent: "center",
   },
   profileAvatarText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
     color: "#FFFFFF",
   },
-  profileInfo: {
+  profileTextCol: {
     flex: 1,
+    minWidth: 0,
     gap: 1,
   },
   profileName: {
     fontSize: 12,
     fontWeight: "700",
+    lineHeight: 16,
   },
-  profileSubtitle: {
+  profileTier: {
     fontSize: 10,
+    lineHeight: 13,
+  },
+  settingsIconBox: {
+    padding: 4,
+  },
+  loginButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 11,
+    borderWidth: 1,
+  },
+  loginLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  loginIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#581C87",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  loginTextCol: {
+    flex: 1,
+    gap: 1,
+  },
+  loginTitle: {
+    fontSize: 11,
+    fontWeight: "700",
+    lineHeight: 15,
+  },
+  loginSubtitle: {
+    fontSize: 9,
+    lineHeight: 12,
   },
 });

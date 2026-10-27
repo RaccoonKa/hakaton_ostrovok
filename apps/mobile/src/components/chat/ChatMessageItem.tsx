@@ -4,15 +4,17 @@ import { TripOption } from "@corvax/shared";
 import { theme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
+import { TripDossierView } from "../cards/TripDossierView";
 import { ThinkingBubble } from "./ThinkingBubble";
 import { ClarificationChipsMobile } from "./ClarificationChipsMobile";
 import { Icon } from "../common/Icon";
 
 export interface ChatMessageItemProps {
   message: MobileChatMessage;
-  onSelectOption?: (option: TripOption) => void;
+  onSelectOption?: (option: TripOption | null) => void;
   onBookDemo?: (option: TripOption) => void;
   onSelectChip?: (text: string) => void;
+  selectedOption?: TripOption | null;
   selectedOptionId?: string;
 }
 
@@ -21,6 +23,7 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
   onSelectOption,
   onBookDemo,
   onSelectChip,
+  selectedOption,
   selectedOptionId,
 }) => {
   const isUser = message.role === "user" || message.type === "human";
@@ -28,6 +31,14 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
   const optionsToRender = message.trip_options || message.tripOptions;
   const hasOptions = Boolean(optionsToRender && optionsToRender.length > 0);
   const isThinking = Boolean(message.isThinking);
+
+  // Check if the currently selected option belongs to this assistant message
+  const activeSelectedOption =
+    selectedOption &&
+    optionsToRender?.find(
+      (opt: TripOption) =>
+        opt.id === selectedOption.id || opt.title === selectedOption.title
+    );
 
   // Guard against uninitialized empty bubbles
   if (!hasContent && !hasOptions && !isThinking) {
@@ -89,19 +100,28 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
           </View>
         )}
 
-        {/* Embedded trip options if provided in this message */}
-        {hasOptions && optionsToRender && (
-          <View style={styles.tripOptionsList}>
-            {optionsToRender.map((opt: TripOption) => (
-              <TripCardMobile
-                key={opt.id || opt.title}
-                option={opt}
-                isSelected={selectedOptionId === opt.id}
-                onSelect={onSelectOption}
-                onBookDemo={onBookDemo}
-              />
-            ))}
-          </View>
+        {/* Curated Trip Dossier View when an option is selected from this message */}
+        {activeSelectedOption ? (
+          <TripDossierView
+            option={activeSelectedOption}
+            onBackToList={() => onSelectOption?.(null)}
+            onBookTour={onBookDemo || (() => {})}
+          />
+        ) : (
+          /* Embedded trip options cards list if no option is selected */
+          hasOptions && optionsToRender && (
+            <View style={styles.tripOptionsList}>
+              {optionsToRender.map((opt: TripOption) => (
+                <TripCardMobile
+                  key={opt.id || opt.title}
+                  option={opt}
+                  isSelected={selectedOptionId === opt.id}
+                  onSelect={onSelectOption}
+                  onBookDemo={onBookDemo}
+                />
+              ))}
+            </View>
+          )
         )}
       </View>
     </View>

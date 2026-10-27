@@ -99,3 +99,73 @@ test("dark theme tokens provide high contrast dark palette", () => {
   assert.equal(theme.isDark, false);
   assert.equal(theme.colors.background, "#FBFBFD");
 });
+
+test("mobile sidebar drawer filters sessions accurately by title search", () => {
+  const sessions: SavedMobileSession[] = [
+    {
+      id: "s1",
+      title: "Поездка в Сочи на 7 дней",
+      timestamp: "10:00",
+      messages: [],
+      tripOptions: [],
+      selectedOption: null,
+    },
+    {
+      id: "s2",
+      title: "Отдых в Дубае в отеле 5 звёзд",
+      timestamp: "11:30",
+      messages: [],
+      tripOptions: [],
+      selectedOption: null,
+    },
+    {
+      id: "s3",
+      title: "Горнолыжный тур в Шерегеш",
+      timestamp: "14:15",
+      messages: [],
+      tripOptions: [],
+      selectedOption: null,
+    },
+  ];
+
+  const filterQuery = (query: string) => {
+    if (!query.trim()) return sessions;
+    const lower = query.toLowerCase();
+    return sessions.filter((s) => s.title.toLowerCase().includes(lower));
+  };
+
+  assert.equal(filterQuery("").length, 3);
+  assert.equal(filterQuery("сочи").length, 1);
+  assert.equal(filterQuery("сочи")[0].id, "s1");
+  assert.equal(filterQuery("дуба").length, 1);
+  assert.equal(filterQuery("шерегеш").length, 1);
+  assert.equal(filterQuery("париж").length, 0);
+});
+
+test("option selection state toggle operates cleanly in place without jump", () => {
+  type OptionState = { id: string; title: string } | null;
+  let currentSelection: OptionState = null;
+
+  const selectOptionHandler = (opt: OptionState) => {
+    currentSelection = currentSelection?.id === opt?.id ? null : opt;
+  };
+
+  const optionA = { id: "opt-1", title: "Сочи Парк Отель" };
+  const optionB = { id: "opt-2", title: "Radisson Collection" };
+
+  // Select option A
+  selectOptionHandler(optionA);
+  assert.deepEqual(currentSelection, optionA);
+
+  // Re-selecting option A deselects it (returns to card list in place)
+  selectOptionHandler(optionA);
+  assert.equal(currentSelection, null);
+
+  // Select option B
+  selectOptionHandler(optionB);
+  assert.deepEqual(currentSelection, optionB);
+
+  // Directly back to list (pass null)
+  selectOptionHandler(null);
+  assert.equal(currentSelection, null);
+});

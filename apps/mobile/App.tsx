@@ -149,11 +149,6 @@ function MainApp() {
 
   const handleSelectOption = (opt: TripOption | null) => {
     selectOption(opt);
-    if (opt) {
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      }, 60);
-    }
   };
 
   const handleApplyFilters = (filterPrompt: string) => {
@@ -267,8 +262,9 @@ function MainApp() {
                   <ChatMessageItem
                     key={m.id}
                     message={m}
+                    selectedOption={selectedOption}
                     selectedOptionId={selectedOption?.id}
-                    onSelectOption={(opt) => handleSelectOption(opt)}
+                    onSelectOption={handleSelectOption}
                     onBookDemo={openCheckout}
                     onSelectChip={handleSelectChip}
                   />
@@ -282,14 +278,21 @@ function MainApp() {
                 )}
               </View>
 
-              {/* Screen 3 & 4: Detailed Tour Dossier when an option is selected */}
-              {selectedOption && (
-                <TripDossierView
-                  option={selectedOption}
-                  onBackToList={() => handleSelectOption(null)}
-                  onBookTour={openCheckout}
-                />
-              )}
+              {/* Fallback Trip Dossier View if an option was loaded but not tied to a specific turn */}
+              {selectedOption &&
+                !messages.some((m) =>
+                  (m.trip_options || m.tripOptions)?.some(
+                    (o) =>
+                      o.id === selectedOption.id ||
+                      o.title === selectedOption.title
+                  )
+                ) && (
+                  <TripDossierView
+                    option={selectedOption}
+                    onBackToList={() => handleSelectOption(null)}
+                    onBookTour={openCheckout}
+                  />
+                )}
             </View>
           )}
         </ScrollView>

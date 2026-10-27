@@ -19,7 +19,7 @@ import { Icon } from "../common/Icon";
 export interface TripCardMobileProps {
   option: TripOption;
   isSelected?: boolean;
-  onSelect?: (option: TripOption) => void;
+  onSelect?: (option: TripOption | null) => void;
   onBookDemo?: (option: TripOption) => void;
 }
 
@@ -262,7 +262,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
                 styles.selectButton,
                 isSelected && styles.selectButtonActive,
               ]}
-              onPress={() => onSelect?.(option)}
+              onPress={() => onSelect?.(isSelected ? null : option)}
               activeOpacity={0.8}
             >
               {isSelected ? (
