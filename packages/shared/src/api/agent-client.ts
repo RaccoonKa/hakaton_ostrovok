@@ -1,4 +1,4 @@
-import { ChatMessage, ServiceMetadata, TripOption } from "../domain/types";
+import { ServiceMetadata } from "../domain/types";
 import { MOCK_TRIP_OPTIONS } from "../mocks/travel-options";
 import { AgUiClient } from "./agui-client";
 import { FastApiStreamClient } from "./stream-client";

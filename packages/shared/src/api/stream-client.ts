@@ -105,7 +105,7 @@ export class FastApiStreamClient {
                     callbacks.onError?.(new Error(parsed.content || "Internal stream error"));
                     break;
                 }
-              } catch (e) {
+              } catch {
                 callbacks.onToken?.(dataStr);
               }
             }

@@ -77,7 +77,7 @@ export class AgUiClient {
               try {
                 const event: AgUiEvent = JSON.parse(dataStr);
                 this.handleAgUiEvent(event, callbacks);
-              } catch (e) {
+              } catch {
                 // Если пришла просто строка или невалидный JSON
                 callbacks.onToken?.(dataStr);
               }

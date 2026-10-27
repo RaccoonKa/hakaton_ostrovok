@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Building2,
   MapPin,
   Bed,
   Utensils,

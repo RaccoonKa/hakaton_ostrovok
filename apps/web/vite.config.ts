@@ -15,6 +15,10 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
     proxy: {
+      "/health": {
+        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
       "/agui": {
         target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
         changeOrigin: true,

@@ -40,7 +40,7 @@ const MainLayoutContent: React.FC<MainLayoutContentProps> = ({
       >
         <Header onResetChat={onResetChat} />
 
-        <main className="w-full pt-14 flex-1 flex flex-col relative">
+        <main className="w-full pt-14 flex-1 flex flex-col relative overflow-x-hidden">
           {children}
         </main>
       </div>

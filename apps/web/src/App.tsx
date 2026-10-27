@@ -12,7 +12,7 @@ export const App: React.FC = () => {
     setChatKey((prev) => prev + 1);
   };
 
-  const handleSelectHistoryItem = (query: string) => {
+  const handleSelectHistoryItem = (_query: string) => {
     setActiveHistoryId("hist-1");
     // Trigger reset and re-mount with query if needed
     setChatKey((prev) => prev + 1);

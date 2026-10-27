@@ -61,6 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ onResetChat }) => {
       <div className="flex items-center gap-3">
         <button
           type="button"
+          data-sidebar-toggle="true"
           onClick={toggleSidebar}
           className="w-8 h-8 rounded-lg flex items-center justify-center text-white/90 hover:bg-white/15 hover:text-white transition-colors"
           title={isSidebarOpen ? "Скрыть боковую панель (⌘\\)" : "Показать боковую панель (⌘\\)"}

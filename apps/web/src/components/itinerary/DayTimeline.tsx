@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Calendar, Plane, Car, Hotel, ArrowRight } from "lucide-react";
+import { Route, Calendar, Plane, Car, Hotel } from "lucide-react";
 import { ActivityItem } from "./ActivityItem";
 import { TripOption } from "../../types/travel";
 import { formatDateRange } from "@corvax/shared";
