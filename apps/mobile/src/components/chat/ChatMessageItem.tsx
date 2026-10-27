@@ -8,6 +8,7 @@ import { TripDossierView } from "../cards/TripDossierView";
 import { ThinkingBubble } from "./ThinkingBubble";
 import { ClarificationChipsMobile } from "./ClarificationChipsMobile";
 import { Icon } from "../common/Icon";
+import { MarkdownTextMobile } from "../common/MarkdownTextMobile";
 
 export interface ChatMessageItemProps {
   message: MobileChatMessage;
@@ -102,15 +103,25 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
                   ],
             ]}
           >
-            <Text
-              style={[
-                styles.text,
-                isUser ? styles.userText : styles.assistantText,
-                { color: colors.textPrimary },
-              ]}
-            >
-              {message.content}
-            </Text>
+            {isUser ? (
+              <Text
+                style={[
+                  styles.text,
+                  styles.userText,
+                  { color: colors.textPrimary },
+                ]}
+              >
+                {message.content}
+              </Text>
+            ) : (
+              <MarkdownTextMobile
+                content={message.content}
+                color={colors.textPrimary}
+                mutedColor={colors.textMuted}
+                bulletColor={colors.primary}
+                fontSize={15}
+              />
+            )}
 
             {/* Inline Clarification / Dynamic Suggestion Chips for assistant turn */}
             {showClarification && Boolean(message.suggestions && message.suggestions.length > 0) && (

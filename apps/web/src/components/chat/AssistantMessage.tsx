@@ -6,6 +6,7 @@ import { FlightCard } from "../cards/FlightCard";
 import { HotelCard } from "../cards/HotelCard";
 import { DayTimeline } from "../itinerary/DayTimeline";
 import { PriceBreakdown, PriceOptimizationDiff } from "../cards/PriceBreakdown";
+import { MarkdownText } from "../common/MarkdownText";
 
 interface AssistantMessageProps {
   message: ChatMessage;
@@ -68,9 +69,7 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
         {/* Text bubble */}
         {message.content && (
           <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 shadow-xs border border-surface-container-highest/60 text-content-primary">
-            <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-normal">
-              {message.content}
-            </p>
+            <MarkdownText content={message.content} />
 
             {/* Clarification / Dynamic Suggestion Chips if no option selected yet */}
             {!showDossier && !isStreaming && Boolean(message.suggestions && message.suggestions.length > 0) && (
