@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 Граф travel-agent.
 
@@ -28,6 +29,15 @@ from agents.travel.nodes.extract import call_extract
 from agents.travel.nodes.response import generate_response
 from agents.travel.nodes.suggest import call_suggest_dates, call_suggest_destinations
 from agents.travel.state import TravelState
+=======
+from langgraph.graph import END, START, StateGraph
+from langgraph.prebuilt import ToolNode
+
+from agents.travel.nodes.planner import call_planner
+from agents.travel.nodes.response import generate_response
+from agents.travel.state import TravelState
+from agents.travel.tools import TRAVEL_TOOLS
+>>>>>>> origin/main
 
 
 def _validation_field(validation, name: str, default=None):

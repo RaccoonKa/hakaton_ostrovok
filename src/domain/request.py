@@ -2,7 +2,10 @@
 Доменная модель структурированного запроса пользователя.
 """
 
+<<<<<<< HEAD
 from typing import Literal
+=======
+>>>>>>> origin/main
 
 from pydantic import BaseModel, ConfigDict, Field
 

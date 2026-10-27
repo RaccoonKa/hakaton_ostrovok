@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """
 Узел формирования итогового ответа.
 
@@ -12,6 +13,12 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage
 
 from agents.travel.nodes.ask import _city_name
+=======
+import json
+
+from langchain_core.messages import AIMessage, ToolMessage
+
+>>>>>>> origin/main
 from agents.travel.state import TravelState
 
 

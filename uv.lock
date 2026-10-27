@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.12, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -78,6 +78,7 @@ dependencies = [
     { name = "langchain-chroma" },
     { name = "langchain-community" },
     { name = "langchain-core" },
+    { name = "langchain-gigachat" },
     { name = "langchain-google-genai" },
     { name = "langchain-google-vertexai" },
     { name = "langchain-groq" },
@@ -144,6 +145,7 @@ requires-dist = [
     { name = "langchain-chroma", specifier = "~=1.1.0" },
     { name = "langchain-community", specifier = "~=0.4.2" },
     { name = "langchain-core", specifier = "~=1.4.8" },
+    { name = "langchain-gigachat", specifier = ">=0.3.0" },
     { name = "langchain-google-genai", specifier = "~=4.2.6" },
     { name = "langchain-google-vertexai", specifier = ">=3.2.4" },
     { name = "langchain-groq", specifier = "~=1.1.3" },
@@ -1323,6 +1325,20 @@ wheels = [
 ]
 
 [[package]]
+name = "gigachat"
+version = "0.2.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/3e/42105fe7be2aa33907349fd177a2d8a97e14f434cfc1b8cbf3ba7b4a03f8/gigachat-0.2.3.tar.gz", hash = "sha256:b298dc70d28153e83780cdb7f40ec7273462ce497daafb1bee7e08509126aab3", size = 42631, upload-time = "2026-07-31T14:30:32.776Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/89/c6/cea9fd75f06c4c5a3f00a96c157c183146cb42b20e58b7580cd723c359bb/gigachat-0.2.3-py3-none-any.whl", hash = "sha256:61a51bcb9c3888c7643a9ffabe191695279f7cfca6b9d9d639e60c073a2385da", size = 55335, upload-time = "2026-07-31T14:30:34.101Z" },
+]
+
+[[package]]
 name = "gitdb"
 version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
@@ -2266,6 +2282,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2a/b9/e937d0a90b26540bff07e7a7c64349f3b29c2dcc36257cd1cd3fdce17f2a/langchain_core-1.4.9.tar.gz", hash = "sha256:f8078901145bed0466755277500a5a22822a7b628808c4c0a28d4fc88895fcf2", size = 967294, upload-time = "2026-07-08T20:06:54.191Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/70/ade2fada52772798ef815b6352b59e71b116aa0c32c3aef5be3dc2cbed12/langchain_core-1.4.9-py3-none-any.whl", hash = "sha256:28e3909e2a10cc81504952d795ac0a9e014c0018121ef89d48dd396fa09ec624", size = 558293, upload-time = "2026-07-08T20:06:52.382Z" },
+]
+
+[[package]]
+name = "langchain-gigachat"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gigachat" },
+    { name = "langchain-core" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/bb/efea48f87376d5e5332391b8acc4fe2e8d9946232a76006e122b97ccef1b/langchain_gigachat-0.5.1.tar.gz", hash = "sha256:0979813e391fb66fb356990dce36d8db23e4634b78914b03ffdade96ada718a7", size = 25920, upload-time = "2026-05-04T14:04:25.328Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/c7/7a33997b4e5bea202732128759cd8be13a5b8863161dcb2b2f843da833d5/langchain_gigachat-0.5.1-py3-none-any.whl", hash = "sha256:900a44a4c36926118974e3cddc689b23547d3cd21d1d7649b1e979a434e66a00", size = 28562, upload-time = "2026-05-04T14:04:26.246Z" },
 ]
 
 [[package]]

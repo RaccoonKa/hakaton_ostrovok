@@ -6,6 +6,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field
 
+
 # для реализации туров
 class RouteStop(BaseModel):
     """Остановка/город в маршруте путешествия."""

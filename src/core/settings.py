@@ -87,7 +87,7 @@ class Settings(BaseSettings):
     GOOGLE_APPLICATION_CREDENTIALS: SecretStr | None = None
     GROQ_API_KEY: SecretStr | None = None
     USE_AWS_BEDROCK: bool = False
-    OLLAMA_MODEL: str = "llama3.3"
+    OLLAMA_MODEL: str | None = None
     OLLAMA_BASE_URL: str | None = None
     USE_FAKE_MODEL: bool = False
     OPENROUTER_API_KEY: SecretStr | None = None

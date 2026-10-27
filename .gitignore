@@ -20,3 +20,4 @@ dist/
 .env.local
 .env.*.local
 .venv/
+*.db
