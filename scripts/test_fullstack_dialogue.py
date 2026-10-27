@@ -13,9 +13,12 @@ import sys
 import httpx
 
 
+import uuid
+
+
 def test_fullstack_dialogue(base_url: str = "http://127.0.0.1:8000"):
     stream_url = f"{base_url}/travel_agent/stream"
-    thread_id = f"test-e2e-dialogue-{int(sys.version_info[0])}"
+    thread_id = f"test-e2e-dialogue-{uuid.uuid4().hex[:8]}"
 
     print(f"\n[E2E] Тестирование сервиса: {stream_url} (thread_id: {thread_id})\n")
 

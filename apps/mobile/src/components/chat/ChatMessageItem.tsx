@@ -71,13 +71,9 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
             </Text>
 
             {/* Inline Clarification / Dynamic Suggestion Chips for assistant turn */}
-            {showClarification && (
+            {showClarification && Boolean(message.suggestions && message.suggestions.length > 0) && (
               <ClarificationChipsMobile
-                chips={
-                  message.suggestions && message.suggestions.length > 0
-                    ? message.suggestions
-                    : undefined
-                }
+                chips={message.suggestions}
                 onSelectChip={onSelectChip}
               />
             )}

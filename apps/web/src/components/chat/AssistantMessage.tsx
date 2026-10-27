@@ -73,13 +73,9 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
             </p>
 
             {/* Clarification / Dynamic Suggestion Chips if no option selected yet */}
-            {!showDossier && !isStreaming && (
+            {!showDossier && !isStreaming && Boolean(message.suggestions && message.suggestions.length > 0) && (
               <ClarificationChips
-                chips={
-                  message.suggestions && message.suggestions.length > 0
-                    ? message.suggestions
-                    : undefined
-                }
+                chips={message.suggestions}
                 onSelectChip={onSelectChip}
               />
             )}

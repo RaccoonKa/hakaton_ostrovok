@@ -277,10 +277,27 @@ def call_ask(state: TravelState | dict) -> dict:
     suggestions: list[str] = []
     if candidates:
         suggestions = [_city_name(c.city) for c in candidates[:4]]
+    elif date_options:
+        suggestions = [f"Вариант {i}" for i in range(1, min(len(date_options), 3) + 1)]
     elif stage == "confirmation":
         suggestions = ["Да, всё верно! Искать", "Хочу изменить параметры"]
     elif stage in {"preferences", "awaiting_preferences"}:
         suggestions = ["Море и пляжи", "История и культура", "Природа и горы", "Спокойный отдых"]
+    else:
+        # Умные подсказки для сбора недостающих параметров поездки
+        missing_set = set(getattr(validation, "missing", []) or [])
+        if "budget" in missing_set and "travelers" in missing_set:
+            suggestions = [
+                "На двоих, на неделю, до 150 000 ₽",
+                "1 человек, на 5 дней, до 80 000 ₽",
+                "Семья 2+1, 10 ночей, бюджет гибкий",
+            ]
+        elif "budget" in missing_set:
+            suggestions = ["До 100 000 ₽", "До 200 000 ₽", "Бюджет не ограничен"]
+        elif "travelers" in missing_set:
+            suggestions = ["1 человек", "2 человека", "2 взрослых и ребёнок"]
+        elif "dates" in missing_set:
+            suggestions = ["В ближайшие 2 недели", "На неделю в июле", "В августе на 10 дней"]
 
     # Единственный interrupt на весь сгруппированный набор.
     interrupt_payload = InterruptPrompt(prompt, suggestions=suggestions, stage=str(stage))
