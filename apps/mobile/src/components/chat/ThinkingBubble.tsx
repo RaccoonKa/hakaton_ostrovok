@@ -6,11 +6,13 @@ import { Icon, IconName } from "../common/Icon";
 export interface ThinkingBubbleProps {
   statusText?: string;
   isThinking?: boolean;
+  currentStep?: "analyzing_flights" | "finding_hotels" | "calculating_budget" | "ready" | string;
 }
 
 export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
-  statusText = "Анализирую авиарейсы, отели и логистику...",
+  statusText,
   isThinking = true,
+  currentStep = "analyzing_flights",
 }) => {
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
@@ -33,13 +35,13 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
             duration: 350,
             useNativeDriver: true,
           }),
-          Animated.delay(Math.max(0, 700 - delay)),
+          Animated.delay(Math.max(0, 600 - delay)),
         ])
       );
 
     const anim1 = createPulse(dot1, 0);
-    const anim2 = createPulse(dot2, 200);
-    const anim3 = createPulse(dot3, 400);
+    const anim2 = createPulse(dot2, 150);
+    const anim3 = createPulse(dot3, 300);
 
     anim1.start();
     anim2.start();
@@ -55,36 +57,86 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
   if (!isThinking) return null;
 
   let iconName: IconName = "sparkles";
-  let subtitle = "Синтез информации о рейсах, отелях и квотах";
+  let title = "ИИ подбирает варианты";
+  let subtitle = "Синтез информации о рейсах, отелях и тарифах";
 
-  const lower = statusText.toLowerCase();
-  if (lower.includes("рейс") || lower.includes("перелет") || lower.includes("авиа")) {
+  const stepLower = (currentStep || "").toLowerCase();
+  const textLower = (statusText || "").toLowerCase();
+
+  if (
+    stepLower.includes("flight") ||
+    textLower.includes("рейс") ||
+    textLower.includes("перелет") ||
+    textLower.includes("авиа")
+  ) {
     iconName = "plane";
-    subtitle = "Поиск прямых дневных рейсов с включённым багажом";
-  } else if (lower.includes("отел") || lower.includes("номер") || lower.includes("гостиниц")) {
+    title = "Анализирую авиарейсы";
+    subtitle = "Поиск прямых вылетов с включённым багажом";
+  } else if (
+    stepLower.includes("hotel") ||
+    textLower.includes("отел") ||
+    textLower.includes("номер") ||
+    textLower.includes("гостиниц")
+  ) {
     iconName = "hotel";
-    subtitle = "Проверка доступности и спецтарифов в официальной базе";
-  } else if (lower.includes("бюджет") || lower.includes("расчет")) {
+    title = "Подбираю отели";
+    subtitle = "Проверка доступности и спецтарифов";
+  } else if (
+    stepLower.includes("budget") ||
+    textLower.includes("бюджет") ||
+    textLower.includes("расчет") ||
+    textLower.includes("оптимиз")
+  ) {
     iconName = "sliders";
-    subtitle = "Расчет оптимального бюджета и сезонных скидок";
+    title = "Рассчитываю бюджет";
+    subtitle = "Поиск спецтарифов и окон пониженного спроса";
+  } else if (statusText) {
+    title = statusText;
   }
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
+        {/* Left Phase Icon Badge */}
         <View style={styles.iconContainer}>
-          <Icon name={iconName} size={16} color="#FFFFFF" />
+          <Icon name={iconName} size={15} color="#FFFFFF" />
         </View>
 
+        {/* Right Info Column */}
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
             <Text style={styles.title} numberOfLines={1}>
-              {statusText}
+              {title}
             </Text>
+            {/* Animated 3-Dots wave right next to title — never pushed off to the right margin! */}
             <View style={styles.dotsRow}>
-              <Animated.View style={[styles.dot, { opacity: dot1 }]} />
-              <Animated.View style={[styles.dot, { opacity: dot2 }]} />
-              <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+              <Animated.View
+                style={[
+                  styles.dot,
+                  {
+                    opacity: dot1,
+                    transform: [{ scale: dot1.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.dot,
+                  {
+                    opacity: dot2,
+                    transform: [{ scale: dot2.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.dot,
+                  {
+                    opacity: dot3,
+                    transform: [{ scale: dot3.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
+                  },
+                ]}
+              />
             </View>
           </View>
           <Text style={styles.subtitle} numberOfLines={1}>
@@ -98,10 +150,8 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 6,
-    paddingHorizontal: theme.spacing.xs,
+    marginVertical: 4,
     width: "100%",
-    maxWidth: 420,
   },
   card: {
     flexDirection: "row",
@@ -109,42 +159,48 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: theme.colors.border,
     gap: 10,
+    maxWidth: "100%",
     ...theme.shadows.sm,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
+    width: 30,
+    height: 30,
     borderRadius: 8,
     backgroundColor: theme.colors.primary, // #581C87
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   infoCol: {
     flex: 1,
+    minWidth: 0,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "flex-start",
+    gap: 8,
   },
   title: {
     fontSize: 13,
     fontWeight: "600",
     color: theme.colors.textPrimary,
+    flexShrink: 1, // Truncates if line is very narrow rather than pushing dots off
   },
   dotsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
+    gap: 4,
+    flexShrink: 0, // Dots are rigidly anchored next to the title
   },
   dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+    width: 4.5,
+    height: 4.5,
+    borderRadius: 2.25,
     backgroundColor: theme.colors.primary, // #581C87
   },
   subtitle: {

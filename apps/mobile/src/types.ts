@@ -45,4 +45,7 @@ export interface MobileChatMessage {
   timestamp?: string;
   tripOptions?: TripOption[];
   selectedOption?: TripOption;
+  isThinking?: boolean;
+  thinkingStep?: "analyzing_flights" | "finding_hotels" | "calculating_budget" | "ready" | string;
+  thinkingText?: string;
 }

@@ -22,7 +22,6 @@ import { Header } from "./src/components/common/Header";
 import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
 import { ChatInputBar } from "./src/components/chat/ChatInputBar";
 import { QuickReplyChips } from "./src/components/chat/QuickReplyChips";
-import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
 import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
@@ -93,6 +92,15 @@ function MainApp() {
     sendMessage(session.previewPrompt);
   };
 
+  const handleSelectOption = (opt: TripOption | null) => {
+    selectOption(opt);
+    if (opt) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 60);
+    }
+  };
+
   const handleApplyFilters = (filterPrompt: string) => {
     if (messages.length === 0) {
       setHeroInputText((prev) =>
@@ -103,8 +111,9 @@ function MainApp() {
     }
   };
 
-  // Scroll to bottom when new messages arrive, thinking toggles, or options update
+  // Scroll to bottom when new messages arrive, thinking toggles, or options update (when in chat feed mode)
   useEffect(() => {
+    if (selectedOption) return;
     const timer = setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 120);
@@ -257,25 +266,17 @@ function MainApp() {
                     key={m.id}
                     message={m}
                     selectedOptionId={selectedOption?.id}
-                    onSelectOption={(opt) => selectOption(opt)}
+                    onSelectOption={(opt) => handleSelectOption(opt)}
                     onBookDemo={openCheckout}
                   />
                 ))}
               </View>
 
-              {/* Thinking Bubble */}
-              {isThinking && (
-                <ThinkingBubble
-                  isThinking={isThinking}
-                  statusText={thinkingText}
-                />
-              )}
-
               {/* Screen 3 & 4: Detailed Tour Dossier when an option is selected */}
               {selectedOption ? (
                 <TripDossierView
                   option={selectedOption}
-                  onBackToList={() => selectOption(null)}
+                  onBackToList={() => handleSelectOption(null)}
                   onBookTour={openCheckout}
                 />
               ) : (
@@ -296,7 +297,7 @@ function MainApp() {
                         key={opt.id || opt.title}
                         option={opt}
                         isSelected={false}
-                        onSelect={(chosen) => selectOption(chosen)}
+                        onSelect={(chosen) => handleSelectOption(chosen)}
                         onBookDemo={openCheckout}
                       />
                     ))}

@@ -4,6 +4,7 @@ import { TripOption } from "@corvax/shared";
 import { theme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
+import { ThinkingBubble } from "./ThinkingBubble";
 import { Icon } from "../common/Icon";
 
 export interface ChatMessageItemProps {
@@ -22,9 +23,10 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   const isUser = message.role === "user";
   const hasContent = Boolean(message.content && message.content.trim().length > 0);
   const hasOptions = Boolean(message.tripOptions && message.tripOptions.length > 0);
+  const isThinking = Boolean(message.isThinking);
 
-  // Guard against empty bubbles during state initialization or before first stream token
-  if (!hasContent && !hasOptions) {
+  // Guard against uninitialized empty bubbles
+  if (!hasContent && !hasOptions && !isThinking) {
     return null;
   }
 
@@ -46,6 +48,16 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       )}
 
       <View style={[styles.contentCol, isUser ? styles.userContentCol : styles.assistantContentCol]}>
+        {/* Thinking Indicator inside Assistant's Turn */}
+        {isThinking && (
+          <ThinkingBubble
+            isThinking={true}
+            currentStep={message.thinkingStep}
+            statusText={message.thinkingText}
+          />
+        )}
+
+        {/* Text bubble */}
         {hasContent && (
           <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
             <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
@@ -147,15 +159,15 @@ const styles = StyleSheet.create({
     ...theme.shadows.sm,
   },
   userBubble: {
-    backgroundColor: theme.colors.surfaceContainer, // #F0EDF1 (matches web user bubble)
+    backgroundColor: theme.colors.surfaceContainer, // #F0EDF1
     borderTopRightRadius: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border, // #E5E5EB
+    borderColor: theme.colors.border,
   },
   assistantBubble: {
     backgroundColor: theme.colors.surface, // #FFFFFF
     borderWidth: 1,
-    borderColor: theme.colors.border, // #E5E5EB
+    borderColor: theme.colors.border,
     borderTopLeftRadius: 4,
   },
   text: {

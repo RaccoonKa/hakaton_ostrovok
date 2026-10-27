@@ -39,7 +39,12 @@ def generate_response(state: TravelState | dict):
     text_lines.append("Какой из вариантов вам больше подходит, или скорректируем даты/бюджет?")
     final_text = "\n".join(text_lines)
 
+    ai_message = AIMessage(
+        content=final_text,
+        additional_kwargs={"trip_options": packages_data},
+    )
+
     return {
-        "messages": [AIMessage(content=final_text)],
+        "messages": [ai_message],
         "trip_options": packages_data,
     }

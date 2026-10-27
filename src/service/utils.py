@@ -57,6 +57,11 @@ def langchain_to_chat_message(message: BaseMessage) -> ChatMessage:
                 ai_message.tool_calls = message.tool_calls
             if message.response_metadata:
                 ai_message.response_metadata = message.response_metadata
+            if getattr(message, "additional_kwargs", None):
+                if "trip_options" in message.additional_kwargs:
+                    ai_message.custom_data["trip_options"] = message.additional_kwargs["trip_options"]
+                if "custom_data" in message.additional_kwargs and isinstance(message.additional_kwargs["custom_data"], dict):
+                    ai_message.custom_data.update(message.additional_kwargs["custom_data"])
             return ai_message
         case ToolMessage():
             tool_message = ChatMessage(
