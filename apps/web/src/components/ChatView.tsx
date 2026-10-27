@@ -97,7 +97,7 @@ export const ChatView: React.FC<ChatViewProps> = () => {
     return Sparkles;
   };
 
-  const chatPaddingLeft = isFiltersOpen && isSidebarOpen && isDesktop ? "322px" : "0px";
+  const chatPaddingLeft = isFiltersOpen && isSidebarOpen && isDesktop ? "355px" : "0px";
 
   return (
     <div className="flex flex-col w-full relative min-h-[calc(100vh-3.5rem)]">
