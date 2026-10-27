@@ -205,3 +205,29 @@ test("header theme icon uses pure white and avoids yellow/amber in dark mode", (
   assert.notEqual(darkProps.color, "#F59E0B");
   assert.equal(lightProps.color, "#FFFFFF");
 });
+
+test("mobile chat send button has proper light/dark visuals and is never dark when disabled in light theme", () => {
+  const { getSendButtonVisuals } = require("../utils/themeVisuals");
+
+  // Light mode, disabled (no text or thinking)
+  const lightDisabled = getSendButtonVisuals(false, false, "#242236", "#8E8E9A");
+  assert.equal(lightDisabled.backgroundColor, "#E5E7EB", "Should be a soft light gray, NOT dark");
+  assert.notEqual(lightDisabled.backgroundColor, "#2E2A44", "Should never use dark border/surface in light theme");
+  assert.notEqual(lightDisabled.backgroundColor, "#581C87", "Should not be dark purple when disabled");
+  assert.equal(lightDisabled.iconColor, "#9CA3AF");
+
+  // Light mode, active (text entered)
+  const lightActive = getSendButtonVisuals(true, false, "#242236", "#8E8E9A");
+  assert.equal(lightActive.backgroundColor, "#7E22CE", "Should be vibrant royal purple");
+  assert.equal(lightActive.iconColor, "#FFFFFF");
+
+  // Dark mode, disabled
+  const darkDisabled = getSendButtonVisuals(false, true, "#242236", "#8E8E9A");
+  assert.equal(darkDisabled.backgroundColor, "#242236");
+  assert.equal(darkDisabled.iconColor, "#8E8E9A");
+
+  // Dark mode, active
+  const darkActive = getSendButtonVisuals(true, true, "#242236", "#8E8E9A");
+  assert.equal(darkActive.backgroundColor, "#A855F7");
+  assert.equal(darkActive.iconColor, "#FFFFFF");
+});

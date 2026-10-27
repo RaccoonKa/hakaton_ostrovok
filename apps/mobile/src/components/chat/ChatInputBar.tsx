@@ -9,6 +9,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
+import { getSendButtonVisuals, SendButtonVisuals } from "../../utils/themeVisuals";
 
 export interface ChatInputBarProps {
   value: string;
@@ -19,6 +20,9 @@ export interface ChatInputBarProps {
   onFilterPress?: () => void;
   isDark?: boolean;
 }
+
+export { getSendButtonVisuals };
+export type { SendButtonVisuals };
 
 export const ChatInputBar: React.FC<ChatInputBarProps> = ({
   value,
@@ -35,6 +39,13 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
 
   const [inputHeight, setInputHeight] = useState(40);
   const hasText = value.trim().length > 0;
+  const isSendActive = hasText && !disabled;
+  const sendVisuals = getSendButtonVisuals(
+    isSendActive,
+    isDark,
+    colors.surfaceContainer,
+    colors.textMuted,
+  );
 
   const handleKeyPress = (e: any) => {
     if (Platform.OS === "web" && e.nativeEvent?.key === "Enter" && !e.nativeEvent?.shiftKey) {
@@ -105,17 +116,28 @@ export const ChatInputBar: React.FC<ChatInputBarProps> = ({
           <TouchableOpacity
             style={[
               styles.sendButton,
-              hasText && !disabled ? styles.sendButtonActive : styles.sendButtonDisabled,
+              {
+                backgroundColor: sendVisuals.backgroundColor,
+                ...(isSendActive && !isDark
+                  ? {
+                      shadowColor: "#7E22CE",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }
+                  : {}),
+              },
             ]}
             onPress={onSend}
-            disabled={!hasText || disabled}
+            disabled={!isSendActive}
             accessibilityLabel="Отправить запрос"
             activeOpacity={0.8}
           >
             <Icon
               name="send"
               size={15}
-              color={hasText && !disabled ? "#FFFFFF" : colors.textMuted}
+              color={sendVisuals.iconColor}
             />
           </TouchableOpacity>
         </View>
@@ -175,12 +197,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sendButtonDisabled: {
-    backgroundColor: theme.colors.border,
-  },
-  sendButtonActive: {
-    backgroundColor: theme.colors.primary, // #581C87
-    ...theme.shadows.sm,
   },
 });
