@@ -1,4 +1,5 @@
 import { ChatMessage } from "../domain/types";
+import { normalizeTripOptions } from "../domain/normalize";
 import { ClientCallbacks } from "./types";
 
 /**
@@ -97,7 +98,7 @@ export class FastApiStreamClient {
                     const msg = parsed.content as ChatMessage;
                     callbacks.onMessage?.(msg);
                     if (msg.custom_data?.trip_options) {
-                      callbacks.onTripOptions?.(msg.custom_data.trip_options);
+                      callbacks.onTripOptions?.(normalizeTripOptions(msg.custom_data.trip_options));
                     }
                     break;
                   }

@@ -67,7 +67,14 @@ def generate_response(state: TravelState | dict) -> dict:
     lines.append("Какой из вариантов вам больше подходит?")
     final_text = "\n\n".join(lines)
 
-    return {"messages": [AIMessage(content=final_text)]}
+    return {
+        "messages": [
+            AIMessage(
+                content=final_text,
+                additional_kwargs={"trip_options": trip_options},
+            )
+        ]
+    }
 
 
 __all__ = ["generate_response"]
