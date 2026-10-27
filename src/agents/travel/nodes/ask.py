@@ -38,7 +38,7 @@ _CITY_DISPLAY = {
     "Paphos": "Пафос",
     "Crete": "Крит",
     "Moscow": "Москва",
-    "Saint Petersburg": "Санкт-Петербург",
+    "Saint Petersburg": "Санкт-Петербург"
 }
 
 _VIBE_DISPLAY = {
@@ -60,7 +60,7 @@ _VIBE_DISPLAY = {
     "city": "город",
     "canals": "каналы",
     "all_inclusive": "всё включено",
-    "northern_lights": "северное сияние",
+    "northern_lights": "северное сияние"
 }
 
 _CONSTRAINT_DISPLAY = {
@@ -70,6 +70,8 @@ _CONSTRAINT_DISPLAY = {
     "no_night_flights": "без ночных перелётов",
     "no_stops": "без пересадок",
     "vegetarian": "вегетарианское питание",
+    "with_baggage": "перелёт с багажом",
+    "refundable_ticket": "возвратные билеты"
 }
 
 _HOTEL_REQ_DISPLAY = {
@@ -80,6 +82,8 @@ _HOTEL_REQ_DISPLAY = {
     "spa": "спа",
     "all_inclusive": "всё включено",
     "quality": "хороший отель",
+    "pet_friendly": "можно с питомцами",
+    "free_cancellation": "отель с бесплатной отменой"
 }
 
 _NUM_WORD = {
@@ -98,31 +102,29 @@ def _get(state, key, default=None):
     return getattr(state, key, default)
 
 
-class InterruptPrompt(str):
-    """Строка запроса прерывания с дополнительными подсказками для UI."""
-
-    suggestions: list[str]
-    stage: str
-
-    def __new__(cls, content: str, suggestions: list[str] | None = None, stage: str = ""):
-        obj = super().__new__(cls, content)
-        obj.suggestions = list(suggestions or [])
-        obj.stage = stage
-        return obj
-
-
 def _city_name(city: str | None) -> str:
     if not city:
         return "не выбран"
     return _CITY_DISPLAY.get(city, city)
 
 
+_COUNTRY_FLAGS = {
+    "Россия": "🇷🇺",
+    "Турция": "🇹🇷",
+    "Италия": "🇮🇹",
+    "Франция": "🇫🇷",
+    "ОАЭ": "🇦🇪",
+}
+
+
 def _format_destination_prompt(candidates: list[DestinationCandidate]) -> str:
-    lines = ["Уточните, пожалуйста, город поездки — вот подходящие варианты:"]
+    lines = ["**Подобрал отличные направления под ваш запрос:**\n"]
     for i, cand in enumerate(candidates, start=1):
+        flag = _COUNTRY_FLAGS.get(cand.country, "✈️")
         reason = f" — {cand.reason}" if cand.reason else ""
-        lines.append(f"{i}. {_city_name(cand.city)} ({cand.country}){reason}")
-    lines.append("\nНапишите номер или название выбранного города.")
+        lines.append(f"{i}. {flag} **{_city_name(cand.city)} ({cand.country})**{reason}")
+
+    lines.append("\n*Напишите номер или название выбранного города.*")
     return "\n".join(lines)
 
 
@@ -137,10 +139,12 @@ def _format_date_prompt(date_options: list[DateRange]) -> str:
 
 
 def _format_questions_prompt(questions: list[str]) -> str:
-    lines = ["Подскажите, пожалуйста:"]
-    for i, q in enumerate(questions, start=1):
-        lines.append(f"{i}. {q}")
-    return "\n".join(lines)
+    if len(questions) == 1:
+        return f"**Подскажите, пожалуйста:**\n\n- {questions[0]}"
+
+    # Формируем стандартный Markdown-список с гарантированным переносом строк
+    items = "\n".join(f"- {q}" for q in questions)
+    return f"**Подскажите ещё пару деталей:**\n\n{items}"
 
 
 def _format_money(amount: float, currency: str | None) -> str:
@@ -148,93 +152,96 @@ def _format_money(amount: float, currency: str | None) -> str:
 
 
 def format_request_summary(request) -> str:
-    """Сформировать итоговую сверку полного запроса."""
-    parts: list[str] = []
+    """Сформировать аккуратную и читаемую сверку полного запроса."""
+    lines = ["Давайте сверимся перед поиском:\n"]
 
-    origin = _city_name(getattr(request, "origin", None))
-    default_note = ""
-    if getattr(request, "origin", None) == ds.DEFAULT_ORIGIN:
-        default_note = " (по умолчанию)"
-    parts.append(f"вылет из города {origin}{default_note}")
+    # 1. Маршрут
+    origin = _city_name(getattr(request, "origin", None)) or "Москва"
+    dest = _city_name(getattr(request, "destination", None))
+    lines.append(f"• **Маршрут:** {origin} → {dest}")
 
-    parts.append(f"направление — {_city_name(getattr(request, 'destination', None))}")
+    # 2. Транспорт (если явно указан)
+    transport = getattr(request, "preferred_transport", None)
+    if transport:
+        t_val = getattr(transport, "value", str(transport))
+        t_map = {"plane": "самолёт", "train": "поезд", "bus": "автобус", "car": "автомобиль"}
+        lines.append(f"• **Транспорт:** {t_map.get(t_val, t_val)}")
 
+    # 3. Даты
     exact = list(getattr(request.date_preferences, "exact_dates", None) or [])
     if len(exact) >= 2:
         nights = (exact[1] - exact[0]).days
-        parts.append(
-            f"даты — {exact[0].strftime('%d.%m.%Y')}–{exact[1].strftime('%d.%m.%Y')} "
-            f"({nights} ноч.)"
-        )
+        lines.append(f"• **Даты:** {exact[0].strftime('%d.%m.%Y')} – {exact[1].strftime('%d.%m.%Y')} ({nights} ноч.)")
     elif getattr(request, "duration", None):
         month = getattr(request.date_preferences, "month", None) or []
         month_txt = month[0].value if month else "месяц"
-        parts.append(f"даты — {month_txt}, {request.duration} дн.")
+        lines.append(f"• **Период:** {month_txt}, {request.duration} дн.")
+
+    # 4. Состав гостей
+    adults = getattr(request, "adults", None)
+    children = getattr(request, "children", None)
+    if adults or children:
+        parts = []
+        if adults:
+            parts.append(f"{adults} взр.")
+        if children:
+            parts.append(f"{children} детей")
+        lines.append(f"• **Гости:** {', '.join(parts)}")
     else:
-        parts.append("даты — не указаны")
+        travelers = getattr(request, "travelers", 1)
+        lines.append(f"• **Гости:** {travelers} чел.")
 
-    travelers = getattr(request, "travelers", 1)
-    word = _NUM_WORD.get(travelers)
-    traveler_txt = f"{travelers}" + (f" ({word})" if word else "")
-    if getattr(request, "adults", None) or getattr(request, "children", None):
-        details = []
-        if getattr(request, "adults", None):
-            details.append(f"взрослых — {request.adults}")
-        if getattr(request, "children", None):
-            details.append(f"детей — {request.children}")
-        traveler_txt += "; " + ", ".join(details)
-    parts.append(f"путешественников — {traveler_txt}")
-
-    prefs = [_VIBE_DISPLAY.get(p.name, p.name) for p in getattr(request, "preferences", [])]
-    if prefs:
-        parts.append("предпочтения — " + ", ".join(prefs))
-    else:
-        parts.append("предпочтения — без особых предпочтений")
-
+    # 5. Бюджет
     mode = getattr(request, "budget_mode", "unknown")
     if mode == "no_limit":
-        parts.append("бюджет — без бюджетного ограничения")
+        lines.append("• **Бюджет:** без ограничений")
     elif mode == "flexible_scenarios":
-        parts.append("бюджет — подберу варианты разных ценовых уровней")
+        lines.append("• **Бюджет:** подберём варианты разных ценовых категорий")
     elif getattr(request, "budget_range", None):
         lo, hi = request.budget_range
-        parts.append(
-            "бюджет — от "
-            + _format_money(lo, getattr(request.currency, "value", None))
-            + " до "
-            + _format_money(hi, getattr(request.currency, "value", None))
-        )
+        lines.append(f"• **Бюджет:** от {_format_money(lo, getattr(request.currency, 'value', None))} до {_format_money(hi, getattr(request.currency, 'value', None))}")
     elif getattr(request, "budget", None) is not None:
-        parts.append(
-            "бюджет — "
-            + _format_money(request.budget, getattr(request.currency, "value", None))
-        )
-    else:
-        parts.append("бюджет — не указан")
+        lines.append(f"• **Бюджет:** {_format_money(request.budget, getattr(request.currency, 'value', None))}")
 
-    extras: list[str] = [
-        _CONSTRAINT_DISPLAY.get(c.name, c.name) for c in getattr(request, "constraints", [])
-    ]
-    extras += [
-        _HOTEL_REQ_DISPLAY.get(r, r) for r in getattr(request, "hotel_requirements", [])
-    ]
+    # 6. Предпочтения
+    prefs = [_VIBE_DISPLAY.get(p.name, p.name) for p in getattr(request, "preferences", [])]
+    if prefs:
+        lines.append(f"• **Вайб:** {', '.join(prefs)}")
+
+    # 7. Пожелания и фильтры
+    extras = [_CONSTRAINT_DISPLAY.get(c.name, c.name) for c in getattr(request, "constraints", [])]
+    extras += [_HOTEL_REQ_DISPLAY.get(r, r) for r in getattr(request, "hotel_requirements", [])]
     if extras:
-        parts.append("дополнительно — " + ", ".join(dict.fromkeys(extras)))
-    else:
-        parts.append("дополнительных ограничений нет")
+        lines.append(f"• **Пожелания:** {', '.join(dict.fromkeys(extras))}")
 
-    return "Давайте сверимся перед поиском: " + "; ".join(parts) + ". Всё верно?"
+    # 8. Документы для зарубежных направлений (Турция)
+    dest_raw = getattr(request, "destination", "") or ""
+    dest_obj = ds.get_destination_by_city(dest_raw) if dest_raw else None
+    country = dest_obj.country if dest_obj else getattr(request, "destination_country", None)
+    if not country and dest in {"Стамбул", "Анталья"}:
+        country = "Турция"
+
+    if country == "Турция" or dest in {"Стамбул", "Анталья", "Istanbul", "Antalya"}:
+        lines.append("• **Документы:** для въезда в Турцию потребуется загранпаспорт РФ (действителен от 120 дней, виза не нужна)")
+
+    lines.append("\nНачинаем поиск или нужно ещё что-то уточнить?")
+    return "\n".join(lines)
 
 
 def _filter_questions(
-    questions: list[str],
-    *,
-    has_candidates: bool,
-    has_dates: bool,
+        questions: list[str],
+        *,
+        has_candidates: bool,
+        has_dates: bool,
 ) -> list[str]:
     result = list(questions)
     if has_candidates:
-        markers = ["предложенных городов", "В какой город или страну"]
+        # Убираем любые дублирующие вопросы про выбор города
+        markers = [
+            "предложенных городов",
+            "В какой город или страну",
+            "Этого города нет среди доступных",
+        ]
         result = [q for q in result if not any(m in q for m in markers)]
     if has_dates:
         markers = ["предложенных периодов", "На какие даты"]
@@ -273,35 +280,8 @@ def call_ask(state: TravelState | dict) -> dict:
             "Уточните, пожалуйста, детали поездки."
         )
 
-    # Подготавливаем интерактивные подсказки (chips) для фронтенда
-    suggestions: list[str] = []
-    if candidates:
-        suggestions = [_city_name(c.city) for c in candidates[:4]]
-    elif date_options:
-        suggestions = [f"Вариант {i}" for i in range(1, min(len(date_options), 3) + 1)]
-    elif stage == "confirmation":
-        suggestions = ["Да, всё верно! Искать", "Хочу изменить параметры"]
-    elif stage in {"preferences", "awaiting_preferences"}:
-        suggestions = ["Море и пляжи", "История и культура", "Природа и горы", "Спокойный отдых"]
-    else:
-        # Умные подсказки для сбора недостающих параметров поездки
-        missing_set = set(getattr(validation, "missing", []) or [])
-        if "budget" in missing_set and "travelers" in missing_set:
-            suggestions = [
-                "На двоих, на неделю, до 150 000 ₽",
-                "1 человек, на 5 дней, до 80 000 ₽",
-                "Семья 2+1, 10 ночей, бюджет гибкий",
-            ]
-        elif "budget" in missing_set:
-            suggestions = ["До 100 000 ₽", "До 200 000 ₽", "Бюджет не ограничен"]
-        elif "travelers" in missing_set:
-            suggestions = ["1 человек", "2 человека", "2 взрослых и ребёнок"]
-        elif "dates" in missing_set:
-            suggestions = ["В ближайшие 2 недели", "На неделю в июле", "В августе на 10 дней"]
-
     # Единственный interrupt на весь сгруппированный набор.
-    interrupt_payload = InterruptPrompt(prompt, suggestions=suggestions, stage=str(stage))
-    response = interrupt(interrupt_payload)
+    response = interrupt(prompt)
 
     return {"messages": [HumanMessage(content=str(response))]}
 

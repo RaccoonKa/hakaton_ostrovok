@@ -14,7 +14,8 @@ Deterministic extraction параметров из сообщения польз
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, timedelta
+from difflib import get_close_matches
 
 from agents.travel.tools import mock_dataset as ds
 from domain.common import Currency, Month, Season, TransportType
@@ -83,14 +84,16 @@ _VIBE_TOKENS: dict[str, list[str]] = {
     "northern_lights": ["северн", "сияни"],
 }
 
-# Токены ограничений (constraints).
+# Токены ограничений (constraints) - применяются ко всему пакету (в т.ч. перелетам)
 _CONSTRAINT_TOKENS: dict[str, list[str]] = {
     "with_child": ["с ребен", "с ребён", "с дет", "с малыш", "ребен", "ребён"],
-    "limited_mobility": ["не могу много ходить", "ограничен", "инвалид", "коляск"],
+    "limited_mobility": ["не могу много ходить", "ограниченная мобильность", "маломобильн", "инвалид", "на коляске", "в коляске"],
     "accessible_hotel": ["доступн", "безбарьерн", "accessible"],
     "no_night_flights": ["без ночных", "не ночн", "днем", "днём"],
     "no_stops": ["без пересад", "прямой рейс", "прямой перелет", "no stops"],
     "vegetarian": ["вегетариан", "vegetarian"],
+    "with_baggage": ["багаж", "с багажом", "нужен багаж", "чемодан"],
+    "refundable_ticket": ["возвратн", "сдать билет", "отмена билета", "вернуть билет"],
 }
 
 _HOTEL_REQ_TOKENS: dict[str, list[str]] = {
@@ -100,6 +103,15 @@ _HOTEL_REQ_TOKENS: dict[str, list[str]] = {
     "sea_view": ["вид на море", "sea view"],
     "spa": ["спа", "spa"],
     "all_inclusive": ["все включено", "всё включено", "all inclusive"],
+    "pet_friendly": [
+        "животн", "питомц", "собак", "кошк", "котик", "котейк",
+        "щенок", "щенк", "песик", "пёсик", "котен", "котён", "pet",
+        "кот", "кота", "коту", "котом", "коте", "коты", "котов"
+    ],
+    "free_cancellation": [
+        "бесплатной отмен", "бесплатная отмена", "бесплатную отмену",
+        "отмена брони", "отмене брони", "вернуть деньги за отель", "возвратн"
+    ],
 }
 
 _CURRENCY_TOKENS: dict[Currency, list[str]] = {
@@ -171,19 +183,24 @@ def _normalize(text: str) -> str:
 def _contains(lowered: str, token: str) -> bool:
     """Проверить наличие токена, не путая короткие слова с частью других.
 
-    Например, «спа» не должно срабатывать на «спасибо».
+    «спа» не срабатывает на «спасибо», а «кот» — на «который».
     """
     base = token.strip()
-    if base in {"спа", "spa"}:
+    # Слова, требующие строгой границы слова \b
+    exact_match_words = {
+        "спа", "spa", "кот", "кота", "коту", "котом", "коте",
+        "коты", "котов", "котам", "котами", "pet"
+    }
+    if base in exact_match_words:
         return re.search(rf"\b{re.escape(base)}\b", lowered) is not None
     return token in lowered
 
 
 def _detect_transport(text: str) -> TransportType | None:
     lowered = _normalize(text)
-    if any(t in lowered for t in ["самолет", "самолёт", "авиа", "plane", "fly", "перелет", "перелёт"]):
+    if any(t in lowered for t in ["самолет", "самолёт", "авиа", "plane", "fly", "перелет", "перелёт", "летим", "лечу", "полети"]):
         return TransportType.PLANE
-    if any(t in lowered for t in ["поезд", "train", "жд"]):
+    if any(t in lowered for t in ["поезд", "train", "жд", "поедем на поезде"]):
         return TransportType.TRAIN
     if any(t in lowered for t in ["автобус", "bus"]):
         return TransportType.BUS
@@ -253,7 +270,7 @@ def _companion_count(lowered: str) -> int | None:
 
 
 def _extract_travelers(
-    text: str,
+        text: str,
 ) -> tuple[int | None, tuple[int, int] | None, int | None, int | None]:
     """Извлечь число путешественников, диапазон и разбиение взрослые/дети.
 
@@ -332,7 +349,7 @@ def _extract_duration(text: str) -> int | None:
 
 
 def _extract_budget(
-    text: str,
+        text: str,
 ) -> tuple[float | None, tuple[float, float] | None, Currency | None]:
     lowered = _normalize(text)
     currency = None
@@ -341,18 +358,56 @@ def _extract_budget(
             currency = cur
             break
 
-    def normalize(num_str: str, context: str) -> float:
+    # Если указано "100к" без явной валюты — по умолчанию это рубли
+    if not currency and re.search(r"\d+\s*[кk]\b", lowered):
+        currency = Currency.RUB
+
+    def normalize(num_str: str, full_match: str) -> float:
         value = float(num_str.replace(" ", "").replace(",", "."))
-        if any(k in context for k in ["тысяч", "тыс", "к ", "k "]) or re.search(r"\d\s*к\b", context):
+        # Проверяем наличие маркера тысяч в полном совпадении (например, "100к" или "100 тыс")
+        if any(k in full_match for k in ["тысяч", "тыс", "к", "k"]):
             if value < 1000:
                 value *= 1000
         return value
 
     budget_words = [
         "бюджет", "лимит", "потрат", "потрач",
-        "тысяч", "тыс", "евро", "доллар", "рубл", "€", "$", "₽",
+        "тысяч", "тыс", "евро", "доллар", "рубл", "€", "$", "₽", "к", "k"
     ]
     has_budget_context = any(k in lowered for k in budget_words)
+
+    if has_budget_context:
+        # Диапазон бюджета: "100 - 150к"
+        for rng in re.finditer(
+                r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
+                r"(тысяч|тыс|к\b|k\b|евро|доллар|рубл|€|\$|₽)?",
+                lowered,
+        ):
+            lo_raw, hi_raw, unit = rng.group(1), rng.group(2), rng.group(3) or ""
+            lo = normalize(lo_raw, unit or rng.group(0))
+            hi = normalize(hi_raw, unit or rng.group(0))
+            if 0 < lo < hi:
+                return None, (lo, hi), currency
+
+    # Одиночная сумма: "100к", "150 тыс", "50 000 руб"
+    money_unit = r"(тысяч|тыс|к\b|k\b|евро|доллар|рубл|€|\$|₽)"
+    single = re.search(rf"(\d[\d\s]*)\s*{money_unit}", lowered)
+    if single:
+        num = normalize(single.group(1), single.group(0))
+        if num > 0:
+            return num, None, currency
+
+    # Число рядом со словом "бюджет": "бюджет 100000"
+    marker = re.search(
+        r"(?:бюджет|лимит|потрат\w*|потрач\w*|до|около|примерно|максимум)\D{0,12}?(\d[\d\s]*)",
+        lowered,
+    )
+    if marker:
+        num = normalize(marker.group(1), marker.group(0))
+        if num > 0:
+            return num, None, currency
+
+    return None, None, currency
 
     def _is_date_range(raw: str) -> bool:
         tail = lowered.split(raw, 1)[-1][:20]
@@ -360,9 +415,9 @@ def _extract_budget(
 
     if has_budget_context:
         for rng in re.finditer(
-            r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
-            r"(тысяч|тыс|к\b|евро|доллар|рубл|€|\$|₽)?",
-            lowered,
+                r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
+                r"(тысяч|тыс|к\b|евро|доллар|рубл|€|\$|₽)?",
+                lowered,
         ):
             lo_raw, hi_raw, unit = rng.group(1), rng.group(2), rng.group(3) or ""
             if _is_date_range(rng.group(0)):
@@ -390,23 +445,50 @@ def _extract_budget(
 
 
 def _extract_budget_mode(
-    text: str,
-    budget: float | None,
-    budget_range: tuple[float, float] | None,
+        text: str,
+        budget: float | None,
+        budget_range: tuple[float, float] | None,
 ) -> str | None:
-    """Определить режим бюджета: specified / no_limit / flexible_scenarios."""
     if budget is not None or budget_range is not None:
         return "specified"
 
     lowered = _normalize(text)
-    budget_context = any(k in lowered for k in ["бюджет", "деньг", "цен", "стоимост", "лимит"])
-    if not budget_context:
-        return None
+
+    strong_no_limit = [
+        "не ограничен", "без ограничений", "без лимит", "любой бюджет",
+        "деньги не проблема", "финансы не проблема", "неограничен",
+        "хоть миллион", "хоть миллиард", "сколько угодно", "no limit"
+    ]
+    if any(k in lowered for k in strong_no_limit):
+        return "no_limit"
 
     no_limit_markers = [
-        "не важен", "не важно", "не имеет значения", "без ограничен",
-        "без лимит", "не ограничива", "любой бюджет", "деньги не проблема",
-        "не принципиален", "не принципиально",
+        "не важен", "не важно", "не важна", "не имеет значения",
+        "не принципиален", "не принципиально", "не принципиальна",
+        "не критично", "не критичен", "не критична",
+        "не суть важно", "не суть", "неважно", "неважен",
+        "не играет роли", "роли не играет", "значения не имеет",
+        "без ограничения", "без лимитов", "не ограничива",
+        "не ограничена", "не ограничены", "не ограничиваемся",
+        "без рамок", "вне рамок", "не в рамках",
+        "без потолка", "потолка нет", "без верхней границы",
+        "любая сумма", "на любую сумму", "произвольный бюджет",
+        "произвольная сумма", "какой угодно", "какая угодно",
+        "любой вариант", "на твоё усмотрение", "на ваше усмотрение",
+        "на усмотрение", "как скажешь", "как решите",
+        "деньги не важны", "деньги не главное", "деньги есть",
+        "с деньгами проблем нет", "финансовый вопрос не стоит",
+        "по деньгам не вопрос", "средства есть", "бюджет позволяет",
+        "бесконечный бюджет", "бездонный", "сколько нужно",
+        "сколько потребуется", "сколько надо", "не считаем деньги",
+        "не экономим", "не нужно экономить", "не экономь",
+        "пофиг", "по фиг", "по барабану", "параллельно",
+        "всё равно", "все равно", "без разницы", "безразлично",
+        "не парюсь", "не парься", "не заморачивайся",
+        "сколько хочешь", "сколько скажешь", "трать сколько хочешь",
+        "не жалко", "денег не жалко", "unlimited", "no budget",
+        "any budget", "money is not an issue", "money is no object",
+        "whatever it takes", "sky is the limit", "no cap"
     ]
     if any(k in lowered for k in no_limit_markers):
         return "no_limit"
@@ -436,9 +518,32 @@ def _resolve_year(month: int, day: int, reference_date: date) -> int | None:
 
 
 def _extract_dates(text: str, reference_date: date) -> list[date] | None:
-    """Извлечь точные даты из формата «10-17 августа» / «с 10 по 17 июля»."""
     lowered = _normalize(text)
 
+    if re.search(r"\bсегодня\b", lowered):
+        return [reference_date, reference_date]
+    if re.search(r"\bпослезавтра\b", lowered):
+        d = reference_date + timedelta(days=2)
+        return [d, d]
+    if re.search(r"\bзавтра\b", lowered):
+        d = reference_date + timedelta(days=1)
+        return [d, d]
+
+    if "выходные" in lowered or "на выходных" in lowered:
+        days_ahead = 5 - reference_date.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        sat = reference_date + timedelta(days=days_ahead)
+        sun = sat + timedelta(days=1)
+        return [sat, sun]
+
+    if "майские" in lowered:
+        year = reference_date.year
+        if reference_date > date(year, 5, 10):
+            year += 1
+        return [date(year, 5, 1), date(year, 5, 10)]
+
+    # Классический диапазон: "с 10 по 15 сентября"
     m = re.search(
         r"(?:с\s+)?(\d{1,2})\s*(?:[-–—]|по)\s*(\d{1,2})\s+([а-яёa-z]+)(?:\s+(\d{4}))?",
         lowered,
@@ -448,36 +553,52 @@ def _extract_dates(text: str, reference_date: date) -> list[date] | None:
         year_hint = int(m.group(4)) if m.group(4) else None
         month = _month_from_token(month_tok)
         if month:
-            if year_hint is not None:
+            year = year_hint if year_hint else _resolve_year(month, d1, reference_date)
+            if year:
                 try:
-                    start = date(year_hint, month, d1)
-                    end = date(year_hint, month, d2)
+                    start = date(year, month, d1)
+                    end = date(year, month, d2)
+                    if start >= reference_date and end >= start:
+                        return [start, end]
                 except ValueError:
-                    return None
-                if start < reference_date or end < start:
-                    return None
-                return [start, end]
-            year = _resolve_year(month, d1, reference_date)
-            if year is None:
-                return None
-            try:
-                start = date(year, month, d1)
-                end = date(year, month, d2)
-            except ValueError:
-                return None
-            if end < start:
-                return None
-            return [start, end]
+                    pass
 
+    # Поиск свободных дат: "1 июля", "28 ноября"
+    single_dates = re.findall(r"(\d{1,2})\s+([а-яёa-z]+)(?:\s+(\d{4}))?", lowered)
+    if single_dates:
+        parsed = []
+        explicit_year = None
+        for _, _, y_str in single_dates:
+            if y_str:
+                explicit_year = int(y_str)
+                break
+
+        for d_str, m_str, y_str in single_dates:
+            month = _month_from_token(m_str)
+            if not month:
+                continue
+            day = int(d_str)
+            year = int(y_str) if y_str else (explicit_year or _resolve_year(month, day, reference_date))
+
+            if year:
+                try:
+                    parsed.append(date(year, month, day))
+                except ValueError:
+                    pass
+        if parsed:
+            parsed.sort()
+            return [parsed[0], parsed[-1]]
+
+    # ISO формат (2026-07-01)
     iso = re.findall(r"(\d{4}-\d{2}-\d{2})", lowered)
     if iso:
         try:
             dates = [date.fromisoformat(x) for x in iso]
+            if all(d >= reference_date for d in dates):
+                dates.sort()
+                return [dates[0], dates[-1]]
         except ValueError:
-            return None
-        if any(d < reference_date for d in dates):
-            return None
-        return dates
+            pass
 
     return None
 
@@ -507,7 +628,6 @@ def _extract_preferences(text: str) -> list[Preference] | None:
     removed = set(_extract_removed_preferences(text) or [])
     found: list[Preference] = []
     seen: set[str] = set()
-    # «город 1» — это выбор варианта, а не предпочтение «город».
     ordinal_city_selection = re.search(
         r"\bгород\s*(?:\d|перв|втор|трет|четверт|пят)", lowered
     ) is not None
@@ -534,10 +654,9 @@ def _near_budget(lowered: str, marker: str) -> bool:
 
 
 def _extract_preference_status(
-    text: str,
-    preferences: list[Preference] | None,
+        text: str,
+        preferences: list[Preference] | None,
 ) -> str | None:
-    """Определить статус предпочтений: specified / no_preference."""
     if preferences:
         return "specified"
 
@@ -572,9 +691,10 @@ def _extract_removed_hotel_requirements(text: str) -> list[str] | None:
         for tok in tokens:
             escaped = re.escape(tok)
             if (
-                re.search(rf"{escaped}\w*\s+(?:больше\s+)?не\s+нуж", lowered)
-                or re.search(rf"не\s+нужен\s+{escaped}", lowered)
-                or re.search(rf"без\s+{escaped}", lowered)
+                    re.search(rf"{escaped}\w*\s+(?:больше\s+)?не\s+нуж", lowered)
+                    or re.search(rf"не\s+нужен\s+{escaped}", lowered)
+                    or re.search(rf"без\s+{escaped}", lowered)
+                    or re.search(rf"не\s+(?:хочу|надо|нужно|люблю)\s+(?:отель\s+)?(?:с\s+)?{escaped}", lowered)
             ):
                 if req not in removed:
                     removed.append(req)
@@ -597,6 +717,7 @@ def _extract_hotel_requirements(text: str) -> list[str] | None:
 
 def _extract_origin(text: str) -> str | None:
     lowered = _normalize(text)
+
     for origin in ds.ORIGINS:
         if origin.city.lower() in lowered:
             if any(k in lowered for k in ["вылета", "из ", "лечу", "выезжа", "отправл", "старт", "летим из", "from"]):
@@ -608,84 +729,85 @@ def _extract_origin(text: str) -> str | None:
         for stem in ds.CITY_ALIASES.get(o.city.lower(), []):
             if stem in lowered:
                 return o.city
+
+    # Нечеткий поиск от опечаток
+    words = [w.strip('.,!?-') for w in lowered.split()]
+    all_stems = []
+    stem_to_origin = {}
+
+    for o in ds.ORIGINS:
+        c = o.city.lower()
+        all_stems.append(c)
+        stem_to_origin[c] = o.city
+        for stem in ds.CITY_ALIASES.get(c, []):
+            all_stems.append(stem)
+            stem_to_origin[stem] = o.city
+
+    for word in words:
+        if len(word) >= 4:
+            matches = get_close_matches(word, all_stems, n=1, cutoff=0.75)
+            if matches:
+                return stem_to_origin[matches[0]]
+
     return None
 
 
-def _extract_excluded_locations(text: str) -> tuple[list[str], list[str]]:
-    """Извлечь явно отвергнутые/исключённые города и страны.
-
-    Возвращает (excluded_cities, excluded_countries).
-    """
+def _mentioned_destination_cities(text: str, origin: str | None = None) -> list:
+    """Все города dataset, явно упомянутые в тексте (без дублей и без города вылета)."""
     lowered = _normalize(text)
-    excluded_cities: set[str] = set()
-    excluded_countries: set[str] = set()
-
-    for country_key, stems in ds.COUNTRY_ALIASES.items():
-        canonical = None
-        for dest in ds.DESTINATIONS:
-            if dest.country.lower() == country_key:
-                canonical = dest.country
-                break
-        if not canonical:
-            continue
-
-        for stem in stems:
-            p1 = rf"(?:не\s+(?:хочу\s+)?(?:в\s+|ехать\s+в\s+|лететь\s+в\s+)?|без\s+|кроме\s+|только\s+не\s+|не\s+надо\s+(?:в\s+)?|не\s+нужн\w*\s+(?:в\s+)?|убери\s+|исключ\w*\s+|никак\w*\s+){stem}\w*"
-            p2 = rf"{stem}\w*\s+(?:не\s+(?:хочу|надо|нужно|предлагай|рассматривай)|точно\s+нет|мимо)"
-            p3 = rf"\bне\s+{stem}\w*\b"
-            if re.search(p1, lowered) or re.search(p2, lowered) or re.search(p3, lowered):
-                excluded_countries.add(canonical)
-
-    for dest in ds.DESTINATIONS:
-        city_lower = dest.city.lower()
-        stems = [city_lower] + ds.CITY_ALIASES.get(city_lower, [])
-        for stem in stems:
-            p1 = rf"(?:не\s+(?:хочу\s+)?(?:в\s+|ехать\s+в\s+|лететь\s+в\s+)?|без\s+|кроме\s+|только\s+не\s+|не\s+надо\s+(?:в\s+)?|не\s+нужн\w*\s+(?:в\s+)?|убери\s+|исключ\w*\s+|никак\w*\s+){stem}\w*"
-            p2 = rf"{stem}\w*\s+(?:не\s+(?:хочу|надо|нужно|предлагай|рассматривай)|точно\s+нет|мимо)"
-            p3 = rf"\bне\s+{stem}\w*\b"
-            if re.search(p1, lowered) or re.search(p2, lowered) or re.search(p3, lowered):
-                excluded_cities.add(dest.city)
-
-    return sorted(excluded_cities), sorted(excluded_countries)
-
-
-def _mentioned_destination_cities(text: str, excluded_cities: set[str] | None = None) -> list:
-    """Все города dataset, явно упомянутые в тексте (без дублей и исключений)."""
-    lowered = _normalize(text)
-    ex = excluded_cities or set()
     found: dict[str, object] = {}
+
     for dest in ds.DESTINATIONS:
-        if dest.city in ex:
-            continue
         if dest.city.lower() in lowered:
+            if origin and dest.city.lower() == origin.lower():
+                continue
             found[dest.city] = dest
+
     for city_key, stems in ds.CITY_ALIASES.items():
         for stem in stems:
             if stem in lowered:
+                if origin and city_key == origin.lower():
+                    continue
                 if d := ds.get_destination_by_city(city_key):
-                    if d.city not in ex:
-                        found[d.city] = d
+                    found[d.city] = d
+
+    # Нечеткий поиск
+    words = [w.strip('.,!?-') for w in lowered.split()]
+    all_stems = []
+    stem_to_city = {}
+
+    for dest in ds.DESTINATIONS:
+        c = dest.city.lower()
+        all_stems.append(c)
+        stem_to_city[c] = c
+    for city_key, stems in ds.CITY_ALIASES.items():
+        for stem in stems:
+            all_stems.append(stem)
+            stem_to_city[stem] = city_key
+
+    for word in words:
+        if len(word) >= 4:
+            matches = get_close_matches(word, all_stems, n=1, cutoff=0.75)
+            if matches:
+                city_key = stem_to_city[matches[0]]
+                if origin and city_key == origin.lower():
+                    continue
+                if d := ds.get_destination_by_city(city_key):
+                    found[d.city] = d
+
     return list(found.values())
 
 
-def _extract_destination(
-    text: str,
-    excluded_cities: set[str] | None = None,
-    excluded_countries: set[str] | None = None,
-) -> tuple[str | None, str | None, bool]:
-    """Вернуть (city, country, ambiguous).
-
-    ``ambiguous=True`` означает, что упомянуто несколько городов и один
-    выбрать нельзя: направление должно остаться невыбранным.
-    """
-    cities = _mentioned_destination_cities(text, excluded_cities)
+def _extract_destination(text: str, origin: str | None = None) -> tuple[str | None, str | None, bool]:
+    """Вернуть (city, country, ambiguous)."""
+    cities = _mentioned_destination_cities(text, origin)
     if len(cities) == 1:
         return cities[0].city, cities[0].country, False
     if len(cities) > 1:
         return None, None, True
 
     country = ds.resolve_country(text)
-    if country and (not excluded_countries or country not in excluded_countries):
+    if country:
         return None, country, False
     return None, None, False
 
@@ -723,10 +845,10 @@ def _extract_unknown_destination(text: str) -> str | None:
 
 
 def extract_user_request(
-    message: str,
-    current_request=None,
-    reference_year: int | None = None,
-    reference_date: date | None = None,
+        message: str,
+        current_request=None,
+        reference_year: int | None = None,
+        reference_date: date | None = None,
 ) -> UserRequestPatch:
     """Извлечь все доступные параметры из сообщения пользователя.
 
@@ -742,29 +864,13 @@ def extract_user_request(
 
     patch = UserRequestPatch()
 
-    excluded_cities, excluded_countries = _extract_excluded_locations(text)
-    if excluded_cities:
-        patch.excluded_destinations = excluded_cities
-    if excluded_countries:
-        patch.excluded_countries = excluded_countries
+    # извлекаем origin
+    origin = _extract_origin(text)
+    if origin:
+        patch.origin = origin
 
-    # Если пользователь отверг страну/город, который был задан в текущем запросе,
-    # сбрасываем соответствующие поля
-    if current_request is not None:
-        curr_country = getattr(current_request, "destination_country", None)
-        curr_dest = getattr(current_request, "destination", None)
-        if curr_country and curr_country in excluded_countries:
-            patch.clear_fields.append("destination_country")
-        if curr_dest:
-            dest_obj = ds.get_destination_by_city(curr_dest)
-            if (dest_obj and dest_obj.country in excluded_countries) or curr_dest in excluded_cities:
-                patch.clear_fields.append("destination")
-
-    city, country, ambiguous = _extract_destination(
-        text,
-        excluded_cities=set(excluded_cities),
-        excluded_countries=set(excluded_countries),
-    )
+    # передаем origin в экстрактор destination
+    city, country, ambiguous = _extract_destination(text, origin)
     if city:
         patch.destination = city
         if country:
@@ -776,8 +882,6 @@ def extract_user_request(
     else:
         unknown = _extract_unknown_destination(text)
         if unknown:
-            # Неподдерживаемый город сохраняем как есть, чтобы код мог
-            # объяснить ограничение, но агрегатор его не пропустит.
             patch.destination = unknown
 
     origin = _extract_origin(text)

@@ -1,28 +1,12 @@
 """
-Граф travel-agent.
-
-Ключевой принцип: следующий шаг определяет **состояние запроса**, а не
-последнее сообщение и не LLM.
-
-::
-
-    START
-      ↓
-    extract  (извлечь + слить + инвалидировать/подтвердить)
-      ↓
-    decide   (deterministic validate)
-      ├── stage=preferences ─────→ ask (только вопрос о вайбе)
-      ├── нужен выбор города ────→ suggest_destinations → ask
-      ├── нужен выбор дат ───────→ suggest_dates ───────→ ask
-      ├── нужна сверка ──────────→ ask (summary) → extract
-      ├── нужны вопросы ─────────→ ask → extract
-      └── ready_for_search ──────→ aggregate → response → END
+Граф travel-agent с поддержкой бронирования и режима консьержа.
 """
 
 from langgraph.graph import END, START, StateGraph
 
 from agents.travel.nodes.aggregate import call_aggregate
 from agents.travel.nodes.ask import call_ask
+from agents.travel.nodes.concierge import call_concierge
 from agents.travel.nodes.decide import call_decide
 from agents.travel.nodes.extract import call_extract
 from agents.travel.nodes.response import generate_response
@@ -39,16 +23,32 @@ def _validation_field(validation, name: str, default=None):
 
 
 def route_after_decide(state: TravelState | dict) -> str:
-    """Маршрутизация на основании deterministic-результата проверки."""
+    """Маршрутизация на основании состояния запроса."""
     if isinstance(state, dict):
         validation = state.get("last_validation")
+        selected_option = state.get("selected_option")
+        messages = state.get("messages", [])
     else:
         validation = getattr(state, "last_validation", None)
+        selected_option = getattr(state, "selected_option", None)
+        messages = getattr(state, "messages", [])
+
+    # Если тур выбран:
+    if selected_option:
+        # Проверяем, показывали ли уже бронь пользователю
+        already_presented = any(
+            "Отличный выбор! Вы забронировали" in getattr(m, "content", "")
+            for m in messages
+        )
+        # Если ещё не показывали — показываем подтверждение + маршрут
+        if not already_presented:
+            return "response"
+        # Если уже показали, а пользователь пишет дальше — передаём консьержу!
+        return "concierge"
 
     if validation is None:
         return "ask"
 
-    # Агрегатор разрешён только после подтверждения сверки.
     if _validation_field(validation, "ready_for_search", False):
         return "aggregate"
 
@@ -73,6 +73,7 @@ workflow.add_node("suggest_dates", call_suggest_dates)
 workflow.add_node("ask", call_ask)
 workflow.add_node("aggregate", call_aggregate)
 workflow.add_node("response", generate_response)
+workflow.add_node("concierge", call_concierge)
 
 workflow.add_edge(START, "extract")
 workflow.add_edge("extract", "decide")
@@ -85,21 +86,20 @@ workflow.add_conditional_edges(
         "suggest_destinations": "suggest_destinations",
         "suggest_dates": "suggest_dates",
         "ask": "ask",
+        "response": "response",
+        "concierge": "concierge",
     },
 )
 
 workflow.add_edge("suggest_destinations", "ask")
 workflow.add_edge("suggest_dates", "ask")
-
-# После ответа пользователя (resume) снова извлекаем и оцениваем весь запрос.
 workflow.add_edge("ask", "extract")
-
 workflow.add_edge("aggregate", "response")
 workflow.add_edge("response", END)
+workflow.add_edge("concierge", END)
 
 
 def build_travel_graph(checkpointer=None):
-    """Скомпилировать граф (для приложения — без checkpointer, для тестов — с ним)."""
     compiled = workflow.compile(checkpointer=checkpointer)
     compiled.name = "travel_agent"
     return compiled

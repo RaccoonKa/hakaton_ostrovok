@@ -89,14 +89,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     "Set AUTH_SECRET in your environment to enable bearer token authentication."
                 )
 
-            # Initialize offline SQLite database & fixtures for air-gapped offline operation
-            try:
-                from db.offline_db import seed_offline_data_if_needed
-                seed_offline_data_if_needed()
-                logger.info("Offline travel database and fixtures verified/loaded successfully.")
-            except Exception as e:
-                logger.warning(f"Failed to seed offline travel database: {e}")
-
             agents = get_all_agent_info()
             for a in agents:
                 try:
@@ -231,15 +223,7 @@ async def message_generator(
                     if node == "__interrupt__":
                         interrupt: Interrupt
                         for interrupt in updates:
-                            content = str(interrupt.value)
-                            additional_kwargs = {}
-                            if hasattr(interrupt.value, "suggestions"):
-                                additional_kwargs["suggestions"] = getattr(interrupt.value, "suggestions")
-                            if hasattr(interrupt.value, "stage"):
-                                additional_kwargs["stage"] = getattr(interrupt.value, "stage")
-                            new_messages.append(
-                                AIMessage(content=content, additional_kwargs=additional_kwargs)
-                            )
+                            new_messages.append(AIMessage(content=interrupt.value))
                         continue
                     updates = updates or {}
                     update_messages = updates.get("messages", [])

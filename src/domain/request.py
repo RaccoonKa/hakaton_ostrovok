@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from domain.common import Currency, TransportType
 from domain.constraint import Constraint
 from domain.preference import DatePreferences, Preference
+from domain.preference import DatePreferences, Preference
 
 
 class UserRequest(BaseModel):
@@ -126,12 +127,4 @@ class UserRequest(BaseModel):
         description="Требования к отелю.",
         default=[],
         examples=[["pool", "breakfast", "sea_view"]],
-    )
-    excluded_destinations: list[str] = Field(
-        description="Список исключённых направлений/городов.",
-        default=[],
-    )
-    excluded_countries: list[str] = Field(
-        description="Список исключённых стран.",
-        default=[],
     )

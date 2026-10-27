@@ -1,14 +1,5 @@
 """
 Узел извлечения и обновления параметров запроса.
-
-На каждом ходе:
-
-1. берёт последнее сообщение пользователя;
-2. извлекает из него параметры (:func:`extract_user_request`);
-3. при наличии предложенных вариантов — разрешает выбор пользователя;
-4. сливает патч с текущим ``UserRequest``;
-5. инвалидирует подтверждение/результаты при изменении search-критичных полей;
-6. распознаёт подтверждение итоговой сверки.
 """
 
 from __future__ import annotations
@@ -19,12 +10,14 @@ from agents.travel.logic.decision import (
     is_confirmation_message,
     merge_user_request,
     request_fingerprint,
+    resolve_package_choice,
     resolve_selections,
     validate_travel_request,
 )
 from agents.travel.logic.extraction import extract_user_request
 from agents.travel.state import TravelState
 from agents.travel.tools import mock_dataset as ds
+from domain.request import UserRequest
 
 
 def _get(state, key, default=None):
@@ -50,62 +43,79 @@ def call_extract(state: TravelState | dict) -> dict:
     request_confirmed = bool(_get(state, "request_confirmed", False))
     awaiting_confirmation = bool(_get(state, "awaiting_request_confirmation", False))
 
-    message = _last_human_message(list(messages))
-    patch = extract_user_request(message, current_request)
-
-    # --- Разрешение выбора среди предложенных кандидатов ---
-    selected_date = None
-    if message and (candidates or date_options):
-        selected_city, selected_date = resolve_selections(message, candidates, date_options)
-        if selected_city:
-            patch.destination = selected_city
-            dest = ds.get_destination_by_city(selected_city)
-            if dest is not None:
-                patch.destination_country = dest.country
-            candidates = []
-        if selected_date is not None:
-            patch.exact_dates = [selected_date.start_date, selected_date.end_date]
-            confirmed_range = selected_date
-            date_options = []
-
-    # Явно названный пользователем город считается выбранным.
-    if patch.destination:
-        destination_confirmed = True
-        candidates = []
-    elif patch.destination_ambiguous:
-        # Несколько городов без выбора — направление не выбрано.
-        destination_confirmed = False
-
-    # Если пользователь отверг страны или города, фильтруем кандидатов
-    if patch.excluded_countries or patch.excluded_destinations:
-        ex_countries = set(patch.excluded_countries or [])
-        ex_cities = set(patch.excluded_destinations or [])
-        candidates = [
-            c for c in candidates
-            if c.country not in ex_countries and c.city not in ex_cities
-        ]
-        if not request_confirmed:
-            destination_confirmed = False
-
-    request = merge_user_request(current_request, patch)
-
-    # Город вылета по умолчанию, если пользователь его не указал.
-    if not request.origin:
-        request.origin = ds.DEFAULT_ORIGIN
-
-    if request.budget_mode == "unknown" and (
-        request.budget is not None or request.budget_range is not None
-    ):
-        request.budget_mode = "specified"
-
-    # --- Инвалидация результата при изменении search-критичных полей ---
-    changed = request_fingerprint(current_request) != request_fingerprint(request)
-
     trip_options = list(_get(state, "trip_options", []) or [])
     selected_option = _get(state, "selected_option")
     last_search_key = _get(state, "last_search_key")
     aggregate_calls = int(_get(state, "aggregate_calls", 0) or 0)
     search_diagnostics = dict(_get(state, "search_diagnostics", {}) or {})
+
+    message = _last_human_message(list(messages))
+
+    # --- Если тур уже выбран и мы в режиме консьержа ---
+    if selected_option:
+        # Проверяем, не хочет ли пользователь сменить тур
+        reset_words = ["другой вариант", "другой тур", "поменяй тур", "выбрать другой", "начать заново", "сброс"]
+        if any(w in message.lower() for w in reset_words):
+            return {
+                "selected_option": None,
+                "planning_status": "results_ready",
+            }
+        # Иначе просто оставляем всё без изменений — консьерж ответит на вопрос
+        return {
+            "user_request": current_request,
+            "selected_option": selected_option,
+            "trip_options": trip_options,
+        }
+
+    # --- Выбор пакета из предложенных вариантов ---
+    chosen_package = None
+    if trip_options and not selected_option and message:
+        chosen_package = resolve_package_choice(message, trip_options)
+        if chosen_package:
+            selected_option = chosen_package
+
+    selected_date = None
+    patch = None
+
+    if chosen_package:
+        request = current_request or UserRequest()
+        changed = False
+    else:
+        patch = extract_user_request(message, current_request)
+
+        if message and "не ограничен" in message.lower():
+            patch.budget_mode = "no_limit"
+
+        if message and (candidates or date_options):
+            selected_city, selected_date = resolve_selections(message, candidates, date_options)
+            if selected_city:
+                patch.destination = selected_city
+                dest = ds.get_destination_by_city(selected_city)
+                if dest is not None:
+                    patch.destination_country = dest.country
+                candidates = []
+            if selected_date is not None:
+                patch.exact_dates = [selected_date.start_date, selected_date.end_date]
+                confirmed_range = selected_date
+                date_options = []
+
+        if patch.destination:
+            destination_confirmed = True
+            candidates = []
+        elif patch.destination_ambiguous:
+            destination_confirmed = False
+
+        request = merge_user_request(current_request, patch)
+
+        if not request.origin:
+            request.origin = ds.DEFAULT_ORIGIN
+
+        if request.budget_mode == "unknown" and (
+            request.budget is not None or request.budget_range is not None
+        ):
+            request.budget_mode = "specified"
+
+        changed = request_fingerprint(current_request) != request_fingerprint(request)
 
     if changed:
         request_confirmed = False
@@ -115,11 +125,9 @@ def call_extract(state: TravelState | dict) -> dict:
         last_search_key = None
         aggregate_calls = 0
         search_diagnostics = {}
-        if selected_date is None and (patch.exact_dates or patch.month or patch.season):
-            # Новые даты заменяют прежний подтверждённый период.
+        if selected_date is None and patch and (patch.exact_dates or patch.month or patch.season):
             confirmed_range = None
 
-    # --- Подтверждение итоговой сверки ---
     if (
         not changed
         and awaiting_confirmation

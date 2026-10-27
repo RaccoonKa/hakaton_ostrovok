@@ -204,8 +204,6 @@ class UserRequestPatch(BaseModel):
     removed_preferences: list[str] | None = None
     removed_constraints: list[str] | None = None
     removed_hotel_requirements: list[str] | None = None
-    excluded_destinations: list[str] | None = None
-    excluded_countries: list[str] | None = None
     # Семантическое удаление значений.
     clear_fields: list[str] = Field(
         default_factory=list,
