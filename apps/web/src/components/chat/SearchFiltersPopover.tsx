@@ -81,10 +81,10 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
   // Custom position if dragged by user
   const [draggedPos, setDraggedPos] = useState<{ x: number; y: number } | null>(null);
 
-  // Synchronous position calculation: perfectly centered between open sidebar and input, raised high up
+  // Synchronous position calculation: compact sizing so it fits 100% zoom screens
   const calculateDefaultPosition = () => {
-    const panelWidth = 330;
-    const panelHeight = 390;
+    const panelWidth = 300;
+    const panelHeight = 440;
     const headerHeight = 56;
     const margin = 10;
 
@@ -111,15 +111,14 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         x = sidebarRight + (gap - panelWidth) / 2;
       } else {
         // If the gap is narrower than the panel, place it safely to the right of the sidebar
-        // so it is 100% visible and never hidden under the sidebar
         x = sidebarRight + margin;
       }
 
       // Clamp within screen boundaries
       x = Math.max(sidebarRight + margin, Math.min(window.innerWidth - panelWidth - margin, x));
 
-      // 2. Vertical position (y): positioned ~5mm lower (~97px from top of screen)
-      const targetY = headerHeight + 41;
+      // 2. Vertical position (y): starts comfortably below header and clamps inside screen
+      const targetY = headerHeight + 20;
       const maxY = Math.max(headerHeight + margin, window.innerHeight - panelHeight - margin);
       const y = Math.min(targetY, maxY);
 
@@ -130,7 +129,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       sidebarRight > 0
         ? sidebarRight + margin
         : Math.max(margin, (window.innerWidth - panelWidth) / 2);
-    return { x: fallbackX, y: headerHeight + 41 };
+    return { x: fallbackX, y: headerHeight + 20 };
   };
 
   const isDraggingRef = useRef(false);
@@ -227,8 +226,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const panelWidth = 330;
-      const panelHeight = 390;
+      const panelWidth = 300;
+      const panelHeight = 440;
 
       const deltaX = moveEvent.clientX - dragStartRef.current.startX;
       const deltaY = moveEvent.clientY - dragStartRef.current.startY;
@@ -334,7 +333,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     // Guests
     const guestParts: string[] = [];
     if (adults > 0) {
-      guestParts.push(`${adults} ${adults === 1 ? "взрослый" : adults < 5 ? "взрослых" : "взрослых"}`);
+      guestParts.push(`${adults} ${adults === 1 ? "взрослый" : "взрослых"}`);
     }
     if (children > 0) {
       guestParts.push(`${children} ${children === 1 ? "ребёнок" : children < 5 ? "ребёнка" : "детей"}`);
@@ -369,18 +368,16 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
     calendarCells.push({ day: d, isCurrentMonth: true, isPast, date: dayDate });
   }
 
-  const remaining = 35 - calendarCells.length;
-  if (remaining > 0) {
-    for (let d = 1; d <= remaining; d++) {
-      calendarCells.push({ day: d, isCurrentMonth: false, isPast: false, date: null });
-    }
+  const remainingCells = 42 - calendarCells.length;
+  for (let i = 1; i <= remainingCells; i++) {
+    calendarCells.push({ day: i, isCurrentMonth: false, isPast: true, date: null });
   }
 
   return createPortal(
     <div
       ref={containerRef}
       onPointerDown={handleDragStart}
-      className="fixed z-[100] w-[320px] sm:w-[330px] max-h-[calc(100vh-84px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-3 text-content-primary select-none cursor-default flex flex-col gap-2 animate-fade-in"
+      className="fixed z-[100] w-[295px] sm:w-[305px] max-h-[calc(100vh-80px)] overflow-y-auto no-scrollbar bg-surface dark:bg-[#1c182c] border border-surface-border dark:border-[#383152] rounded-2xl shadow-2xl p-2.5 text-content-primary select-none cursor-default flex flex-col gap-1.5 animate-fade-in"
       style={{
         left: `${currentPos.x}px`,
         top: `${currentPos.y}px`,
@@ -388,16 +385,16 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       }}
     >
       {/* 1. Header (Drag handle) */}
-      <div className="flex items-center justify-between px-0.5 cursor-grab active:cursor-grabbing border-b border-surface-border dark:border-[#2d2744] pb-2">
+      <div className="flex items-center justify-between px-0.5 cursor-grab active:cursor-grabbing border-b border-surface-border dark:border-[#2d2744] pb-1.5">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-content-primary">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-content-primary">
             Параметры поездки
           </span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
+          className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface-muted dark:hover:bg-[#2b2542] flex items-center justify-center transition-colors cursor-pointer"
           title="Закрыть"
         >
           <X className="w-3.5 h-3.5" />
@@ -405,9 +402,9 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 2. Top: Mini-Calendar */}
-      <div className="flex flex-col gap-1.5 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+      <div className="flex flex-col gap-1 bg-surface-muted/50 dark:bg-[#231e38] p-2 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
         <div className="flex items-center justify-between px-0.5">
-          <span className="text-xs sm:text-sm font-bold text-content-primary flex items-center gap-1.5">
+          <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
             <CalendarIcon className="w-3.5 h-3.5 text-primary" />
             <span>
               {MONTH_NAMES[currentMonth]} {currentYear}
@@ -417,7 +414,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
+              className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
               title="Предыдущий месяц"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -425,7 +422,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
             <button
               type="button"
               onClick={handleNextMonth}
-              className="w-6 h-6 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
+              className="w-5 h-5 rounded-md text-content-muted hover:text-content-primary hover:bg-surface dark:hover:bg-[#302a4d] flex items-center justify-center transition-colors cursor-pointer"
               title="Следующий месяц"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -434,7 +431,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         </div>
 
         {/* Days of week */}
-        <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-content-muted py-0.5">
+        <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-content-muted py-0">
           {WEEKDAYS.map((wd) => (
             <div key={wd}>{wd}</div>
           ))}
@@ -447,7 +444,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
               return (
                 <div
                   key={`empty-${idx}`}
-                  className="h-7 flex items-center justify-center text-content-muted/30 text-xs"
+                  className="h-6 flex items-center justify-center text-content-muted/30 text-[11px]"
                 >
                   {cell.day}
                 </div>
@@ -470,7 +467,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 onClick={() => handleDateClick(dayDate)}
                 onMouseEnter={() => !endDate && setHoverDate(dayDate)}
                 onMouseLeave={() => setHoverDate(null)}
-                className={`relative h-7 w-full flex items-center justify-center rounded-md transition-colors text-xs font-semibold ${
+                className={`relative h-6 w-full flex items-center justify-center rounded-md transition-colors text-[11px] font-semibold ${
                   cell.isPast
                     ? "text-content-muted/30 cursor-not-allowed"
                     : isStart || isEnd
@@ -478,16 +475,16 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                     : inRange
                     ? "bg-primary/15 dark:bg-primary/25 text-primary dark:text-purple-300 rounded-none font-bold"
                     : "text-content-primary hover:bg-surface-muted dark:hover:bg-[#2f2748] cursor-pointer"
-                } ${isToday && !isStart && !isEnd ? "ring-2 ring-primary/40 rounded-md" : ""}`}
+                } ${isToday && !isStart && !isEnd ? "ring-1.5 ring-primary/40 rounded-md" : ""}`}
               >
                 <span>{cell.day}</span>
                 {isStart && (
-                  <span className="absolute -top-1 -right-0.5 text-[8px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
+                  <span className="absolute -top-1 -right-0.5 text-[7px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
                     от
                   </span>
                 )}
                 {isEnd && (
-                  <span className="absolute -top-1 -right-0.5 text-[8px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
+                  <span className="absolute -top-1 -right-0.5 text-[7px] leading-tight bg-purple-950 text-white px-0.5 rounded-full font-bold shadow-xs">
                     до
                   </span>
                 )}
@@ -497,7 +494,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         </div>
 
         {/* Date summary row */}
-        <div className="text-[11px] text-content-secondary px-0.5 flex items-center justify-between pt-0.5 font-medium">
+        <div className="text-[10.5px] text-content-secondary px-0.5 flex items-center justify-between pt-0 font-medium">
           <span className="truncate mr-1">
             {startDate && endDate
               ? `${startDate.getDate()} ${MONTH_NAMES_GENITIVE[startDate.getMonth()]} — ${endDate.getDate()} ${MONTH_NAMES_GENITIVE[endDate.getMonth()]}`
@@ -512,7 +509,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 setStartDate(null);
                 setEndDate(null);
               }}
-              className="text-primary hover:underline text-[11px] font-semibold shrink-0 cursor-pointer"
+              className="text-primary hover:underline text-[10.5px] font-semibold shrink-0 cursor-pointer"
             >
               Очистить
             </button>
@@ -521,19 +518,19 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 3. Middle: Budget (Range Slider) */}
-      <div className="flex flex-col gap-2 bg-surface-muted/50 dark:bg-[#231e38] p-2.5 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+      <div className="flex flex-col gap-1 bg-surface-muted/50 dark:bg-[#231e38] p-2 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
+          <span className="text-[11px] font-bold text-content-primary flex items-center gap-1.5">
             <DollarSign className="w-3.5 h-3.5 text-primary" />
             <span>Бюджет</span>
           </span>
-          <span className="text-xs sm:text-[13px] font-extrabold text-primary dark:text-purple-300 pl-5">
+          <span className="text-xs font-extrabold text-primary dark:text-purple-300 pl-5">
             {formatRubles(minBudget)} — {formatRubles(maxBudget)}
           </span>
         </div>
 
         {/* Dual range slider */}
-        <div className="relative w-full h-5 flex items-center px-0.5">
+        <div className="relative w-full h-4 flex items-center px-0.5">
           {/* Background Track */}
           <div className="absolute left-0.5 right-0.5 h-1.5 bg-surface-border dark:bg-[#342b52] rounded-full overflow-hidden">
             <div
@@ -556,7 +553,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
               const val = Math.min(Number(e.target.value), maxBudget - BUDGET_STEP);
               setMinBudget(val);
             }}
-            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
           />
 
           {/* Max thumb input */}
@@ -570,12 +567,12 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
               const val = Math.max(Number(e.target.value), minBudget + BUDGET_STEP);
               setMaxBudget(val);
             }}
-            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
+            className="absolute left-0.5 right-0.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-[#1c182c] [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
           />
         </div>
 
         {/* Quick budget chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-0.5">
           {[
             { label: "до 150 тыс.", min: 20000, max: 150000 },
             { label: "до 300 тыс.", min: 40000, max: 300000 },
@@ -589,7 +586,7 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
                 setMinBudget(chip.min);
                 setMaxBudget(chip.max);
               }}
-              className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-surface dark:bg-[#2b2542] hover:bg-surface-border text-content-secondary hover:text-content-primary shrink-0 transition-colors border border-surface-border/50 dark:border-transparent cursor-pointer"
+              className="px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-surface dark:bg-[#2b2542] hover:bg-surface-border text-content-secondary hover:text-content-primary shrink-0 transition-colors border border-surface-border/50 dark:border-transparent cursor-pointer"
             >
               {chip.label}
             </button>
@@ -598,8 +595,8 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
       </div>
 
       {/* 4. Bottom: Adults and Children Counters */}
-      <div className="flex flex-col gap-1.5 bg-surface-muted/50 dark:bg-[#231e38] p-2 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
-        <span className="text-xs font-bold text-content-primary flex items-center gap-1.5">
+      <div className="flex flex-col gap-1 bg-surface-muted/50 dark:bg-[#231e38] p-1.5 px-2 rounded-xl border border-surface-border/50 dark:border-[#322a4d]">
+        <span className="text-[11px] font-bold text-content-primary flex items-center gap-1.5">
           <Users className="w-3.5 h-3.5 text-primary" />
           <span>Гости</span>
         </span>
@@ -607,68 +604,68 @@ export const SearchFiltersPopover: React.FC<SearchFiltersPopoverProps> = ({
         {/* Adults row */}
         <div className="flex items-center justify-between py-0.5">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xs sm:text-sm font-bold text-content-primary">Взрослые</span>
-            <span className="text-xs sm:text-[13px] font-semibold text-content-muted dark:text-purple-200/70">
+            <span className="text-xs font-bold text-content-primary">Взрослые</span>
+            <span className="text-[11px] font-semibold text-content-muted dark:text-purple-200/70">
               (от 12 лет)
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={adults <= 1}
               onClick={() => setAdults((prev) => Math.max(1, prev - 1))}
-              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-5.5 h-5.5 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Minus className="w-3 h-3 stroke-[2.5]" />
+              <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
-            <span className="w-5 text-center font-extrabold text-sm text-content-primary">{adults}</span>
+            <span className="w-4 text-center font-extrabold text-xs text-content-primary">{adults}</span>
             <button
               type="button"
               disabled={adults >= 8}
               onClick={() => setAdults((prev) => Math.min(8, prev + 1))}
-              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-5.5 h-5.5 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Plus className="w-3 h-3 stroke-[2.5]" />
+              <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
 
         {/* Children row */}
-        <div className="flex items-center justify-between py-0.5 border-t border-surface-border/50 dark:border-[#2d2744] pt-1.5">
+        <div className="flex items-center justify-between py-0.5 border-t border-surface-border/50 dark:border-[#2d2744] pt-1">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xs sm:text-sm font-bold text-content-primary">Дети</span>
-            <span className="text-xs sm:text-[13px] font-semibold text-content-muted dark:text-purple-200/70">
+            <span className="text-xs font-bold text-content-primary">Дети</span>
+            <span className="text-[11px] font-semibold text-content-muted dark:text-purple-200/70">
               (до 11 лет)
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={children <= 0}
               onClick={() => setChildren((prev) => Math.max(0, prev - 1))}
-              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-5.5 h-5.5 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Minus className="w-3 h-3 stroke-[2.5]" />
+              <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
-            <span className="w-5 text-center font-extrabold text-sm text-content-primary">{children}</span>
+            <span className="w-4 text-center font-extrabold text-xs text-content-primary">{children}</span>
             <button
               type="button"
               disabled={children >= 6}
               onClick={() => setChildren((prev) => Math.min(6, prev + 1))}
-              className="w-6 h-6 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="w-5.5 h-5.5 rounded-md bg-surface dark:bg-[#2e2747] border border-surface-border dark:border-[#3d345a] flex items-center justify-center text-content-primary hover:bg-surface-border/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <Plus className="w-3 h-3 stroke-[2.5]" />
+              <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
       </div>
 
       {/* 5. Footer action */}
-      <div className="pt-1.5 border-t border-surface-border dark:border-[#2d2744]">
+      <div className="pt-1 border-t border-surface-border dark:border-[#2d2744]">
         <button
           type="button"
           onClick={handleApply}
-          className="w-full py-2 text-xs sm:text-sm font-bold rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+          className="w-full py-1.5 text-xs font-bold rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-[0.98] cursor-pointer"
         >
           <Check className="w-3.5 h-3.5 stroke-[2.5]" />
           <span>Применить параметры</span>

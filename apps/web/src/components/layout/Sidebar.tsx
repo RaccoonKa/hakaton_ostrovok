@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeHistoryId = "hist-1",
 }) => {
   const { isSidebarOpen, closeSidebar } = useSidebar();
-  const { openSettingsModal } = usePreferences();
+  const { openSettingsModal, profile } = usePreferences();
 
   const todayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "today");
   const yesterdayItems = SAMPLE_HISTORY.filter((i) => i.dateGroup === "yesterday");
@@ -147,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-white/80 dark:bg-white/10 hover:bg-white/95 dark:hover:bg-white/15 backdrop-blur-md text-content-primary border border-black/[0.06] dark:border-white/[0.08] transition-all shadow-xs group"
             >
               <span className="flex items-center gap-2 text-xs font-semibold text-content-primary">
-                <Plus className="w-4 h-4 text-primary group-hover:rotate-90 transition-transform" />
+                <Plus className="w-4 h-4 text-primary" />
                 <span>Новый маршрут</span>
               </span>
               <kbd className="font-mono text-[10px] text-content-muted bg-black/[0.04] dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-black/[0.06] dark:border-white/[0.08]">
@@ -233,10 +233,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
                 <div className="flex flex-col truncate">
                   <span className="text-base font-bold text-content-primary truncate leading-tight">
-                    Алексей С.
+                    {profile?.fullName ? profile.fullName.split(" ")[0] + " " + (profile.fullName.split(" ")[1]?.[0] || "") + "." : "Алексей С."}
                   </span>
                   <span className="text-[13px] font-medium text-content-secondary truncate leading-tight mt-0.5">
-                    Путешественник • Премиум
+                    {profile?.tier || "Премиум"}
                   </span>
                 </div>
               </div>
