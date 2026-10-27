@@ -1,44 +1,65 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Flight, formatDuration } from "@corvax/shared";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 
 export interface FlightSegmentProps {
   flight: Flight;
   compact?: boolean;
+  isDark?: boolean;
 }
 
-const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({ flight, compact = false }) => {
+const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({
+  flight,
+  compact = false,
+  isDark = false,
+}) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const durationText = flight.duration ? formatDuration(flight.duration) : "";
   const stopsText = flight.stops === 0 ? "Прямой рейс" : `${flight.stops} пересадка`;
 
   return (
-    <View style={[styles.container, compact && styles.compactContainer]}>
+    <View
+      style={[
+        styles.container,
+        compact && styles.compactContainer,
+        {
+          backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
+        },
+      ]}
+    >
       <View style={styles.topRow}>
         <View style={styles.routeCol}>
-          <Icon name="plane" size={14} color={theme.colors.primary} />
-          <Text style={styles.routeText}>
+          <Icon name="plane" size={14} color={colors.primary} />
+          <Text style={[styles.routeText, { color: colors.textPrimary }]}>
             {flight.origin} → {flight.destination}
           </Text>
         </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{stopsText}</Text>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: isDark ? colors.surfaceContainerHigh : colors.surfaceContainer },
+          ]}
+        >
+          <Text style={[styles.badgeText, { color: colors.primary }]}>{stopsText}</Text>
         </View>
       </View>
 
       <View style={styles.detailsRow}>
         {flight.carrier ? (
-          <Text style={styles.detailText}>
+          <Text style={[styles.detailText, { color: colors.textSecondary }]}>
             {flight.carrier}
             {flight.flight_number ? ` • ${flight.flight_number}` : ""}
           </Text>
         ) : null}
         {durationText ? (
-          <Text style={styles.detailText}> • {durationText}</Text>
+          <Text style={[styles.detailText, { color: colors.textSecondary }]}> • {durationText}</Text>
         ) : null}
         {flight.baggage ? (
-          <Text style={styles.detailText}> • {flight.baggage}</Text>
+          <Text style={[styles.detailText, { color: colors.textSecondary }]}> • {flight.baggage}</Text>
         ) : null}
       </View>
     </View>

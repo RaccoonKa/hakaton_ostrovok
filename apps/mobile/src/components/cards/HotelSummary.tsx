@@ -5,30 +5,49 @@ import {
   formatDateRange,
   formatMealPlan,
 } from "@corvax/shared";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { PriceTag } from "./PriceTag";
 import { Icon } from "../common/Icon";
 
 export interface HotelSummaryProps {
   hotel: Hotel;
   showPrice?: boolean;
+  isDark?: boolean;
 }
 
-const HotelSummaryComponent: React.FC<HotelSummaryProps> = ({ hotel, showPrice = false }) => {
+const HotelSummaryComponent: React.FC<HotelSummaryProps> = ({
+  hotel,
+  showPrice = false,
+  isDark = false,
+}) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const dates = formatDateRange(hotel.check_in, hotel.check_out);
   const meal = hotel.meal_plan ? formatMealPlan(hotel.meal_plan) : "";
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View style={styles.headerRow}>
         <View style={styles.titleCol}>
           <View style={styles.hotelTitleRow}>
-            <Icon name="hotel" size={15} color={theme.colors.primary} />
-            <Text style={styles.hotelName} numberOfLines={1}>
+            <Icon name="hotel" size={15} color={colors.primary} />
+            <Text
+              style={[styles.hotelName, { color: colors.textPrimary }]}
+              numberOfLines={1}
+            >
               {hotel.hotel}
             </Text>
           </View>
-          <Text style={styles.locationText}>{hotel.city}</Text>
+          <Text style={[styles.locationText, { color: colors.textSecondary }]}>{hotel.city}</Text>
         </View>
 
         {hotel.rating ? (
@@ -41,14 +60,14 @@ const HotelSummaryComponent: React.FC<HotelSummaryProps> = ({ hotel, showPrice =
 
       <View style={styles.infoRow}>
         <View style={styles.infoItem}>
-          <Icon name="calendar" size={12} color={theme.colors.textMuted} />
-          <Text style={styles.infoText}>{dates}</Text>
+          <Icon name="calendar" size={12} color={colors.textMuted} />
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>{dates}</Text>
         </View>
         {meal ? (
           <View style={styles.infoItem}>
             <Text style={styles.dotSeparator}>•</Text>
-            <Icon name="restaurant" size={12} color={theme.colors.textMuted} />
-            <Text style={styles.infoText}>{meal}</Text>
+            <Icon name="restaurant" size={12} color={colors.textMuted} />
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>{meal}</Text>
           </View>
         ) : null}
       </View>
@@ -56,8 +75,14 @@ const HotelSummaryComponent: React.FC<HotelSummaryProps> = ({ hotel, showPrice =
       {hotel.amenities && hotel.amenities.length > 0 && (
         <View style={styles.amenitiesRow}>
           {hotel.amenities.slice(0, 3).map((amenity, idx) => (
-            <View key={idx} style={styles.amenityTag}>
-              <Text style={styles.amenityText}>{amenity}</Text>
+            <View
+              key={idx}
+              style={[
+                styles.amenityTag,
+                { backgroundColor: isDark ? colors.surfaceContainer : colors.surfaceContainerLow },
+              ]}
+            >
+              <Text style={[styles.amenityText, { color: colors.textSecondary }]}>{amenity}</Text>
             </View>
           ))}
         </View>

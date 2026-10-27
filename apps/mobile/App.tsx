@@ -191,7 +191,7 @@ function MainApp() {
   const isInitialState = messages.length === 0;
 
   return (
-    <View style={[styles.rootContainer, isDark && styles.rootContainerDark]}>
+    <View style={[styles.rootContainer, { backgroundColor: colors.background }]}>
       <StatusBar style="light" />
 
       {/* Top Header matching Web Stitch Purple #581C87 */}
@@ -211,7 +211,7 @@ function MainApp() {
         {/* Messages and Content Feed */}
         <ScrollView
           ref={scrollViewRef}
-          style={[styles.feed, isDark && styles.feedDark]}
+          style={[styles.feed, { backgroundColor: colors.background }]}
           contentContainerStyle={[
             styles.feedContent,
             isInitialState && styles.feedContentInitial,
@@ -222,10 +222,10 @@ function MainApp() {
           {/* Screen 1: Welcome matching Web ChatView Hero with raised cards */}
           {isInitialState ? (
             <View style={styles.welcomeHero}>
-              <Text style={[styles.heroTitle, isDark && styles.textPrimaryDark]}>
+              <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
                 Куда хотите поехать?
               </Text>
-              <Text style={[styles.heroDescription, isDark && styles.textSecondaryDark]}>
+              <Text style={[styles.heroDescription, { color: colors.textSecondary }]}>
                 Опишите поездку своими словами: даты, бюджет, пожелания к пляжу
                 или компании. ИИ подберёт честные варианты и соберёт готовый маршрут.
               </Text>
@@ -239,7 +239,10 @@ function MainApp() {
                       key={suggestionText}
                       style={[
                         styles.starterCard,
-                        isDark && styles.starterCardDark,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        },
                       ]}
                       onPress={() => handleSelectChip(suggestionText)}
                       activeOpacity={0.75}
@@ -247,7 +250,11 @@ function MainApp() {
                       <View
                         style={[
                           styles.starterCardIconBox,
-                          isDark && styles.starterCardIconBoxDark,
+                          {
+                            backgroundColor: isDark
+                              ? colors.surfaceContainer
+                              : colors.canvasMuted,
+                          },
                         ]}
                       >
                         <Icon name={iconName} size={16} color={colors.primary} />
@@ -255,7 +262,7 @@ function MainApp() {
                       <Text
                         style={[
                           styles.starterCardText,
-                          isDark && styles.textPrimaryDark,
+                          { color: colors.textPrimary },
                         ]}
                         numberOfLines={2}
                       >
@@ -285,6 +292,7 @@ function MainApp() {
                     onSelectOption={handleSelectOption}
                     onBookDemo={openCheckout}
                     onSelectChip={handleSelectChip}
+                    isDark={isDark}
                   />
                 ))}
 
@@ -292,6 +300,7 @@ function MainApp() {
                   <ThinkingBubble
                     isThinking={true}
                     statusText={thinkingText}
+                    isDark={isDark}
                   />
                 )}
               </View>
@@ -309,6 +318,7 @@ function MainApp() {
                     option={selectedOption}
                     onBackToList={() => handleSelectOption(null)}
                     onBookTour={openCheckout}
+                    isDark={isDark}
                   />
                 )}
             </View>
@@ -319,7 +329,10 @@ function MainApp() {
         <View
           style={[
             styles.dockedBottomContainer,
-            isDark && styles.dockedBottomContainerDark,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.borderSubtle,
+            },
           ]}
         >
           <ChatInputBar
@@ -371,6 +384,7 @@ function MainApp() {
           }}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
+          isDark={isDark}
         />
 
         {/* Real Authentication Modal (Login & Registration) */}
@@ -380,6 +394,7 @@ function MainApp() {
           onAuthSuccess={(session) => {
             setAuthSession(session);
           }}
+          isDark={isDark}
         />
 
         {/* Travel Search Filters Modal */}

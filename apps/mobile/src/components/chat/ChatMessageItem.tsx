@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { TripOption } from "@corvax/shared";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
 import { TripDossierView } from "../cards/TripDossierView";
@@ -16,6 +16,7 @@ export interface ChatMessageItemProps {
   onSelectChip?: (text: string) => void;
   selectedOption?: TripOption | null;
   selectedOptionId?: string;
+  isDark?: boolean;
 }
 
 export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
@@ -25,7 +26,11 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
   onSelectChip,
   selectedOption,
   selectedOptionId,
+  isDark = false,
 }) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const isUser = message.role === "user" || message.type === "human";
   const hasContent = Boolean(message.content && message.content.trim().length > 0);
   const optionsToRender = message.trip_options || message.tripOptions;
@@ -56,9 +61,9 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
             <Text style={styles.avatarLettermark}>О!</Text>
           </View>
           <View style={styles.assistantMetaRow}>
-            <Text style={styles.assistantBrandName}>О!дин запрос</Text>
+            <Text style={[styles.assistantBrandName, { color: colors.textPrimary }]}>О!дин запрос</Text>
             {message.timestamp && (
-              <Text style={styles.assistantTimestamp}>• {message.timestamp}</Text>
+              <Text style={[styles.assistantTimestamp, { color: colors.textMuted }]}>• {message.timestamp}</Text>
             )}
           </View>
         </View>
@@ -71,13 +76,39 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
             isThinking={true}
             currentStep={message.thinkingStep}
             statusText={message.thinkingText}
+            isDark={isDark}
           />
         )}
 
         {/* Text bubble */}
         {hasContent && (
-          <View style={[styles.bubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-            <Text style={[styles.text, isUser ? styles.userText : styles.assistantText]}>
+          <View
+            style={[
+              styles.bubble,
+              isUser
+                ? [
+                    styles.userBubble,
+                    {
+                      backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1",
+                      borderColor: colors.border,
+                    },
+                  ]
+                : [
+                    styles.assistantBubble,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                    },
+                  ],
+            ]}
+          >
+            <Text
+              style={[
+                styles.text,
+                isUser ? styles.userText : styles.assistantText,
+                { color: colors.textPrimary },
+              ]}
+            >
               {message.content}
             </Text>
 
@@ -86,15 +117,16 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
               <ClarificationChipsMobile
                 chips={message.suggestions}
                 onSelectChip={onSelectChip}
+                isDark={isDark}
               />
             )}
 
             {isUser && (
               <View style={styles.userMetaRow}>
                 {message.timestamp && (
-                  <Text style={styles.userTimestamp}>{message.timestamp}</Text>
+                  <Text style={[styles.userTimestamp, { color: colors.textMuted }]}>{message.timestamp}</Text>
                 )}
-                <Icon name="check" size={12} color={theme.colors.primary} />
+                <Icon name="check" size={12} color={colors.primary} />
               </View>
             )}
           </View>
@@ -106,6 +138,7 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
             option={activeSelectedOption}
             onBackToList={() => onSelectOption?.(null)}
             onBookTour={onBookDemo || (() => {})}
+            isDark={isDark}
           />
         ) : (
           /* Embedded trip options cards list if no option is selected */
@@ -118,6 +151,7 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
                   isSelected={selectedOptionId === opt.id}
                   onSelect={onSelectOption}
                   onBookDemo={onBookDemo}
+                  isDark={isDark}
                 />
               ))}
             </View>

@@ -98,6 +98,14 @@ test("dark theme tokens provide high contrast dark palette", () => {
   setAppTheme(false);
   assert.equal(theme.isDark, false);
   assert.equal(theme.colors.background, "#FBFBFD");
+
+  // Verify getTheme returns exact lightColors when switching back to light mode
+  const lightResolved = getTheme(false);
+  assert.equal(lightResolved.colors.background, "#FBFBFD");
+  assert.equal(lightResolved.colors.surface, "#FFFFFF");
+  assert.equal(lightResolved.colors.textPrimary, "#18181B");
+  assert.equal(lightResolved.colors.textSecondary, "#3F3F46");
+  assert.equal(lightResolved.colors.border, "#E5E5EB");
 });
 
 test("mobile sidebar drawer filters sessions accurately by title search", () => {

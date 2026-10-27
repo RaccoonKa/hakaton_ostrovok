@@ -13,7 +13,7 @@ import {
   formatMealPlan,
   formatDateRange,
 } from "@corvax/shared";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 
 export interface TripCardMobileProps {
@@ -21,6 +21,7 @@ export interface TripCardMobileProps {
   isSelected?: boolean;
   onSelect?: (option: TripOption | null) => void;
   onBookDemo?: (option: TripOption) => void;
+  isDark?: boolean;
 }
 
 const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
@@ -28,7 +29,11 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
   isSelected = false,
   onSelect,
   onBookDemo,
+  isDark = false,
 }) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -62,9 +67,23 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
       : "7 ночей";
 
   return (
-    <View style={[styles.card, isSelected && styles.selectedCard]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: isSelected ? colors.primary : colors.border,
+        },
+        isSelected && styles.selectedCard,
+      ]}
+    >
       {/* Cover Image */}
-      <View style={styles.imageContainer}>
+      <View
+        style={[
+          styles.imageContainer,
+          { backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1" },
+        ]}
+      >
         {!imageError ? (
           <Image
             source={{ uri: imageSrc }}
@@ -73,16 +92,32 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             onError={() => setImageError(true)}
           />
         ) : (
-          <View style={styles.imageFallback}>
-            <Icon name="hotel" size={32} color={theme.colors.primary} />
-            <Text style={styles.fallbackText}>{mainHotel?.hotel || option.title}</Text>
+          <View
+            style={[
+              styles.imageFallback,
+              { backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1" },
+            ]}
+          >
+            <Icon name="hotel" size={32} color={colors.primary} />
+            <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
+              {mainHotel?.hotel || option.title}
+            </Text>
           </View>
         )}
 
         {/* Top-Left Rating Badge */}
-        <View style={styles.ratingBadge}>
+        <View
+          style={[
+            styles.ratingBadge,
+            {
+              backgroundColor: isDark ? "rgba(24, 23, 38, 0.95)" : "rgba(255, 255, 255, 0.95)",
+            },
+          ]}
+        >
           <Icon name="star" size={11} color="#F59E0B" filled />
-          <Text style={styles.ratingText}>{Number(hotelRating).toFixed(1)}</Text>
+          <Text style={[styles.ratingText, { color: colors.textPrimary }]}>
+            {Number(hotelRating).toFixed(1)}
+          </Text>
         </View>
 
         {/* Top-Right Emerald "Рекомендуем" badge */}
@@ -96,11 +131,11 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
         {/* Title and Hotel */}
         <View style={styles.titleRow}>
           <View style={styles.titleCol}>
-            <Text style={styles.destinationTitle} numberOfLines={1}>
+            <Text style={[styles.destinationTitle, { color: colors.textPrimary }]} numberOfLines={1}>
               {option.destination || option.title}
             </Text>
             {mainHotel?.hotel ? (
-              <Text style={styles.hotelTitle} numberOfLines={1}>
+              <Text style={[styles.hotelTitle, { color: colors.primary }]} numberOfLines={1}>
                 {mainHotel.hotel}
               </Text>
             ) : null}
@@ -109,32 +144,47 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
 
         {/* Description */}
         {option.description ? (
-          <Text style={styles.descriptionText} numberOfLines={2}>
+          <Text style={[styles.descriptionText, { color: colors.textSecondary }]} numberOfLines={2}>
             {option.description}
           </Text>
         ) : null}
 
         {/* Dynamic Features Row */}
         <View style={styles.featuresRow}>
-          <View style={styles.featureItem}>
-            <Icon name="plane" size={12} color={theme.colors.primary} />
-            <Text style={styles.featureText}>
+          <View
+            style={[
+              styles.featureItem,
+              { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
+            ]}
+          >
+            <Icon name="plane" size={12} color={colors.primary} />
+            <Text style={[styles.featureText, { color: colors.textSecondary }]}>
               {mainFlight?.carrier || "Прямой рейс"}
               {mainFlight?.duration ? ` • ${formatDuration(mainFlight.duration)}` : ""}
             </Text>
           </View>
 
-          <View style={styles.featureItem}>
-            <Icon name="briefcase" size={12} color={theme.colors.textMuted} />
-            <Text style={styles.featureText}>
+          <View
+            style={[
+              styles.featureItem,
+              { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
+            ]}
+          >
+            <Icon name="briefcase" size={12} color={colors.textMuted} />
+            <Text style={[styles.featureText, { color: colors.textSecondary }]}>
               {mainFlight?.baggage || "Багаж 20 кг"}
             </Text>
           </View>
 
           {mainHotel?.meal_plan ? (
-            <View style={styles.featureItem}>
-              <Icon name="restaurant" size={12} color={theme.colors.textMuted} />
-              <Text style={styles.featureText}>
+            <View
+              style={[
+                styles.featureItem,
+                { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
+              ]}
+            >
+              <Icon name="restaurant" size={12} color={colors.textMuted} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
                 {formatMealPlan(mainHotel.meal_plan)}
               </Text>
             </View>
@@ -143,18 +193,21 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
 
         {/* Expand/Collapse Timeline Button */}
         <TouchableOpacity
-          style={styles.expandToggle}
+          style={[
+            styles.expandToggle,
+            { borderTopColor: colors.borderSubtle },
+          ]}
           onPress={() => setIsExpanded(!isExpanded)}
           activeOpacity={0.7}
         >
-          <Icon name="calendar" size={13} color={theme.colors.textSecondary} />
-          <Text style={styles.expandToggleText}>
+          <Icon name="calendar" size={13} color={colors.textSecondary} />
+          <Text style={[styles.expandToggleText, { color: colors.textSecondary }]}>
             {isExpanded ? "Скрыть маршрут" : "Посмотреть маршрут по дням"}
           </Text>
           <Icon
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={13}
-            color={theme.colors.textSecondary}
+            color={colors.textSecondary}
           />
         </TouchableOpacity>
 
@@ -164,17 +217,17 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             {/* Step 1: Outbound flight */}
             <View style={styles.timelineStep}>
               <View style={styles.timelineIconCol}>
-                <View style={styles.timelineDotPrimary}>
+                <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
                   <Icon name="plane" size={10} color="#FFFFFF" />
                 </View>
-                <View style={styles.timelineLine} />
+                <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
               </View>
               <View style={styles.timelineContent}>
-                <Text style={styles.timelineStepTime}>День 1 • Перелёт</Text>
-                <Text style={styles.timelineStepTitle}>
+                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Перелёт</Text>
+                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
                   Вылет: {mainFlight?.origin || "Москва"} → {mainFlight?.destination || option.destination}
                 </Text>
-                <Text style={styles.timelineStepDesc}>
+                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
                   {mainFlight?.carrier || "Регулярный рейс"}
                   {mainFlight?.flight_number ? ` (${mainFlight.flight_number})` : ""} •{" "}
                   {mainFlight?.stops === 0 ? "Прямой рейс" : "С пересадкой"} •{" "}
@@ -186,15 +239,23 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             {/* Step 2: Transfer */}
             <View style={styles.timelineStep}>
               <View style={styles.timelineIconCol}>
-                <View style={styles.timelineDot}>
-                  <Icon name="bus" size={10} color={theme.colors.primary} />
+                <View
+                  style={[
+                    styles.timelineDot,
+                    {
+                      backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1",
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Icon name="bus" size={10} color={colors.primary} />
                 </View>
-                <View style={styles.timelineLine} />
+                <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
               </View>
               <View style={styles.timelineContent}>
-                <Text style={styles.timelineStepTime}>День 1 • Трансфер</Text>
-                <Text style={styles.timelineStepTitle}>Встреча и трансфер в отель</Text>
-                <Text style={styles.timelineStepDesc}>
+                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Трансфер</Text>
+                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>Встреча и трансфер в отель</Text>
+                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
                   Комфортабельный трансфер от аэропорта до стойки регистрации отеля
                 </Text>
               </View>
@@ -203,17 +264,25 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             {/* Step 3: Resort stay */}
             <View style={styles.timelineStep}>
               <View style={styles.timelineIconCol}>
-                <View style={styles.timelineDot}>
-                  <Icon name="hotel" size={10} color={theme.colors.primary} />
+                <View
+                  style={[
+                    styles.timelineDot,
+                    {
+                      backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1",
+                      borderColor: colors.primary,
+                    },
+                  ]}
+                >
+                  <Icon name="hotel" size={10} color={colors.primary} />
                 </View>
-                <View style={styles.timelineLine} />
+                <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
               </View>
               <View style={styles.timelineContent}>
-                <Text style={styles.timelineStepTime}>{dateRangeStr}</Text>
-                <Text style={styles.timelineStepTitle}>
+                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>{dateRangeStr}</Text>
+                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
                   Отдых: {mainHotel?.hotel || option.destination}
                 </Text>
-                <Text style={styles.timelineStepDesc}>
+                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
                   {mainHotel?.city ? `Курорт ${mainHotel.city}. ` : ""}
                   {mainHotel?.meal_plan ? `${formatMealPlan(mainHotel.meal_plan)}. ` : "Питание включено. "}
                   Комфортный номер, пляж и инфраструктура отеля
@@ -224,17 +293,17 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             {/* Step 4: Return flight */}
             <View style={styles.timelineStep}>
               <View style={styles.timelineIconCol}>
-                <View style={styles.timelineDotPrimary}>
+                <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
                   <Icon name="plane" size={10} color="#FFFFFF" />
                 </View>
               </View>
               <View style={styles.timelineContent}>
-                <Text style={styles.timelineStepTime}>День выезда • Обратный вылет</Text>
-                <Text style={styles.timelineStepTitle}>
+                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День выезда • Обратный вылет</Text>
+                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
                   Перелёт: {returnFlight?.origin || mainFlight?.destination || option.destination} →{" "}
                   {returnFlight?.destination || mainFlight?.origin || "Москва"}
                 </Text>
-                <Text style={styles.timelineStepDesc}>
+                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
                   Трансфер в аэропорт и комфортный рейс домой
                 </Text>
               </View>
@@ -243,11 +312,16 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
         )}
 
         {/* Pricing and Action Footer */}
-        <View style={styles.footerRow}>
+        <View
+          style={[
+            styles.footerRow,
+            { borderTopColor: colors.borderSubtle },
+          ]}
+        >
           <View style={styles.priceCol}>
-            <Text style={styles.priceLabel}>Итого за тур:</Text>
+            <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Итого за тур:</Text>
             <Text
-              style={styles.priceValue}
+              style={[styles.priceValue, { color: colors.primary }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.8}
@@ -260,6 +334,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
             <TouchableOpacity
               style={[
                 styles.selectButton,
+                { backgroundColor: colors.primary },
                 isSelected && styles.selectButtonActive,
               ]}
               onPress={() => onSelect?.(isSelected ? null : option)}

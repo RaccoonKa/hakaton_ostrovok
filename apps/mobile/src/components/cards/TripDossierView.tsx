@@ -13,7 +13,7 @@ import {
   formatDuration,
   formatMealPlan,
 } from "@corvax/shared";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 import { FlightSegment } from "./FlightSegment";
 import { HotelSummary } from "./HotelSummary";
@@ -22,13 +22,18 @@ export interface TripDossierViewProps {
   option: TripOption;
   onBackToList: () => void;
   onBookTour: (option: TripOption) => void;
+  isDark?: boolean;
 }
 
 export const TripDossierView: React.FC<TripDossierViewProps> = ({
   option,
   onBackToList,
   onBookTour,
+  isDark = false,
 }) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const primaryFlight = option.flights?.[0];
   const returnFlight = option.flights?.[1];
   const primaryHotel = option.hotels?.[0];
@@ -46,18 +51,26 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
   return (
     <View style={styles.container}>
       {/* Dossier Header */}
-      <View style={styles.dossierHeader}>
+      <View
+        style={[
+          styles.dossierHeader,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.backButton}
           onPress={onBackToList}
           activeOpacity={0.7}
         >
-          <Icon name="arrow-left" size={16} color={theme.colors.primary} />
-          <Text style={styles.backButtonText}>К списку направлений</Text>
+          <Icon name="arrow-left" size={16} color={colors.primary} />
+          <Text style={[styles.backButtonText, { color: colors.primary }]}>К списку направлений</Text>
         </TouchableOpacity>
 
         <View style={styles.titleRow}>
-          <Text style={styles.destinationTitle}>
+          <Text style={[styles.destinationTitle, { color: colors.textPrimary }]}>
             {option.destination || option.title}
           </Text>
           <View style={styles.categoryPill}>
@@ -66,54 +79,78 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
         </View>
 
         {option.description ? (
-          <Text style={styles.descriptionText}>{option.description}</Text>
+          <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>{option.description}</Text>
         ) : null}
       </View>
 
       {/* Flight Section */}
-      <View style={styles.sectionCard}>
+      <View
+        style={[
+          styles.sectionCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.sectionTitleRow}>
-          <Icon name="plane" size={16} color={theme.colors.primary} />
-          <Text style={styles.sectionTitle}>Перелёт (туда и обратно)</Text>
+          <Icon name="plane" size={16} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Перелёт (туда и обратно)</Text>
         </View>
 
-        {primaryFlight && <FlightSegment flight={primaryFlight} />}
-        {returnFlight && <FlightSegment flight={returnFlight} />}
+        {primaryFlight && <FlightSegment flight={primaryFlight} isDark={isDark} />}
+        {returnFlight && <FlightSegment flight={returnFlight} isDark={isDark} />}
       </View>
 
       {/* Hotel Section */}
       {primaryHotel && (
-        <View style={styles.sectionCard}>
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.sectionTitleRow}>
-            <Icon name="hotel" size={16} color={theme.colors.primary} />
-            <Text style={styles.sectionTitle}>Отель и размещение</Text>
+            <Icon name="hotel" size={16} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Отель и размещение</Text>
           </View>
-          <HotelSummary hotel={primaryHotel} showPrice={false} />
+          <HotelSummary hotel={primaryHotel} showPrice={false} isDark={isDark} />
         </View>
       )}
 
       {/* 4-Stage Itinerary Timeline */}
-      <View style={styles.sectionCard}>
+      <View
+        style={[
+          styles.sectionCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.sectionTitleRow}>
-          <Icon name="calendar" size={16} color={theme.colors.primary} />
-          <Text style={styles.sectionTitle}>Маршрут по этапам ({dateRangeStr})</Text>
+          <Icon name="calendar" size={16} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Маршрут по этапам ({dateRangeStr})</Text>
         </View>
 
         <View style={styles.timelineList}>
           {/* Stage 1 */}
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
-              <View style={styles.dotPrimary}>
+              <View style={[styles.dotPrimary, { backgroundColor: colors.primary }]}>
                 <Icon name="plane" size={10} color="#FFFFFF" />
               </View>
-              <View style={styles.spineLine} />
+              <View style={[styles.spineLine, { backgroundColor: colors.borderSubtle }]} />
             </View>
             <View style={styles.timelineBody}>
-              <Text style={styles.stageTime}>Этап 1 • Отправление</Text>
-              <Text style={styles.stageTitle}>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 1 • Отправление</Text>
+              <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>
                 {primaryFlight?.origin || "Москва"} → {primaryFlight?.destination || option.destination}
               </Text>
-              <Text style={styles.stageDesc}>
+              <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
                 {primaryFlight?.carrier || "Регулярный рейс"}
                 {primaryFlight?.duration ? ` • В пути ${formatDuration(primaryFlight.duration)}` : ""}
                 {primaryFlight?.baggage ? ` • ${primaryFlight.baggage}` : ""}
@@ -124,15 +161,23 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           {/* Stage 2 */}
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
-              <View style={styles.dotSecondary}>
-                <Icon name="bus" size={10} color={theme.colors.primary} />
+              <View
+                style={[
+                  styles.dotSecondary,
+                  {
+                    backgroundColor: isDark ? colors.surfaceContainer : colors.surfaceContainerLow,
+                    borderColor: colors.primary,
+                  },
+                ]}
+              >
+                <Icon name="bus" size={10} color={colors.primary} />
               </View>
-              <View style={styles.spineLine} />
+              <View style={[styles.spineLine, { backgroundColor: colors.borderSubtle }]} />
             </View>
             <View style={styles.timelineBody}>
-              <Text style={styles.stageTime}>Этап 2 • Встреча</Text>
-              <Text style={styles.stageTitle}>Трансфер в отель</Text>
-              <Text style={styles.stageDesc}>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 2 • Встреча</Text>
+              <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>Трансфер в отель</Text>
+              <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
                 Встреча в зале прилёта, комфортабельный трансфер прямо ко входу в отель
               </Text>
             </View>
@@ -141,17 +186,25 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           {/* Stage 3 */}
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
-              <View style={styles.dotSecondary}>
-                <Icon name="hotel" size={10} color={theme.colors.primary} />
+              <View
+                style={[
+                  styles.dotSecondary,
+                  {
+                    backgroundColor: isDark ? colors.surfaceContainer : colors.surfaceContainerLow,
+                    borderColor: colors.primary,
+                  },
+                ]}
+              >
+                <Icon name="hotel" size={10} color={colors.primary} />
               </View>
-              <View style={styles.spineLine} />
+              <View style={[styles.spineLine, { backgroundColor: colors.borderSubtle }]} />
             </View>
             <View style={styles.timelineBody}>
-              <Text style={styles.stageTime}>Этап 3 • Проживание ({dateRangeStr})</Text>
-              <Text style={styles.stageTitle}>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 3 • Проживание ({dateRangeStr})</Text>
+              <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>
                 {primaryHotel?.hotel || option.destination}
               </Text>
-              <Text style={styles.stageDesc}>
+              <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
                 {primaryHotel?.meal_plan ? `${formatMealPlan(primaryHotel.meal_plan)} • ` : ""}
                 Первая линия, отдых и инфраструктура отеля
               </Text>
@@ -161,17 +214,17 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           {/* Stage 4 */}
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
-              <View style={styles.dotPrimary}>
+              <View style={[styles.dotPrimary, { backgroundColor: colors.primary }]}>
                 <Icon name="plane" size={10} color="#FFFFFF" />
               </View>
             </View>
             <View style={styles.timelineBody}>
-              <Text style={styles.stageTime}>Этап 4 • Возвращение</Text>
-              <Text style={styles.stageTitle}>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 4 • Возвращение</Text>
+              <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>
                 {returnFlight?.origin || primaryFlight?.destination || option.destination} →{" "}
                 {returnFlight?.destination || primaryFlight?.origin || "Москва"}
               </Text>
-              <Text style={styles.stageDesc}>
+              <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
                 Трансфер в аэропорт и дневной перелёт домой
               </Text>
             </View>
@@ -180,39 +233,47 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
       </View>
 
       {/* Itemized Price Breakdown */}
-      <View style={styles.sectionCard}>
+      <View
+        style={[
+          styles.sectionCard,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         <View style={styles.sectionTitleRow}>
-          <Icon name="sparkles" size={16} color={theme.colors.primary} />
-          <Text style={styles.sectionTitle}>Детализация сметы</Text>
+          <Icon name="sparkles" size={16} color={colors.primary} />
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Детализация сметы</Text>
         </View>
 
         <View style={styles.priceItem}>
-          <Text style={styles.priceItemLabel}>Авиабилеты (туда и обратно):</Text>
-          <Text style={styles.priceItemValue}>
+          <Text style={[styles.priceItemLabel, { color: colors.textSecondary }]}>Авиабилеты (туда и обратно):</Text>
+          <Text style={[styles.priceItemValue, { color: colors.textPrimary }]}>
             {formatPrice(flightsTotal, option.currency)}
           </Text>
         </View>
 
         <View style={styles.priceItem}>
-          <Text style={styles.priceItemLabel}>Проживание в отеле:</Text>
-          <Text style={styles.priceItemValue}>
+          <Text style={[styles.priceItemLabel, { color: colors.textSecondary }]}>Проживание в отеле:</Text>
+          <Text style={[styles.priceItemValue, { color: colors.textPrimary }]}>
             {formatPrice(hotelsTotal, option.currency)}
           </Text>
         </View>
 
         <View style={styles.priceItem}>
-          <Text style={styles.priceItemLabel}>Трансферы и сопровождение:</Text>
-          <Text style={styles.priceItemValue}>
+          <Text style={[styles.priceItemLabel, { color: colors.textSecondary }]}>Трансферы и сопровождение:</Text>
+          <Text style={[styles.priceItemValue, { color: colors.textPrimary }]}>
             {formatPrice(transfersTotal, option.currency)}
           </Text>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: colors.borderSubtle }]} />
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Итого за весь тур:</Text>
+          <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>Итого за весь тур:</Text>
           <Text
-            style={styles.totalValue}
+            style={[styles.totalValue, { color: colors.primary }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.8}

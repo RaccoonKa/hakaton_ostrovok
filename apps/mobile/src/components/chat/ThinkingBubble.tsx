@@ -1,19 +1,23 @@
 import React, { useEffect, useRef } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon, IconName } from "../common/Icon";
 
 export interface ThinkingBubbleProps {
   statusText?: string;
   isThinking?: boolean;
   currentStep?: "analyzing_flights" | "finding_hotels" | "calculating_budget" | "ready" | string;
+  isDark?: boolean;
 }
 
 export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
   statusText,
   isThinking = true,
   currentStep = "analyzing_flights",
+  isDark = false,
 }) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
   const dot1 = useRef(new Animated.Value(0.3)).current;
   const dot2 = useRef(new Animated.Value(0.3)).current;
   const dot3 = useRef(new Animated.Value(0.3)).current;
@@ -96,7 +100,15 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+          },
+        ]}
+      >
         {/* Left Phase Icon Badge */}
         <View style={styles.iconContainer}>
           <Icon name={iconName} size={15} color="#FFFFFF" />
@@ -105,7 +117,10 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
         {/* Right Info Column */}
         <View style={styles.infoCol}>
           <View style={styles.titleRow}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text
+              style={[styles.title, { color: colors.textPrimary }]}
+              numberOfLines={1}
+            >
               {title}
             </Text>
             {/* Animated 3-Dots wave right next to title — never pushed off to the right margin! */}
@@ -114,6 +129,7 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
                 style={[
                   styles.dot,
                   {
+                    backgroundColor: colors.primary,
                     opacity: dot1,
                     transform: [{ scale: dot1.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
                   },
@@ -123,6 +139,7 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
                 style={[
                   styles.dot,
                   {
+                    backgroundColor: colors.primary,
                     opacity: dot2,
                     transform: [{ scale: dot2.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
                   },
@@ -132,6 +149,7 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
                 style={[
                   styles.dot,
                   {
+                    backgroundColor: colors.primary,
                     opacity: dot3,
                     transform: [{ scale: dot3.interpolate({ inputRange: [0.3, 1], outputRange: [0.85, 1.25] }) }],
                   },
@@ -139,7 +157,10 @@ export const ThinkingBubble: React.FC<ThinkingBubbleProps> = ({
               />
             </View>
           </View>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text
+            style={[styles.subtitle, { color: colors.textMuted }]}
+            numberOfLines={1}
+          >
             {subtitle}
           </Text>
         </View>

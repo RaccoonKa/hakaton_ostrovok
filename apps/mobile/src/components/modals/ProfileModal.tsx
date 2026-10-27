@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 import { AuthUser } from "@corvax/shared";
 
@@ -23,6 +23,7 @@ export interface ProfileModalProps {
   onSavePreferences?: (city: string, currency: string) => void;
   backendUrl?: string;
   onUpdateBackendUrl?: (url: string) => void;
+  isDark?: boolean;
 }
 
 export const POPULAR_CITIES = [
@@ -63,8 +64,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onSavePreferences,
   backendUrl,
   onUpdateBackendUrl,
+  isDark = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
   const [selectedCity, setSelectedCity] = useState("MOW");
   const [selectedCurrency, setSelectedCurrency] = useState("RUB");
 
@@ -140,27 +144,43 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           onPress={onClose}
         />
 
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
           {/* Header handle */}
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
           {/* Modal Header */}
-          <View style={styles.header}>
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.borderSubtle,
+              },
+            ]}
+          >
             <View style={styles.headerTitleRow}>
-              <View style={styles.headerIconBox}>
-                <Icon name="user" size={16} color={theme.colors.primary} />
+              <View style={[styles.headerIconBox, { backgroundColor: isDark ? colors.surfaceContainer : colors.primaryLight }]}>
+                <Icon name="user" size={16} color={colors.primary} />
               </View>
-              <Text style={styles.headerTitle}>Профиль и настройки</Text>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Профиль и настройки</Text>
             </View>
 
             <TouchableOpacity
               onPress={onClose}
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Icon name="close" size={18} color={theme.colors.textSecondary} />
+              <Icon name="close" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 

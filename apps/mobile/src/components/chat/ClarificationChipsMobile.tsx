@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 import { DEFAULT_CLARIFICATION_CHIPS } from "../../utils/filters";
 
@@ -10,13 +10,18 @@ export interface ClarificationChipsMobileProps {
   chips?: string[];
   onSelectChip?: (text: string) => void;
   activeChip?: string | null;
+  isDark?: boolean;
 }
 
 export const ClarificationChipsMobile: React.FC<ClarificationChipsMobileProps> = ({
   chips = [],
   onSelectChip,
   activeChip: externalActiveChip,
+  isDark = false,
 }) => {
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
   const [internalActive, setInternalActive] = useState<string | null>(null);
   const active = externalActiveChip !== undefined ? externalActiveChip : internalActive;
 
@@ -34,19 +39,31 @@ export const ClarificationChipsMobile: React.FC<ClarificationChipsMobileProps> =
         return (
           <TouchableOpacity
             key={chip}
-            style={[styles.chip, isSelected && styles.chipSelected]}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: isSelected
+                  ? isDark ? "rgba(107, 70, 193, 0.25)" : theme.colors.primaryLight
+                  : isDark ? colors.surfaceContainer : "#F0EDF1",
+                borderColor: isSelected ? theme.colors.primary : colors.border,
+              },
+            ]}
             onPress={() => handlePress(chip)}
             activeOpacity={0.7}
           >
             {isSelected ? (
               <Icon name="check" size={13} color="#059669" />
             ) : isCustomEdit ? (
-              <Icon name="edit" size={13} color={theme.colors.textMuted} />
+              <Icon name="edit" size={13} color={colors.textMuted} />
             ) : (
-              <View style={styles.bulletDot} />
+              <View style={[styles.bulletDot, { backgroundColor: colors.textMuted }]} />
             )}
             <Text
-              style={[styles.chipText, isSelected && styles.chipTextSelected]}
+              style={[
+                styles.chipText,
+                { color: isSelected ? theme.colors.primary : colors.textPrimary },
+                isSelected && styles.chipTextSelected,
+              ]}
               numberOfLines={2}
             >
               {chip}

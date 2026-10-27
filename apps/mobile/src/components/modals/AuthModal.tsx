@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "../../theme";
+import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
 import { ClientAuthManager, AuthSession } from "@corvax/shared";
 
@@ -20,14 +20,18 @@ export interface MobileAuthModalProps {
   visible: boolean;
   onClose: () => void;
   onAuthSuccess: (session: AuthSession) => void;
+  isDark?: boolean;
 }
 
 export const AuthModal: React.FC<MobileAuthModalProps> = ({
   visible,
   onClose,
   onAuthSuccess,
+  isDark = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
   const [tab, setTab] = useState<"login" | "register">("login");
 
   const [email, setEmail] = useState("");
@@ -104,26 +108,42 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
           onPress={onClose}
         />
 
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(insets.bottom, 16),
+            },
+          ]}
+        >
           {/* Header handle */}
           <View style={styles.handleContainer}>
-            <View style={styles.handle} />
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
           {/* Modal Header */}
-          <View style={styles.header}>
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: colors.surface,
+                borderBottomColor: colors.borderSubtle,
+              },
+            ]}
+          >
             <View style={styles.brandBadge}>
               <View style={styles.logoBox}>
                 <Text style={styles.logoText}>О!</Text>
               </View>
-              <Text style={styles.brandTitle}>О!дин запрос</Text>
+              <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>О!дин запрос</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Icon name="close" size={20} color={theme.colors.textMuted} />
+              <Icon name="close" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
 
