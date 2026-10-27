@@ -1,7 +1,5 @@
 """
-Тщательные QA unit-тесты для модуля src/providers/ (Hotels, Flights, Trains, Transfers, Destinations).
-Проверка контрактов Pydantic v2 (extra="forbid"), фильтрации системных полей,
-граничных случаев, расчета цен, буферов и ранжирования.
+Тесты для провайдеров туристических данных (отели, рейсы, поезда, трансферы, направления).
 """
 
 from datetime import date, datetime, timedelta, timezone
@@ -25,11 +23,6 @@ from providers import (
 from providers.flights import _parse_iso_duration
 
 TZ_MSK = timezone(timedelta(hours=3))
-
-
-# ==============================================================================
-# 1. КОНТРАКТЫ И PYDANTIC МОДЕЛИ (extra="forbid", фильтрация служебных полей)
-# ==============================================================================
 
 
 def test_models_extra_forbid():
@@ -124,11 +117,6 @@ def test_providers_return_valid_models_without_extra_fields():
     assert not hasattr(transfer, "notes")
     assert not hasattr(transfer, "tags")
     assert not hasattr(transfer, "hub_id")
-
-
-# ==============================================================================
-# 2. HOTELS PROVIDER EDGE CASES
-# ==============================================================================
 
 
 def test_hotels_city_and_district_filtering():
@@ -227,11 +215,6 @@ def test_hotels_budget_and_amenities():
         assert any("бассейн" in a or "pool" in a for a in h_amenities)
 
 
-# ==============================================================================
-# 3. FLIGHTS PROVIDER EDGE CASES
-# ==============================================================================
-
-
 def test_parse_iso_duration():
     """Тест парсинга ISO-длительности PT..."""
     assert _parse_iso_duration("PT3H55M") == timedelta(hours=3, minutes=55)
@@ -285,11 +268,6 @@ def test_flights_travelers_and_return_leg():
     assert len(inbound) >= 3
 
 
-# ==============================================================================
-# 4. TRAINS PROVIDER EDGE CASES
-# ==============================================================================
-
-
 def test_trains_day_offset_and_pricing():
     """Тест ночных поездов со сдвигом суток (day_offset) и расчета стоимости."""
     # Поезд 104В (Москва -> Адлер, day_offset = 1)
@@ -323,11 +301,6 @@ def test_trains_day_offset_and_pricing():
         trains_spb[0],
     )
     assert day_train.departure_at.date() == day_train.arrival_at.date()
-
-
-# ==============================================================================
-# 5. TRANSFERS PROVIDER EDGE CASES
-# ==============================================================================
 
 
 def test_transfers_all_hubs():
@@ -397,11 +370,6 @@ def test_transfers_buffers_and_minivan_selection():
     tr_ski = get_transfer(hub="AER", destination="Красная Поляна", arrival_at=arr_dt, has_sports_equipment=True)
     assert tr_ski is not None
     assert "minivan" in (tr_ski.conditions or "").lower()
-
-
-# ==============================================================================
-# 6. DESTINATIONS PROVIDER EDGE CASES
-# ==============================================================================
 
 
 def test_destinations_tag_and_season_ranking():
