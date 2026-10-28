@@ -127,11 +127,12 @@ async def _handle_input(
     if owner_id and owner_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    if not owner_id:
-        title = user_input.message[:60] if user_input.message else None
-        await user_storage.claim_or_touch_thread(thread_id, current_user.id, title=title)
-    else:
-        await user_storage.claim_or_touch_thread(thread_id, owner_id)
+    title = user_input.message[:60] if user_input.message else None
+    actual_owner = await user_storage.claim_or_touch_thread(
+        thread_id, owner_id or current_user.id, title=title
+    )
+    if actual_owner and actual_owner != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=404, detail="Thread not found")
 
     user_id = current_user.id
     configurable = {"thread_id": thread_id, "user_id": user_id}
@@ -217,12 +218,16 @@ async def message_generator(
     user_input: StreamInput,
     agent_id: str = DEFAULT_AGENT,
     current_user: CurrentUser | None = None,
+    prepared_kwargs: tuple[dict[str, Any], UUID] | None = None,
 ) -> AsyncGenerator[str, None]:
-    if current_user is None:
-        raise HTTPException(status_code=401, detail="Authentication required")
-
-    agent: CompiledStateGraph = get_agent(agent_id)
-    kwargs, run_id = await _handle_input(user_input, agent, agent_id, current_user)
+    if prepared_kwargs is not None:
+        kwargs, run_id = prepared_kwargs
+        agent: CompiledStateGraph = get_agent(agent_id)
+    else:
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        agent = get_agent(agent_id)
+        kwargs, run_id = await _handle_input(user_input, agent, agent_id, current_user)
 
     try:
         stream_mode_arg: Any = ["updates", "messages", "custom"]
@@ -336,8 +341,15 @@ async def stream(
     agent_id: str = DEFAULT_AGENT,
     current_user: CurrentUser = Depends(get_current_user),
 ) -> StreamingResponse:
+    agent: CompiledStateGraph = get_agent(agent_id)
+    kwargs, run_id = await _handle_input(user_input, agent, agent_id, current_user)
     return StreamingResponse(
-        message_generator(user_input, agent_id, current_user),
+        message_generator(
+            user_input=user_input,
+            agent_id=agent_id,
+            current_user=current_user,
+            prepared_kwargs=(kwargs, run_id),
+        ),
         media_type="text.txt/event-stream",
     )
 

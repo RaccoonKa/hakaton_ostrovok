@@ -50,7 +50,24 @@ async def create_guest_session() -> GuestSessionResponse:
 @router.post("/register", response_model=AuthSessionResponse)
 async def register(body: RegisterRequest) -> AuthSessionResponse:
     """Register new user account and migrate guest threads if valid token provided."""
-    existing = await user_storage.get_user_by_email(body.email)
+    clean_email = body.email.strip()
+    if not clean_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email cannot be empty",
+        )
+    if not body.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password cannot be empty",
+        )
+    if not body.full_name or not body.full_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Full name cannot be empty",
+        )
+
+    existing = await user_storage.get_user_by_email(clean_email)
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -63,9 +80,9 @@ async def register(body: RegisterRequest) -> AuthSessionResponse:
 
     await user_storage.create_user(
         id=user_id,
-        email=body.email,
+        email=clean_email,
         password_hash=pwd_hash,
-        full_name=body.full_name,
+        full_name=body.full_name.strip(),
         phone=body.phone,
         created_at=now_str,
     )
@@ -76,15 +93,16 @@ async def register(body: RegisterRequest) -> AuthSessionResponse:
             payload = decode_access_token(body.guest_token)
             if payload.get("is_guest") is True and payload.get("sub"):
                 guest_id = str(payload["sub"])
-                await user_storage.migrate_guest_threads(guest_id, user_id)
+                if guest_id.startswith("guest_"):
+                    await user_storage.migrate_guest_threads(guest_id, user_id)
         except jwt.PyJWTError as e:
             logger.warning("Invalid guest_token during registration: %s", e)
 
-    token = create_access_token(user_id=user_id, email=body.email, is_guest=False)
+    token = create_access_token(user_id=user_id, email=clean_email, is_guest=False)
     user = AuthUser(
         id=user_id,
-        email=body.email.strip(),
-        full_name=body.full_name,
+        email=clean_email,
+        full_name=body.full_name.strip(),
         phone=body.phone,
         is_guest=False,
         created_at=now_str,
@@ -95,8 +113,15 @@ async def register(body: RegisterRequest) -> AuthSessionResponse:
 @router.post("/login", response_model=AuthSessionResponse)
 async def login(request: Request, body: LoginRequest) -> AuthSessionResponse:
     """Authenticate existing user with brute-force rate limit protection."""
+    clean_email = body.email.strip()
+    if not clean_email or not body.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email and password cannot be empty",
+        )
+
     client_ip = request.client.host if request.client else "unknown"
-    limiter_key = f"{client_ip}:{body.email.strip().lower()}"
+    limiter_key = f"{client_ip}:{clean_email.lower()}"
 
     if not login_rate_limiter.check(limiter_key):
         raise HTTPException(
@@ -104,7 +129,7 @@ async def login(request: Request, body: LoginRequest) -> AuthSessionResponse:
             detail="Too many login attempts. Please try again later.",
         )
 
-    user_dict = await user_storage.get_user_by_email(body.email)
+    user_dict = await user_storage.get_user_by_email(clean_email)
     if not user_dict or not verify_password(body.password, user_dict["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -119,7 +144,8 @@ async def login(request: Request, body: LoginRequest) -> AuthSessionResponse:
             payload = decode_access_token(body.guest_token)
             if payload.get("is_guest") is True and payload.get("sub"):
                 guest_id = str(payload["sub"])
-                await user_storage.migrate_guest_threads(guest_id, user_id)
+                if guest_id.startswith("guest_"):
+                    await user_storage.migrate_guest_threads(guest_id, user_id)
         except jwt.PyJWTError as e:
             logger.warning("Invalid guest_token during login: %s", e)
 

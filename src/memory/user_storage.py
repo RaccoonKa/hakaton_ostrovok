@@ -1,5 +1,6 @@
 """User accounts and thread ownership storage with PostgreSQL and in-memory fallback."""
 
+import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 # In-memory stores used when PostgreSQL is unavailable
 _in_memory_users: dict[str, dict[str, Any]] = {}  # id -> user_dict
 _in_memory_threads: dict[str, dict[str, Any]] = {}  # thread_id -> thread_dict
+_storage_lock = asyncio.Lock()
 
 
 def clear_in_memory_storage() -> None:
@@ -138,7 +140,8 @@ async def create_user(
         except Exception as e:
             logger.warning("create_user failed on DB, saving in-memory: %s", e)
 
-    _in_memory_users[id] = user_record
+    async with _storage_lock:
+        _in_memory_users[id] = user_record
     return user_record
 
 
@@ -166,8 +169,8 @@ async def claim_or_touch_thread(
     thread_id: str,
     user_id: str,
     title: str | None = None,
-) -> None:
-    """Atomically insert or update updated_at/title for thread."""
+) -> str:
+    """Atomically insert or update updated_at/title for thread and return owner user_id."""
     if is_db_available():
         try:
             conn_str = get_postgres_connection_string()
@@ -182,26 +185,33 @@ async def claim_or_touch_thread(
                         ON CONFLICT (thread_id) DO UPDATE SET
                             updated_at = NOW(),
                             title = COALESCE(EXCLUDED.title, user_threads.title)
+                        RETURNING user_id;
                         """,
                         (thread_id, user_id, title),
                     )
-            return
+                    row = await cur.fetchone()
+                    if row:
+                        return str(row[0])
+                    return user_id
         except Exception as e:
             logger.warning("claim_or_touch_thread failed on DB, using in-memory: %s", e)
 
-    now = datetime.now(UTC)
-    if thread_id in _in_memory_threads:
-        existing = _in_memory_threads[thread_id]
-        existing["updated_at"] = now
-        if title is not None:
-            existing["title"] = title
-    else:
-        _in_memory_threads[thread_id] = {
-            "thread_id": thread_id,
-            "user_id": user_id,
-            "title": title,
-            "updated_at": now,
-        }
+    async with _storage_lock:
+        now = datetime.now(UTC)
+        if thread_id in _in_memory_threads:
+            existing = _in_memory_threads[thread_id]
+            existing["updated_at"] = now
+            if title is not None:
+                existing["title"] = title
+            return str(existing["user_id"])
+        else:
+            _in_memory_threads[thread_id] = {
+                "thread_id": thread_id,
+                "user_id": user_id,
+                "title": title,
+                "updated_at": now,
+            }
+            return user_id
 
 
 async def list_user_threads(user_id: str, limit: int = 50) -> list[dict[str, Any]]:
@@ -233,6 +243,9 @@ async def list_user_threads(user_id: str, limit: int = 50) -> list[dict[str, Any
 
 async def migrate_guest_threads(guest_user_id: str, new_user_id: str) -> int:
     """Migrate all threads belonging to guest_user_id to new_user_id."""
+    if not guest_user_id.startswith("guest_"):
+        return 0
+
     if is_db_available():
         try:
             conn_str = get_postgres_connection_string()
@@ -249,8 +262,9 @@ async def migrate_guest_threads(guest_user_id: str, new_user_id: str) -> int:
             logger.warning("migrate_guest_threads failed on DB, using in-memory: %s", e)
 
     migrated = 0
-    for t in _in_memory_threads.values():
-        if t["user_id"] == guest_user_id:
-            t["user_id"] = new_user_id
-            migrated += 1
+    async with _storage_lock:
+        for t in _in_memory_threads.values():
+            if t["user_id"] == guest_user_id:
+                t["user_id"] = new_user_id
+                migrated += 1
     return migrated

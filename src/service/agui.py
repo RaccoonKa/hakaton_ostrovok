@@ -87,10 +87,11 @@ async def agui_run(
     if owner_id and owner_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=404, detail="Thread not found")
 
-    if not owner_id:
-        await user_storage.claim_or_touch_thread(thread_id, current_user.id)
-    else:
-        await user_storage.claim_or_touch_thread(thread_id, owner_id)
+    actual_owner = await user_storage.claim_or_touch_thread(
+        thread_id, owner_id or current_user.id
+    )
+    if actual_owner and actual_owner != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=404, detail="Thread not found")
 
     config = _base_config(input_data, agent_id, current_user.id)
     encoder = EventEncoder(accept=request.headers.get("accept", ""))

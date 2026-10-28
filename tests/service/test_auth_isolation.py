@@ -2,11 +2,11 @@
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 from langgraph.types import StateSnapshot
 from pydantic import SecretStr
-import pytest
 
 from core.auth_crypto import login_rate_limiter
 from memory import user_storage
@@ -315,14 +315,15 @@ def test_tampered_guest_token_does_not_migrate(client, mock_agent):
 def test_guest_thread_migration_on_login(client, mock_agent):
     """Guest threads are migrated when logging into an existing account."""
     # 1. Existing registered user
-    reg = client.post(
+    reg_resp = client.post(
         "/auth/register",
         json={
             "email": "returning@ostrovok.ru",
             "password": "MySecretPassword",
             "full_name": "Постоянный Клиент",
         },
-    ).json()
+    )
+    assert reg_resp.status_code == 200
 
     # 2. Guest starts a conversation
     guest_session = client.post("/auth/guest").json()

@@ -69,7 +69,7 @@ async def get_current_user(
         )
 
     sub = payload.get("sub")
-    if not sub:
+    if not sub or not str(sub).strip():
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token missing subject",
