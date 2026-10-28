@@ -170,7 +170,7 @@ function MainApp() {
     closeCheckout,
     handleBookingConfirmed,
     resetChat,
-  } = useMobileAgent();
+  } = useMobileAgent({ authSession });
 
   // Synchronize mobile storage cache & ensure guest session
   useEffect(() => {
@@ -248,7 +248,6 @@ function MainApp() {
         onNewChatPress={resetChat}
         isDark={isDark}
         onToggleTheme={toggleTheme}
-        onProfilePress={() => setProfileVisible(true)}
       />
 
       <KeyboardAvoidingView
@@ -448,6 +447,7 @@ function MainApp() {
         onNewChat={resetChat}
         activeAccount={headerAccount}
         onOpenProfile={() => setProfileVisible(true)}
+        onOpenSearchSettings={() => setFiltersVisible(true)}
         onOpenAuth={() => setAuthModalVisible(true)}
         onOpenProfileOrAuth={handleOpenProfileOrAuth}
         isDark={isDark}

@@ -34,6 +34,7 @@ export interface SidebarDrawerProps {
     tier?: string;
   };
   onOpenProfile?: () => void;
+  onOpenSearchSettings?: () => void;
   onOpenAuth?: () => void;
   onOpenProfileOrAuth?: () => void;
   isDark?: boolean;
@@ -49,6 +50,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onNewChat,
   activeAccount,
   onOpenProfile,
+  onOpenSearchSettings,
   onOpenAuth,
   onOpenProfileOrAuth,
   isDark = false,
@@ -128,6 +130,13 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       onOpenProfile();
     } else if (onOpenProfileOrAuth) {
       onOpenProfileOrAuth();
+    }
+    handleClose();
+  };
+
+  const handleSearchSettingsPress = () => {
+    if (onOpenSearchSettings) {
+      onOpenSearchSettings();
     }
     handleClose();
   };
@@ -410,7 +419,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
           >
             {/* Authenticated user profile or unauthenticated login button matching Web */}
             {activeAccount?.name ? (
-              <TouchableOpacity
+              <View
                 style={[
                   styles.profileRow,
                   {
@@ -419,10 +428,13 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                       : "rgba(0, 0, 0, 0.02)",
                   },
                 ]}
-                onPress={handleProfilePress}
-                activeOpacity={0.75}
               >
-                <View style={styles.profileLeft}>
+                <TouchableOpacity
+                  style={styles.profileLeft}
+                  onPress={handleProfilePress}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Открыть профиль"
+                >
                   <View style={styles.profileAvatar}>
                     <Text style={styles.profileAvatarText}>
                       {activeAccount.avatarInitials ||
@@ -446,12 +458,18 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                       {activeAccount.email || "Подтверждённый аккаунт"}
                     </Text>
                   </View>
-                </View>
+                </TouchableOpacity>
 
-                <View style={styles.settingsIconBox}>
-                  <Icon name="settings" size={15} color={colors.textMuted} />
-                </View>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.settingsIconBox}
+                  onPress={handleSearchSettingsPress}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Параметры поиска"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Icon name="settings" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={styles.guestFooterRow}>
                 <TouchableOpacity
@@ -504,9 +522,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                         : "rgba(0, 0, 0, 0.08)",
                     },
                   ]}
-                  onPress={handleProfilePress}
+                  onPress={handleSearchSettingsPress}
                   activeOpacity={0.7}
-                  accessibilityLabel="Настройки приложения"
+                  accessibilityLabel="Параметры поиска"
                 >
                   <Icon name="settings" size={16} color={colors.textSecondary} />
                 </TouchableOpacity>

@@ -13,7 +13,6 @@ export interface HeaderProps {
   onNewChatPress?: () => void;
   isDark?: boolean;
   onToggleTheme?: () => void;
-  onProfilePress?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,7 +24,6 @@ export const Header: React.FC<HeaderProps> = ({
   onNewChatPress,
   isDark = false,
   onToggleTheme,
-  onProfilePress,
 }) => {
   const insets = useSafeAreaInsets();
 
@@ -82,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
           ) : null}
         </View>
 
-        {/* Right: Theme Toggle & Settings/Profile Button */}
+        {/* Right: Theme Toggle Button */}
         <View style={styles.rightContainer}>
           {onToggleTheme && (
             <TouchableOpacity
@@ -97,17 +95,6 @@ export const Header: React.FC<HeaderProps> = ({
                 size={18}
                 color="#FFFFFF"
               />
-            </TouchableOpacity>
-          )}
-          {onProfilePress && (
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={onProfilePress}
-              accessibilityLabel="Профиль и настройки"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              activeOpacity={0.7}
-            >
-              <Icon name="user" size={17} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>

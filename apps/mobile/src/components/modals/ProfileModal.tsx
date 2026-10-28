@@ -188,7 +188,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           >
             {/* Account Card */}
             {currentUser && !currentUser.isGuest ? (
-              <View style={styles.profileCard}>
+              <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={styles.profileHeader}>
                   <View style={styles.avatarCircle}>
                     <Text style={styles.avatarInitials}>
@@ -204,14 +204,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </View>
                   <View style={styles.profileInfoCol}>
                     <View style={styles.profileNameRow}>
-                      <Text style={styles.profileName}>{currentUser.fullName}</Text>
+                      <Text style={[styles.profileName, { color: colors.textPrimary }]}>{currentUser.fullName}</Text>
                       <View style={styles.statusBadge}>
                         <Text style={styles.statusBadgeText}>Активен</Text>
                       </View>
                     </View>
-                    <Text style={styles.profileEmail}>{currentUser.email}</Text>
+                    <Text style={[styles.profileEmail, { color: colors.textSecondary }]}>{currentUser.email}</Text>
                     {currentUser.phone ? (
-                      <Text style={styles.profilePhone}>{currentUser.phone}</Text>
+                      <Text style={[styles.profilePhone, { color: colors.textMuted }]}>{currentUser.phone}</Text>
                     ) : null}
                   </View>
                 </View>
@@ -231,12 +231,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 )}
               </View>
             ) : (
-              <View style={styles.unauthCard}>
-                <View style={styles.unauthIconBox}>
-                  <Icon name="user" size={28} color={theme.colors.primary} />
+              <View style={[styles.unauthCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                <View style={[styles.unauthIconBox, { backgroundColor: isDark ? colors.surfaceContainer : colors.primaryLight }]}>
+                  <Icon name="user" size={28} color={colors.primary} />
                 </View>
-                <Text style={styles.unauthTitle}>Личный кабинет путешественника</Text>
-                <Text style={styles.unauthSubtitle}>
+                <Text style={[styles.unauthTitle, { color: colors.textPrimary }]}>Личный кабинет путешественника</Text>
+                <Text style={[styles.unauthSubtitle, { color: colors.textSecondary }]}>
                   Авторизуйтесь, чтобы сохранять историю диалогов на сервере и синхронизировать поездки.
                 </Text>
                 <TouchableOpacity
@@ -253,12 +253,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             )}
 
             {/* Backend Connection */}
-            <View style={styles.sectionCard}>
+            <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.sectionHeaderRow}>
-                <Icon name="refresh" size={14} color={theme.colors.primary} />
-                <Text style={styles.sectionTitle}>Подключение к серверу ИИ</Text>
+                <Icon name="refresh" size={14} color={colors.primary} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Подключение к серверу ИИ</Text>
               </View>
-              <Text style={styles.sectionHint}>
+              <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
                 Выберите пресет или введите адрес FastAPI бэкенда:
               </Text>
 
@@ -406,12 +406,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   backdrop: {
-    flex: 1,
+    ...StyleSheet.absoluteFill,
   },
   sheet: {
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
+    height: "85%",
     maxHeight: "90%",
   },
   handleContainer: {

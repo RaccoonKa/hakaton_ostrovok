@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from "react";
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { TripOption, AgentStepPhase, ChatMessage } from "../types/travel";
 import { PriceOptimizationDiff } from "../components/cards/PriceBreakdown";
 import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage } from "@corvax/shared";
+import { AuthContext } from "./AuthContext";
 
 export interface SavedChatSession {
   id: string; // threadId
@@ -70,6 +71,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })
   );
 
+  const authCtx = useContext(AuthContext);
+  const authToken = authCtx?.token;
+
   // Sync sessions to localStorage
   const saveSessionsToStorage = (updatedSessions: SavedChatSession[]) => {
     try {
@@ -78,6 +82,48 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Storage error
     }
   };
+
+  // Synchronize server threads for the authenticated user
+  useEffect(() => {
+    let isMounted = true;
+    const fetchServerThreads = async () => {
+      try {
+        const data = await clientRef.current.getThreads();
+        if (data?.threads && Array.isArray(data.threads) && isMounted) {
+          setSessions((prev) => {
+            const merged = [...prev];
+            for (const t of data.threads) {
+              const existingIdx = merged.findIndex((s) => s.id === t.thread_id);
+              if (existingIdx < 0) {
+                merged.push({
+                  id: t.thread_id,
+                  title: t.title || "Диалог путешествия",
+                  timestamp: t.updated_at || new Date().toISOString(),
+                  messages: [],
+                  tripOptions: [],
+                  selectedOption: null,
+                });
+              } else if (!merged[existingIdx].title && t.title) {
+                merged[existingIdx].title = t.title;
+              }
+            }
+            saveSessionsToStorage(merged);
+            return merged;
+          });
+        }
+      } catch {
+        // Fallback safely if unauthenticated or server offline
+      }
+    };
+
+    fetchServerThreads();
+    const handleStorageChange = () => fetchServerThreads();
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [authToken]);
 
   // Persist current chat state into sessions list
   const persistCurrentState = useCallback(
@@ -141,18 +187,46 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cancelRequest]);
 
   const selectSession = useCallback(
-    (sessionId: string) => {
+    async (sessionId: string) => {
       cancelRequest();
       const target = sessions.find((s) => s.id === sessionId);
       if (!target) return;
 
       threadIdRef.current = target.id;
       setActiveSessionId(target.id);
-      setMessages(target.messages || []);
-      setTripOptions(target.tripOptions || []);
-      setSelectedOption(target.selectedOption || null);
       setOptimizationDiff(null);
       setIsBookingModalOpen(false);
+
+      if (target.messages && target.messages.length > 0) {
+        setMessages(target.messages);
+        setTripOptions(target.tripOptions || []);
+        setSelectedOption(target.selectedOption || null);
+      } else {
+        // Fetch thread messages from backend
+        try {
+          const history = await clientRef.current.getHistory(target.id);
+          if (history?.messages && Array.isArray(history.messages)) {
+            const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => ({
+              id: m.run_id || `srv_${target.id}_${idx}`,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              type: m.type === "human" ? "human" : "ai",
+              role: m.type === "human" ? "user" : "assistant",
+              timestamp: m.created_at || target.timestamp || new Date().toISOString(),
+            }));
+            setMessages(mapped);
+            setTripOptions(target.tripOptions || []);
+            setSelectedOption(target.selectedOption || null);
+            setSessions((prev) => {
+              const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped } : s));
+              saveSessionsToStorage(updated);
+              return updated;
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to load server thread messages:", e);
+          setMessages([]);
+        }
+      }
     },
     [sessions, cancelRequest]
   );

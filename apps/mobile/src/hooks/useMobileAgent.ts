@@ -6,6 +6,8 @@ import {
   TravelApiClient,
   normalizeTripOptions,
   UnifiedChatMessage,
+  AuthSession,
+  ClientAuthManager,
 } from "@corvax/shared";
 import { MobileChatMessage } from "../types";
 
@@ -26,6 +28,7 @@ export interface SavedMobileSession {
 
 export interface UseMobileAgentOptions {
   baseUrl?: string;
+  authSession?: AuthSession | null;
 }
 
 declare const process: any;
@@ -93,46 +96,6 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   const timer1Ref = useRef<any>(null);
   const timer2Ref = useRef<any>(null);
 
-  // Load saved sessions from persistent storage on mount
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const stored = await safeStorageGet(STORAGE_SESSIONS_KEY);
-        if (stored && isMounted) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSavedSessions(parsed);
-          }
-        }
-      } catch {
-        // Fallback safely handled
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
-    try {
-      await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(list));
-    } catch {
-      // Fallback safely handled
-    }
-  };
-
-  const clearTimers = useCallback(() => {
-    if (timer1Ref.current) {
-      clearTimeout(timer1Ref.current);
-      timer1Ref.current = null;
-    }
-    if (timer2Ref.current) {
-      clearTimeout(timer2Ref.current);
-      timer2Ref.current = null;
-    }
-  }, []);
-
   const [backendUrl, setBackendUrlState] = useState<string>(
     options.baseUrl || getDefaultBackendUrl()
   );
@@ -152,6 +115,72 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       agentId: "travel_agent",
       useAgUi: false,
     });
+  }, []);
+
+  // Load saved sessions from persistent storage and sync with server
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const stored = await safeStorageGet(STORAGE_SESSIONS_KEY);
+        let currentList: SavedMobileSession[] = [];
+        if (stored && isMounted) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            currentList = parsed;
+            setSavedSessions(parsed);
+          }
+        }
+
+        // Fetch server threads for authenticated user
+        await ClientAuthManager.ensureAuthToken(backendUrl);
+        const data = await clientRef.current.getThreads();
+        if (data?.threads && Array.isArray(data.threads) && isMounted) {
+          const merged = [...currentList];
+          for (const t of data.threads) {
+            const existingIdx = merged.findIndex((s) => s.id === t.thread_id);
+            if (existingIdx < 0) {
+              merged.push({
+                id: t.thread_id,
+                title: t.title || "Диалог путешествия",
+                timestamp: t.updated_at || new Date().toISOString(),
+                messages: [],
+                tripOptions: [],
+                selectedOption: null,
+              });
+            } else if (!merged[existingIdx].title && t.title) {
+              merged[existingIdx].title = t.title;
+            }
+          }
+          setSavedSessions(merged);
+          await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(merged));
+        }
+      } catch {
+        // Fallback safely handled
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [backendUrl, options.authSession?.token]);
+
+  const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
+    try {
+      await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(list));
+    } catch {
+      // Fallback safely handled
+    }
+  };
+
+  const clearTimers = useCallback(() => {
+    if (timer1Ref.current) {
+      clearTimeout(timer1Ref.current);
+      timer1Ref.current = null;
+    }
+    if (timer2Ref.current) {
+      clearTimeout(timer2Ref.current);
+      timer2Ref.current = null;
+    }
   }, []);
 
   const formatCurrentTime = () => {
@@ -493,15 +522,39 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
   }, []);
 
   const selectSession = useCallback(
-    (session: SavedMobileSession) => {
+    async (session: SavedMobileSession) => {
       cancelRequest();
       threadIdRef.current = session.id;
       setActiveSessionId(session.id);
-      setMessages(session.messages || []);
-      setTripOptions(session.tripOptions || []);
-      setSelectedOption(session.selectedOption || null);
       setIsThinking(false);
       setIsStreaming(false);
+
+      if (session.messages && session.messages.length > 0) {
+        setMessages(session.messages);
+        setTripOptions(session.tripOptions || []);
+        setSelectedOption(session.selectedOption || null);
+      } else {
+        // Fetch server history
+        try {
+          const history = await clientRef.current.getHistory(session.id);
+          if (history?.messages && Array.isArray(history.messages)) {
+            const mapped: MobileChatMessage[] = history.messages.map((m: any, idx: number) => ({
+              id: m.run_id || `srv_${session.id}_${idx}`,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              role: m.type === "human" ? "user" : "assistant",
+              timestamp: m.created_at || session.timestamp || formatCurrentTime(),
+            }));
+            setMessages(mapped);
+            setSavedSessions((prev) => {
+              const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped } : s));
+              safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(updated));
+              return updated;
+            });
+          }
+        } catch {
+          setMessages([]);
+        }
+      }
     },
     [cancelRequest]
   );
