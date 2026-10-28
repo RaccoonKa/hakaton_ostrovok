@@ -192,3 +192,26 @@ export function formatMealPlan(plan: MealPlan | string | null | undefined): stri
       return "";
   }
 }
+
+
+/**
+ * Форматирует временную метку сообщения в человекочитаемый вид HH:MM (например, "18:42").
+ * Защищает от вывода сырых ISO-строк с датой и миллисекундами.
+ */
+export function formatDisplayTime(raw?: string | null): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (/^\d{1,2}:\d{2}$/.test(trimmed)) return trimmed;
+  try {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      return `${d.getHours().toString().padStart(2, "0")}:${d
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+    }
+  } catch {
+    // fallback
+  }
+  return "";
+}

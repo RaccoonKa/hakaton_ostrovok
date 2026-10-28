@@ -60,6 +60,6 @@ export interface ClientCallbacks {
 export interface AgentClientConfig {
   baseUrl?: string;
   agentId?: string;
-  authSecret?: string;
+  authSecret?: string | (() => string | null | Promise<string | null>);
   useAgUi?: boolean;
 }

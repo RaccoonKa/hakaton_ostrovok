@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCheck } from "lucide-react";
+import { formatDisplayTime } from "@corvax/shared";
 import { ChatMessage } from "../../types/travel";
 
 interface UserMessageProps {
@@ -8,17 +9,10 @@ interface UserMessageProps {
 
 export const UserMessage: React.FC<UserMessageProps> = ({ message }) => {
   const formatTime = (isoString?: string) => {
-    if (!isoString) {
-      return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    }
-    try {
-      const d = new Date(isoString);
-      return isNaN(d.getTime())
-        ? isoString
-        : d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return isoString;
-    }
+    const raw = isoString || (message as { timestamp?: string }).timestamp;
+    const formatted = formatDisplayTime(raw);
+    if (formatted) return formatted;
+    return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
   return (

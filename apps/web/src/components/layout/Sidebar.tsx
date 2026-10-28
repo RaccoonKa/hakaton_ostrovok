@@ -224,7 +224,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {user.fullName}
                     </span>
                     <span className="text-[11px] font-medium text-content-secondary truncate leading-tight mt-0.5">
-                      {user.tier || "Путешественник"}
+                      {user.email || "Подтверждённый аккаунт"}
                     </span>
                   </div>
                 </div>
@@ -234,32 +234,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    openSettingsModal("account");
+                    openSettingsModal("search");
                   }}
-                  title="Настройки профиля и аккаунта"
+                  title="Параметры поиска и предпочтений"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              /* Unauthenticated: inviting login button */
-              <button
-                type="button"
-                onClick={openAuthModal}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl bg-[#581c87]/10 dark:bg-purple-950/40 hover:bg-[#581c87]/20 border border-[#581c87]/20 text-[#581c87] dark:text-purple-300 transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
-                    <LogIn className="w-4 h-4" />
+              /* Unauthenticated: inviting login button + settings */
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={openAuthModal}
+                  className="flex-1 flex items-center justify-between p-2 rounded-xl bg-[#581c87]/10 dark:bg-purple-950/40 hover:bg-[#581c87]/20 border border-[#581c87]/20 text-[#581c87] dark:text-purple-300 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-[#581c87] flex items-center justify-center text-white shrink-0 shadow-xs">
+                      <LogIn className="w-4 h-4" />
+                    </div>
+                    <div className="flex flex-col text-left truncate">
+                      <span className="text-xs font-bold leading-tight">Вход в аккаунт</span>
+                      <span className="text-[10px] text-content-muted leading-tight mt-0.5 truncate">
+                        Сохранение диалогов
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold leading-tight">Вход в аккаунт</span>
-                    <span className="text-[10px] text-content-muted leading-tight mt-0.5">
-                      Сохранение маршрутов
-                    </span>
-                  </div>
-                </div>
-              </button>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openSettingsModal("search")}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0 border border-black/[0.06] dark:border-white/[0.08]"
+                  title="Параметры поиска"
+                >
+                  <Settings className="w-4 h-4" />
+                </button>
+              </div>
             )}
           </div>
         </div>

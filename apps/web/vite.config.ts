@@ -15,7 +15,7 @@ export default defineConfig({
     host: true,
     allowedHosts: true,
     proxy: {
-      "^/(health|agui|info|stream|travel|travel_agent)": {
+      "^/(health|agui|info|stream|travel|travel_agent|auth)": {
         target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8080",
         changeOrigin: true,
       },

@@ -7,6 +7,7 @@ import { HotelCard } from "../cards/HotelCard";
 import { DayTimeline } from "../itinerary/DayTimeline";
 import { PriceBreakdown, PriceOptimizationDiff } from "../cards/PriceBreakdown";
 import { MarkdownText } from "../common/MarkdownText";
+import { formatDisplayTime } from "@corvax/shared";
 
 interface AssistantMessageProps {
   message: ChatMessage;
@@ -30,17 +31,10 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
   onConfirmDemoBooking,
 }) => {
   const formatTime = (isoString?: string) => {
-    if (!isoString) {
-      return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    }
-    try {
-      const d = new Date(isoString);
-      return isNaN(d.getTime())
-        ? isoString
-        : d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return isoString;
-    }
+    const raw = isoString || (message as { timestamp?: string }).timestamp;
+    const formatted = formatDisplayTime(raw);
+    if (formatted) return formatted;
+    return new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   };
 
   const selectedOptionId = selectedOption?.id;

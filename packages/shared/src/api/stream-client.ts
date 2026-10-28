@@ -1,6 +1,7 @@
 import { ChatMessage } from "../domain/types";
 import { normalizeTripOptions } from "../domain/normalize";
 import { ClientCallbacks } from "./types";
+import { ClientAuthManager } from "./auth-client";
 
 /**
  * Клиент для нативного потокового эндпоинта FastAPI:
@@ -9,22 +10,54 @@ import { ClientCallbacks } from "./types";
  */
 export class FastApiStreamClient {
   private baseUrl: string;
-  private authSecret?: string;
+  private authSecret?: string | (() => string | null | Promise<string | null>);
 
-  constructor(options: { baseUrl?: string; authSecret?: string } = {}) {
+  constructor(
+    options: {
+      baseUrl?: string;
+      authSecret?: string | (() => string | null | Promise<string | null>);
+    } = {}
+  ) {
     this.baseUrl = options.baseUrl || "";
     this.authSecret = options.authSecret;
   }
 
-  private getHeaders(): Record<string, string> {
+  private async getAuthToken(): Promise<string | null> {
+    if (typeof this.authSecret === "function") {
+      try {
+        const res = await this.authSecret();
+        if (res) return res;
+      } catch {
+        // fallback
+      }
+    } else if (this.authSecret) {
+      return this.authSecret;
+    }
+
+    const session = ClientAuthManager.getCurrentSession();
+    if (session?.token) {
+      return session.token;
+    }
+
+    // Авто-получение гостевого токена при отсутствии
+    try {
+      return await ClientAuthManager.ensureAuthToken(this.baseUrl);
+    } catch {
+      return null;
+    }
+  }
+
+  private async getHeaders(): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
       "bypass-tunnel-reminder": "true",
       "Bypass-Tunnel-Reminder": "true",
     };
-    if (this.authSecret) {
-      headers["Authorization"] = `Bearer ${this.authSecret}`;
+
+    const token = await this.getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
     return headers;
   }
@@ -39,7 +72,8 @@ export class FastApiStreamClient {
       streamTokens?: boolean;
     } = {},
     callbacks: ClientCallbacks,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    isRetry = false
   ): Promise<void> {
     const url = `${this.baseUrl}/${agentId}/stream`;
     const payload = {
@@ -61,8 +95,10 @@ export class FastApiStreamClient {
       if (timeoutId) {
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
-          controller.abort(new Error("Поток данных от агента прерван по таймауту неактивности."));
-        }, 60000);
+          controller.abort(
+            new Error("Превышено время ожидания между чанками ответа (120 секунд).")
+          );
+        }, 120000);
       }
     };
 
@@ -76,12 +112,34 @@ export class FastApiStreamClient {
     signal?.addEventListener("abort", onExternalAbort);
 
     try {
+      const headers = await this.getHeaders();
       const response = await fetch(url, {
         method: "POST",
-        headers: this.getHeaders(),
+        headers,
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
+
+      if (response.status === 401 && !isRetry) {
+        // Токен устарел или отклонён сервером — пробуем перевыпустить гостевую сессию и повторить
+        ClientAuthManager.saveCurrentSession(null);
+        await ClientAuthManager.ensureAuthToken(this.baseUrl);
+        return this.streamAgent(agentId, message, options, callbacks, signal, true);
+      }
+
+      if (response.status === 404 && !isRetry) {
+        // Тред устарел, удален или принадлежал другому пользователю (например, до логаута).
+        // Автоматически создаем новый чистый threadId и повторяем запрос без ошибки в UI.
+        const freshThreadId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        return this.streamAgent(
+          agentId,
+          message,
+          { ...options, threadId: freshThreadId },
+          callbacks,
+          signal,
+          true
+        );
+      }
 
       if (!response.ok) {
         throw new Error(`Stream request failed with status: ${response.status}`);
@@ -119,26 +177,34 @@ export class FastApiStreamClient {
 
               try {
                 const parsed = JSON.parse(dataStr);
-                switch (parsed.type) {
-                  case "token":
-                    callbacks.onToken?.(parsed.content);
-                    break;
-                  case "message": {
-                    const msg = parsed.content as ChatMessage;
-                    callbacks.onMessage?.(msg);
-                    if (msg.custom_data?.trip_options) {
-                      callbacks.onTripOptions?.(normalizeTripOptions(msg.custom_data.trip_options));
-                    }
-                    if (Array.isArray(msg.custom_data?.suggestions) && msg.custom_data.suggestions.length > 0) {
-                      callbacks.onSuggestions?.(msg.custom_data.suggestions);
-                    }
-                    break;
+                if (parsed.type === "token" && typeof parsed.content === "string") {
+                  callbacks.onToken?.(parsed.content);
+                } else if (parsed.type === "message" && parsed.content) {
+                  const msg = parsed.content as ChatMessage;
+                  callbacks.onMessage?.(msg);
+
+                  if (msg.custom_data?.trip_options) {
+                    callbacks.onTripOptions?.(normalizeTripOptions(msg.custom_data.trip_options));
+                  } else if (
+                    msg.type === "ai" &&
+                    (msg as any).custom_payload?.packaged_trip_options
+                  ) {
+                    callbacks.onTripOptions?.(
+                      normalizeTripOptions((msg as any).custom_payload.packaged_trip_options)
+                    );
                   }
-                  case "error":
-                    callbacks.onError?.(new Error(parsed.content || "Internal stream error"));
-                    break;
+
+                  if (
+                    Array.isArray(msg.custom_data?.suggestions) &&
+                    msg.custom_data.suggestions.length > 0
+                  ) {
+                    callbacks.onSuggestions?.(msg.custom_data.suggestions);
+                  }
+                } else if (parsed.type === "error") {
+                  callbacks.onError?.(new Error(parsed.content || "Agent error"));
                 }
               } catch {
+                // If line wasn't JSON, send raw token if looks like text
                 callbacks.onToken?.(dataStr);
               }
             }
@@ -148,15 +214,16 @@ export class FastApiStreamClient {
 
       callbacks.onComplete?.();
     } catch (err: unknown) {
-      if (signal?.aborted) {
-        return;
-      }
+      if (signal?.aborted) return;
       if (controller.signal.aborted && controller.signal.reason instanceof Error) {
         throw controller.signal.reason;
       }
       throw err;
     } finally {
-      if (timeoutId) clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       signal?.removeEventListener("abort", onExternalAbort);
     }
   }

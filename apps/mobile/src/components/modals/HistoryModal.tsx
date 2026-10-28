@@ -10,6 +10,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../theme";
 import { Icon } from "../common/Icon";
+import { formatDisplayTime } from "@corvax/shared";
 import { SavedMobileSession } from "../../hooks/useMobileAgent";
 
 export interface HistoryTripItem {
@@ -153,7 +154,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                               {session.title}
                             </Text>
                             <View style={styles.sessionMetaRow}>
-                              <Text style={styles.sessionTime}>{session.timestamp}</Text>
+                              <Text style={styles.sessionTime}>{formatDisplayTime(session.timestamp)}</Text>
                               {optionsCount > 0 && (
                                 <View style={styles.optionsBadge}>
                                   <Text style={styles.optionsBadgeText}>

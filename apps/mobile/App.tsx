@@ -17,6 +17,9 @@ import {
   TripOption,
   ClientAuthManager,
   AuthSession,
+  STORAGE_AUTH_TOKEN_KEY,
+  STORAGE_USER_KEY,
+  LEGACY_STORAGE_CURRENT_SESSION_KEY,
 } from "@corvax/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme, lightColors, darkColors, getTheme, setAppTheme } from "./src/theme";
@@ -29,12 +32,30 @@ import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
 import { SidebarDrawer } from "./src/components/drawer/SidebarDrawer";
-import { ProfileModal } from "./src/components/modals/ProfileModal";
+import {
+  ProfileModal,
+  MobilePreferences,
+  DEFAULT_MOBILE_PREFERENCES,
+} from "./src/components/modals/ProfileModal";
 import { AuthModal } from "./src/components/modals/AuthModal";
 import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 const STORAGE_THEME_KEY = "odin_mobile_theme_v1";
+const STORAGE_PREFERENCES_KEY = "odin_travel_preferences_v1";
+
+const mobileMemoryCache = new Map<string, string>();
+ClientAuthManager.setStorageAdapter({
+  getItem: (key: string) => mobileMemoryCache.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    mobileMemoryCache.set(key, value);
+    AsyncStorage.setItem(key, value).catch(() => {});
+  },
+  removeItem: (key: string) => {
+    mobileMemoryCache.delete(key);
+    AsyncStorage.removeItem(key).catch(() => {});
+  },
+});
 
 function getSuggestionIcon(text: string): IconName {
   const lower = text.toLowerCase();
@@ -54,8 +75,10 @@ function MainApp() {
   const [inputText, setInputText] = useState("");
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<"search" | "account">("account");
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [mobilePrefs, setMobilePrefs] = useState<MobilePreferences>(DEFAULT_MOBILE_PREFERENCES);
 
   // System OS color scheme auto-detection
   const systemColorScheme = useColorScheme();
@@ -64,15 +87,35 @@ function MainApp() {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_THEME_KEY);
-        if (saved === "light" || saved === "dark") {
-          setManualTheme(saved);
+        const [savedTheme, savedPrefs] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_THEME_KEY),
+          AsyncStorage.getItem(STORAGE_PREFERENCES_KEY),
+        ]);
+        if (savedTheme === "light" || savedTheme === "dark") {
+          setManualTheme(savedTheme);
+        }
+        if (savedPrefs) {
+          try {
+            setMobilePrefs((prev) => ({ ...prev, ...JSON.parse(savedPrefs) }));
+          } catch {
+            // fallback
+          }
         }
       } catch {
         // ignore
       }
     })();
   }, []);
+
+  const handleSaveMobilePreferences = (newPrefs: MobilePreferences) => {
+    setMobilePrefs(newPrefs);
+    AsyncStorage.setItem(STORAGE_PREFERENCES_KEY, JSON.stringify(newPrefs)).catch(() => {});
+  };
+
+  const handleOpenProfileModal = (tab: "search" | "account" = "account") => {
+    setProfileInitialTab(tab);
+    setProfileVisible(true);
+  };
 
   // Listen to system Appearance changes
   useEffect(() => {
@@ -105,9 +148,13 @@ function MainApp() {
     ClientAuthManager.getCurrentSession()
   );
 
-  const headerAccount = authSession?.user
+
+
+
+  const headerAccount = (authSession?.user && !authSession.user.isGuest)
     ? {
         name: authSession.user.fullName,
+        email: authSession.user.email,
         avatarInitials: authSession.user.fullName
           ? authSession.user.fullName
               .split(" ")
@@ -116,13 +163,12 @@ function MainApp() {
               .slice(0, 2)
               .toUpperCase()
           : "ПУ",
-        tier: authSession.user.tier,
       }
     : undefined;
 
   const handleOpenProfileOrAuth = () => {
-    if (authSession?.user) {
-      setProfileVisible(true);
+    if (authSession?.user && !authSession.user.isGuest) {
+      handleOpenProfileModal("account");
     } else {
       setAuthModalVisible(true);
     }
@@ -151,7 +197,34 @@ function MainApp() {
     closeCheckout,
     handleBookingConfirmed,
     resetChat,
-  } = useMobileAgent();
+  } = useMobileAgent({ authSession });
+
+  // Synchronize mobile storage cache & ensure guest session
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const [tok, uRaw, lRaw] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_AUTH_TOKEN_KEY),
+          AsyncStorage.getItem(STORAGE_USER_KEY),
+          AsyncStorage.getItem(LEGACY_STORAGE_CURRENT_SESSION_KEY),
+        ]);
+        if (tok) mobileMemoryCache.set(STORAGE_AUTH_TOKEN_KEY, tok);
+        if (uRaw) mobileMemoryCache.set(STORAGE_USER_KEY, uRaw);
+        if (lRaw) mobileMemoryCache.set(LEGACY_STORAGE_CURRENT_SESSION_KEY, lRaw);
+
+        await ClientAuthManager.ensureAuthToken(backendUrl);
+        if (isMounted) {
+          setAuthSession(ClientAuthManager.getCurrentSession());
+        }
+      } catch {
+        // fallback
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [backendUrl]);
 
   const handleSendActiveChat = () => {
     if (!inputText.trim() || isThinking || isStreaming) return;
@@ -366,13 +439,18 @@ function MainApp() {
         {/* Traveler Profile & Settings Modal */}
         <ProfileModal
           visible={profileVisible}
+          initialTab={profileInitialTab}
           onClose={() => setProfileVisible(false)}
           currentUser={authSession?.user || null}
           onOpenAuth={() => setAuthModalVisible(true)}
           onLogout={() => {
-            ClientAuthManager.logout();
-            setAuthSession(null);
+            ClientAuthManager.logout(backendUrl);
+            setAuthSession(ClientAuthManager.getCurrentSession());
+            resetChat();
+            setHistoryVisible(false);
           }}
+          preferences={mobilePrefs}
+          onSavePreferences={handleSaveMobilePreferences}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
           isDark={isDark}
@@ -384,8 +462,11 @@ function MainApp() {
           onClose={() => setAuthModalVisible(false)}
           onAuthSuccess={(session) => {
             setAuthSession(session);
+            resetChat();
+            setHistoryVisible(false);
           }}
           isDark={isDark}
+          baseUrl={backendUrl}
         />
       </KeyboardAvoidingView>
 
@@ -399,6 +480,9 @@ function MainApp() {
         onDeleteSession={(id) => deleteSession(id)}
         onNewChat={resetChat}
         activeAccount={headerAccount}
+        onOpenProfile={() => handleOpenProfileModal("account")}
+        onOpenSearchSettings={() => handleOpenProfileModal("search")}
+        onOpenAuth={() => setAuthModalVisible(true)}
         onOpenProfileOrAuth={handleOpenProfileOrAuth}
         isDark={isDark}
       />

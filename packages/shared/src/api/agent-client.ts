@@ -3,11 +3,12 @@ import { MOCK_TRIP_OPTIONS } from "../mocks/travel-options";
 import { AgUiClient } from "./agui-client";
 import { FastApiStreamClient } from "./stream-client";
 import { AgentClientConfig, ClientCallbacks } from "./types";
+import { ClientAuthManager } from "./auth-client";
 
 export class TravelApiClient {
   private baseUrl: string;
   private agentId: string;
-  private authSecret?: string;
+  private authSecret?: string | (() => string | null | Promise<string | null>);
   private useAgUi: boolean;
   private agUiClient: AgUiClient;
   private streamClient: FastApiStreamClient;
@@ -22,7 +23,7 @@ export class TravelApiClient {
 
     this.agUiClient = new AgUiClient({
       baseUrl: this.baseUrl,
-      authSecret: this.authSecret,
+      authSecret: typeof this.authSecret === "string" ? this.authSecret : undefined,
     });
     this.streamClient = new FastApiStreamClient({
       baseUrl: this.baseUrl,
@@ -30,11 +31,41 @@ export class TravelApiClient {
     });
   }
 
+  private async getAuthToken(): Promise<string | null> {
+    if (typeof this.authSecret === "function") {
+      try {
+        const res = await this.authSecret();
+        if (res) return res;
+      } catch {
+        // fallback
+      }
+    } else if (this.authSecret) {
+      return this.authSecret;
+    }
+
+    const session = ClientAuthManager.getCurrentSession();
+    return session?.token || null;
+  }
+
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "bypass-tunnel-reminder": "true",
+      "Bypass-Tunnel-Reminder": "true",
+    };
+    const token = await this.getAuthToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
   /**
    * Проверяет доступность бэкенда.
    */
   async checkHealth(): Promise<{ status: string }> {
-    const res = await fetch(`${this.baseUrl}/health`);
+    const headers = await this.getAuthHeaders();
+    const res = await fetch(`${this.baseUrl}/health`, { headers });
     if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
     return res.json();
   }
@@ -43,12 +74,36 @@ export class TravelApiClient {
    * Получает метаданные сервиса (список агентов, моделей).
    */
   async getInfo(): Promise<ServiceMetadata> {
-    const headers: Record<string, string> = {};
-    if (this.authSecret) {
-      headers["Authorization"] = `Bearer ${this.authSecret}`;
-    }
+    const headers = await this.getAuthHeaders();
     const res = await fetch(`${this.baseUrl}/info`, { headers });
     if (!res.ok) throw new Error(`Get info failed: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Получает историю сообщений для указанного треда (с проверкой ownership на бэкенде).
+   */
+  async getHistory(threadId: string): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    const res = await fetch(`${this.baseUrl}/${this.agentId}/history`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ thread_id: threadId }),
+    });
+    if (res.status === 404) {
+      return { messages: [] };
+    }
+    if (!res.ok) throw new Error(`Get history failed: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Получает список всех тредов текущего пользователя (изолировано по токену).
+   */
+  async getThreads(): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    const res = await fetch(`${this.baseUrl}/${this.agentId}/threads`, { headers });
+    if (!res.ok) throw new Error(`Get threads failed: ${res.status}`);
     return res.json();
   }
 

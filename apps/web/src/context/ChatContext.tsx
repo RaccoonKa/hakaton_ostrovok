@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useRef, useCallback } from "react";
+import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { TripOption, AgentStepPhase, ChatMessage } from "../types/travel";
 import { PriceOptimizationDiff } from "../components/cards/PriceBreakdown";
-import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage } from "@corvax/shared";
+import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage, formatDisplayTime } from "@corvax/shared";
+import { AuthContext } from "./AuthContext";
 
 export interface SavedChatSession {
   id: string; // threadId
@@ -13,6 +14,8 @@ export interface SavedChatSession {
 }
 
 const STORAGE_SESSIONS_KEY = "odin_travel_sessions_v1";
+const getWebSessionsKey = (userId?: string) =>
+  userId ? `odin_travel_sessions_${userId}` : "odin_travel_sessions_guest";
 
 interface ChatContextType {
   messages: UnifiedChatMessage[];
@@ -70,14 +73,143 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })
   );
 
-  // Sync sessions to localStorage
-  const saveSessionsToStorage = (updatedSessions: SavedChatSession[]) => {
-    try {
-      localStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(updatedSessions));
-    } catch {
-      // Storage error
+  const authCtx = useContext(AuthContext);
+  const authToken = authCtx?.token;
+  const currentUserId = authCtx?.user?.id;
+
+  // Sync sessions to user-scoped localStorage
+  const saveSessionsToStorage = useCallback(
+    (updatedSessions: SavedChatSession[]) => {
+      try {
+        const key = getWebSessionsKey(currentUserId);
+        localStorage.setItem(key, JSON.stringify(updatedSessions));
+      } catch {
+        // Storage error
+      }
+    },
+    [currentUserId]
+  );
+
+  // When user logs in, logs out, or switches accounts: immediately wipe state & load that user's threads
+  const prevUserIdRef = useRef<string | undefined>(currentUserId);
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      setMessages([]);
+      setTripOptions([]);
+      setSelectedOption(null);
+      setOptimizationDiff(null);
+      setIsBookingModalOpen(false);
+      setIsLoading(false);
+      threadIdRef.current = null;
+      setActiveSessionId(null);
+
+      try {
+        const key = getWebSessionsKey(currentUserId);
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setSessions(Array.isArray(parsed) ? parsed : []);
+        } else {
+          setSessions([]);
+        }
+      } catch {
+        setSessions([]);
+      }
     }
-  };
+  }, [currentUserId]);
+
+  // Synchronize server threads for the authenticated user & live background polling
+  useEffect(() => {
+    let isMounted = true;
+    const fetchServerThreads = async () => {
+      try {
+        const data = await clientRef.current.getThreads();
+        if (data?.threads && Array.isArray(data.threads) && isMounted) {
+          setSessions((prev) => {
+            const merged = [...prev];
+            for (const t of data.threads) {
+              const existingIdx = merged.findIndex((s) => s.id === t.thread_id);
+              if (existingIdx < 0) {
+                merged.push({
+                  id: t.thread_id,
+                  title: t.title || "Диалог путешествия",
+                  timestamp: t.updated_at || new Date().toISOString(),
+                  messages: [],
+                  tripOptions: [],
+                  selectedOption: null,
+                });
+              } else {
+                if (!merged[existingIdx].title && t.title) {
+                  merged[existingIdx].title = t.title;
+                }
+                if (t.updated_at) {
+                  merged[existingIdx].timestamp = t.updated_at;
+                }
+              }
+            }
+            merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            saveSessionsToStorage(merged);
+            return merged;
+          });
+
+          // If active thread is open, sync any new messages from server (e.g. sent from mobile)
+          const activeId = threadIdRef.current;
+          if (activeId && !isLoading) {
+            try {
+              const hist = await clientRef.current.getHistory(activeId);
+              if (hist?.messages && Array.isArray(hist.messages) && isMounted) {
+                setMessages((current) => {
+                  if (hist.messages.length > current.length) {
+                    let extractedOptions: TripOption[] = tripOptions;
+                    const mapped = hist.messages.map((m: any, idx: number) => {
+                      const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+                      if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+                        extractedOptions = normalizeTripOptions(rawOpts);
+                      }
+                      return {
+                        id: m.run_id || `srv_${activeId}_${idx}`,
+                        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+                        type: m.type === "human" ? "human" : "ai",
+                        role: m.type === "human" ? "user" : "assistant",
+                        timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+                        trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+                        tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+                      };
+                    });
+                    setTripOptions(extractedOptions);
+                    return mapped;
+                  }
+                  return current;
+                });
+              }
+            } catch {
+              // offline safe
+            }
+          }
+        }
+      } catch {
+        // Fallback safely if unauthenticated or server offline
+      }
+    };
+
+    fetchServerThreads();
+    const handleStorageChange = () => fetchServerThreads();
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", fetchServerThreads);
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchServerThreads();
+      }
+    }, 3500);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", fetchServerThreads);
+      clearInterval(pollTimer);
+    };
+  }, [authToken, currentUserId, saveSessionsToStorage, isLoading, tripOptions]);
 
   // Persist current chat state into sessions list
   const persistCurrentState = useCallback(
@@ -106,13 +238,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           selectedOption: currSelectedOpt,
         };
 
-        let next: SavedChatSession[];
-        if (existingIdx >= 0) {
-          next = [...prev];
-          next[existingIdx] = updatedSession;
-        } else {
-          next = [updatedSession, ...prev];
-        }
+        const remaining = prev.filter((s) => s.id !== activeId);
+        const next = [updatedSession, ...remaining];
         saveSessionsToStorage(next);
         return next;
       });
@@ -141,18 +268,60 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cancelRequest]);
 
   const selectSession = useCallback(
-    (sessionId: string) => {
+    async (sessionId: string) => {
       cancelRequest();
       const target = sessions.find((s) => s.id === sessionId);
       if (!target) return;
 
       threadIdRef.current = target.id;
       setActiveSessionId(target.id);
-      setMessages(target.messages || []);
-      setTripOptions(target.tripOptions || []);
-      setSelectedOption(target.selectedOption || null);
       setOptimizationDiff(null);
       setIsBookingModalOpen(false);
+
+      // Display cached messages immediately
+      if (target.messages && target.messages.length > 0) {
+        setMessages(target.messages);
+        setTripOptions(target.tripOptions || []);
+        setSelectedOption(target.selectedOption || null);
+      }
+
+      // Always fetch latest server history to pick up any new turns sent from mobile
+      try {
+        const history = await clientRef.current.getHistory(target.id);
+        if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
+          let extractedOptions: TripOption[] = target.tripOptions || [];
+          const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => {
+            const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+            if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+              extractedOptions = normalizeTripOptions(rawOpts);
+            }
+            return {
+              id: m.run_id || `srv_${target.id}_${idx}`,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              type: m.type === "human" ? "human" : "ai",
+              role: m.type === "human" ? "user" : "assistant",
+              timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+              trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+              tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+            };
+          });
+          setMessages(mapped);
+          setTripOptions(extractedOptions);
+          setSelectedOption(target.selectedOption || null);
+          setSessions((prev) => {
+            const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
+            saveSessionsToStorage(updated);
+            return updated;
+          });
+        } else if (!target.messages || target.messages.length === 0) {
+          setMessages([]);
+        }
+      } catch (e) {
+        console.warn("Failed to load server thread messages:", e);
+        if (!target.messages || target.messages.length === 0) {
+          setMessages([]);
+        }
+      }
     },
     [sessions, cancelRequest]
   );
@@ -357,6 +526,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               clearTimeout(stepTimer2);
               setIsLoading(false);
               setCurrentStep("ready");
+              setMessages((latest) => {
+                persistCurrentState(latest, tripOptions, selectedOption, currentThreadId);
+                return latest;
+              });
             },
           },
           abortController.signal

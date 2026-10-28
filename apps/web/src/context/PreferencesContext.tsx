@@ -33,10 +33,6 @@ export interface UserProfile {
   fullName: string;
   email: string;
   phone: string;
-  tier: string;
-  domesticPassport: string;
-  intlPassport: string;
-  telegramNotifications: boolean;
 }
 
 const DEFAULT_PREFERENCES: TravelPreferences = {
@@ -54,10 +50,6 @@ const DEFAULT_PROFILE: UserProfile = {
   fullName: "",
   email: "",
   phone: "",
-  tier: "Путешественник",
-  domesticPassport: "",
-  intlPassport: "",
-  telegramNotifications: false,
 };
 
 const STORAGE_PREFS_KEY = "odin_travel_preferences_v1";
@@ -94,18 +86,12 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [profile, setProfile] = useState<UserProfile>(() => {
     try {
       const session = ClientAuthManager.getCurrentSession();
-      if (session?.user) {
+      if (session?.user && !session.user.isGuest) {
         return {
-          ...DEFAULT_PROFILE,
           fullName: session.user.fullName,
           email: session.user.email,
           phone: session.user.phone || "",
-          tier: session.user.tier || "Путешественник",
         };
-      }
-      const saved = localStorage.getItem(STORAGE_PROFILE_KEY);
-      if (saved) {
-        return { ...DEFAULT_PROFILE, ...JSON.parse(saved) };
       }
     } catch {
       // fallback
@@ -117,14 +103,12 @@ export const PreferencesProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const handleStorageChange = () => {
       const session = ClientAuthManager.getCurrentSession();
-      if (session?.user) {
-        setProfile((prev) => ({
-          ...prev,
+      if (session?.user && !session.user.isGuest) {
+        setProfile({
           fullName: session.user.fullName,
           email: session.user.email,
-          phone: session.user.phone || prev.phone,
-          tier: session.user.tier || "Путешественник",
-        }));
+          phone: session.user.phone || "",
+        });
       } else {
         setProfile(DEFAULT_PROFILE);
       }
