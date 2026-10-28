@@ -34,7 +34,9 @@ export class TravelApiClient {
    * Проверяет доступность бэкенда.
    */
   async checkHealth(): Promise<{ status: string }> {
-    const res = await fetch(`${this.baseUrl}/health`);
+    const res = await fetch(`${this.baseUrl}/health`, {
+      headers: { "bypass-tunnel-reminder": "true" },
+    });
     if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
     return res.json();
   }
@@ -43,7 +45,7 @@ export class TravelApiClient {
    * Получает метаданные сервиса (список агентов, моделей).
    */
   async getInfo(): Promise<ServiceMetadata> {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { "bypass-tunnel-reminder": "true" };
     if (this.authSecret) {
       headers["Authorization"] = `Bearer ${this.authSecret}`;
     }
