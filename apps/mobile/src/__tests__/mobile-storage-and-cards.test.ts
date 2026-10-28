@@ -61,15 +61,19 @@ test("ClientAuthManager supports custom storage adapter fallback", () => {
       email: "traveler@example.com",
       fullName: "Тестовый Путешественник",
       phone: "+7 999 123-45-67",
+      isGuest: false,
       tier: "gold" as const,
+      bonusMiles: 1000,
       createdAt: "2026-10-27",
     },
-    expiresAt: "2026-11-27",
   };
 
   ClientAuthManager.saveCurrentSession(testSession);
   const loaded = ClientAuthManager.getCurrentSession();
-  assert.deepEqual(loaded, testSession);
+  assert.equal(loaded?.token, testSession.token);
+  assert.equal(loaded?.user.email, testSession.user.email);
+  assert.equal(loaded?.user.fullName, testSession.user.fullName);
+  assert.equal(loaded?.user.isGuest, false);
 
   ClientAuthManager.saveCurrentSession(null);
   assert.equal(ClientAuthManager.getCurrentSession(), null);

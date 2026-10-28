@@ -53,7 +53,7 @@ async function safeStorageSet(key: string, value: string): Promise<void> {
   }
 }
 
-function getDefaultBackendUrl(): string {
+export function getDefaultBackendUrl(): string {
   if (typeof process !== "undefined" && process?.env?.EXPO_PUBLIC_BACKEND_URL) {
     return process.env.EXPO_PUBLIC_BACKEND_URL;
   }

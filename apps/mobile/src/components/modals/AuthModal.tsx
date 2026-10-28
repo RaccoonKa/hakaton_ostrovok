@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -14,13 +14,15 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme, getTheme } from "../../theme";
 import { Icon } from "../common/Icon";
-import { ClientAuthManager, AuthSession } from "@corvax/shared";
+import { ClientAuthManager, AuthSession, AuthRateLimitError } from "@corvax/shared";
+import { getDefaultBackendUrl } from "../../hooks/useMobileAgent";
 
 export interface MobileAuthModalProps {
   visible: boolean;
   onClose: () => void;
   onAuthSuccess: (session: AuthSession) => void;
   isDark?: boolean;
+  baseUrl?: string;
 }
 
 export const AuthModal: React.FC<MobileAuthModalProps> = ({
@@ -28,6 +30,7 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
   onClose,
   onAuthSuccess,
   isDark = false,
+  baseUrl,
 }) => {
   const insets = useSafeAreaInsets();
   const currentTheme = getTheme(isDark);
@@ -41,20 +44,35 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   const handleSubmit = async () => {
+    if (cooldown > 0) return;
     setError(null);
     setIsLoading(true);
+
+    const effectiveBaseUrl = baseUrl || getDefaultBackendUrl();
 
     try {
       if (tab === "login") {
         if (!email.trim() || !password.trim()) {
           throw new Error("Заполните email и пароль");
         }
-        const session = await ClientAuthManager.login({
-          email: email.trim(),
-          password,
-        });
+        const session = await ClientAuthManager.login(
+          {
+            email: email.trim(),
+            password,
+          },
+          effectiveBaseUrl
+        );
         onAuthSuccess(session);
         onClose();
       } else {
@@ -67,12 +85,15 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
         if (password.length < 6) {
           throw new Error("Пароль должен быть от 6 символов");
         }
-        const session = await ClientAuthManager.register({
-          fullName: fullName.trim(),
-          email: email.trim(),
-          password,
-          phone: phone.trim() || undefined,
-        });
+        const session = await ClientAuthManager.register(
+          {
+            fullName: fullName.trim(),
+            email: email.trim(),
+            password,
+            phone: phone.trim() || undefined,
+          },
+          effectiveBaseUrl
+        );
         onAuthSuccess(session);
         onClose();
       }
@@ -81,7 +102,10 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
       setFullName("");
       setPhone("");
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof AuthRateLimitError || (err as any)?.status === 429) {
+        setCooldown(60);
+        setError("Слишком много попыток входа (лимит 5 в минуту). Пожалуйста, подождите 60 секунд.");
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Не удалось выполнить авторизацию");
@@ -99,81 +123,88 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.overlay}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-
+        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
         <View
           style={[
             styles.sheet,
             {
-              backgroundColor: colors.background,
-              paddingBottom: Math.max(insets.bottom, 16),
+              backgroundColor: colors.surface,
+              paddingBottom: Math.max(insets.bottom, 20),
             },
           ]}
         >
-          {/* Header handle */}
-          <View style={styles.handleContainer}>
-            <View style={[styles.handle, { backgroundColor: colors.border }]} />
-          </View>
-
-          {/* Modal Header */}
-          <View
-            style={[
-              styles.header,
-              {
-                backgroundColor: colors.surface,
-                borderBottomColor: colors.borderSubtle,
-              },
-            ]}
-          >
-            <View style={styles.brandBadge}>
-              <View style={styles.logoBox}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerTitleWrap}>
+              <View style={styles.logoBadge}>
                 <Text style={styles.logoText}>О!</Text>
               </View>
-              <Text style={[styles.brandTitle, { color: colors.textPrimary }]}>О!дин запрос</Text>
+              <Text style={[styles.title, { color: colors.textPrimary }]}>
+                {tab === "login" ? "Вход в аккаунт" : "Регистрация"}
+              </Text>
             </View>
             <TouchableOpacity
               onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted }]}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              style={[styles.closeButton, { backgroundColor: colors.surfaceContainer }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Icon name="close" size={20} color={colors.textMuted} />
+              <Icon name="close" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          {/* Tab Bar */}
-          <View style={styles.tabContainer}>
+          {/* Tab Switcher */}
+          <View style={[styles.tabBar, { backgroundColor: colors.surfaceContainer }]}>
             <TouchableOpacity
-              style={[styles.tabButton, tab === "login" && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                tab === "login" && { backgroundColor: colors.surface, elevation: 1 },
+              ]}
               onPress={() => {
                 setTab("login");
                 setError(null);
               }}
             >
-              <Text style={[styles.tabText, tab === "login" && styles.tabTextActive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color: tab === "login" ? theme.colors.primary : colors.textSecondary,
+                    fontWeight: tab === "login" ? "700" : "500",
+                  },
+                ]}
+              >
                 Вход
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.tabButton, tab === "register" && styles.tabButtonActive]}
+              style={[
+                styles.tabButton,
+                tab === "register" && { backgroundColor: colors.surface, elevation: 1 },
+              ]}
               onPress={() => {
                 setTab("register");
                 setError(null);
               }}
             >
-              <Text style={[styles.tabText, tab === "register" && styles.tabTextActive]}>
+              <Text
+                style={[
+                  styles.tabText,
+                  {
+                    color: tab === "register" ? theme.colors.primary : colors.textSecondary,
+                    fontWeight: tab === "register" ? "700" : "500",
+                  },
+                ]}
+              >
                 Регистрация
               </Text>
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollArea} keyboardShouldPersistTaps="handled">
+          {/* Form */}
+          <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
             {error && (
               <View style={styles.errorBox}>
                 <Icon name="alert-circle" size={16} color="#DC2626" />
@@ -181,11 +212,27 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
               </View>
             )}
 
+            {cooldown > 0 && (
+              <View style={styles.cooldownBox}>
+                <Icon name="clock" size={16} color="#D97706" />
+                <Text style={styles.cooldownText}>
+                  Повторная попытка будет доступна через {cooldown} сек.
+                </Text>
+              </View>
+            )}
+
             {tab === "register" && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Имя и фамилия</Text>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>Имя и фамилия</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surfaceContainer,
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   placeholder="Константин Константинопольский"
                   placeholderTextColor={theme.colors.textMuted}
                   value={fullName}
@@ -195,10 +242,17 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
               </View>
             )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Электронная почта</Text>
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.surfaceContainer,
+                    color: colors.textPrimary,
+                    borderColor: colors.border,
+                  },
+                ]}
                 placeholder="traveler@example.com"
                 placeholderTextColor={theme.colors.textMuted}
                 value={email}
@@ -209,10 +263,19 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
             </View>
 
             {tab === "register" && (
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Номер телефона (необязательно)</Text>
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Телефон (необязательно)
+                </Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: colors.surfaceContainer,
+                      color: colors.textPrimary,
+                      borderColor: colors.border,
+                    },
+                  ]}
                   placeholder="+7 (999) 000-00-00"
                   placeholderTextColor={theme.colors.textMuted}
                   value={phone}
@@ -222,10 +285,17 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
               </View>
             )}
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Пароль</Text>
+            <View style={styles.field}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Пароль</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.surfaceContainer,
+                    color: colors.textPrimary,
+                    borderColor: colors.border,
+                  },
+                ]}
                 placeholder={tab === "register" ? "Минимум 6 символов" : "••••••••"}
                 placeholderTextColor={theme.colors.textMuted}
                 value={password}
@@ -235,21 +305,28 @@ export const AuthModal: React.FC<MobileAuthModalProps> = ({
             </View>
 
             <TouchableOpacity
-              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                (isLoading || cooldown > 0) && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
-              disabled={isLoading}
+              disabled={isLoading || cooldown > 0}
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Text style={styles.submitButtonText}>
-                  {tab === "login" ? "Войти в аккаунт" : "Зарегистрироваться"}
+                  {cooldown > 0
+                    ? `Подождите ${cooldown} сек.`
+                    : tab === "login"
+                    ? "Войти в аккаунт"
+                    : "Зарегистрироваться"}
                 </Text>
               )}
             </TouchableOpacity>
 
             <Text style={styles.footerNote}>
-              Авторизация позволяет сохранять ваши маршруты, синхронизировать историю и бронировать туры без повторного ввода данных.
+              Все текущие диалоги и найденные туры автоматически сохранятся в вашем профиле после авторизации.
             </Text>
           </ScrollView>
         </View>
@@ -268,21 +345,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sheet: {
-    backgroundColor: theme.colors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    maxHeight: "88%",
-  },
-  handleContainer: {
-    alignItems: "center",
-    paddingVertical: 10,
-  },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: theme.colors.border,
-    borderRadius: 2,
+    paddingTop: 16,
+    maxHeight: "85%",
   },
   header: {
     flexDirection: "row",
@@ -290,12 +357,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 16,
   },
-  brandBadge: {
+  headerTitleWrap: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  logoBox: {
+  logoBadge: {
     width: 28,
     height: 28,
     borderRadius: 8,
@@ -308,22 +375,19 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 13,
   },
-  brandTitle: {
-    fontSize: 16,
+  title: {
+    fontSize: 18,
     fontWeight: "700",
-    color: theme.colors.textPrimary,
   },
-  closeBtn: {
+  closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
-  tabContainer: {
+  tabBar: {
     flexDirection: "row",
-    backgroundColor: theme.colors.surfaceContainerLow,
     borderRadius: 12,
     padding: 3,
     marginBottom: 16,
@@ -332,59 +396,58 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     alignItems: "center",
-    borderRadius: 9,
-  },
-  tabButtonActive: {
-    backgroundColor: theme.colors.surface,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 2,
+    borderRadius: 10,
   },
   tabText: {
     fontSize: 13,
-    fontWeight: "600",
-    color: theme.colors.textMuted,
   },
-  tabTextActive: {
-    color: theme.colors.primary,
-  },
-  scrollArea: {
+  form: {
     marginBottom: 8,
   },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEE2E2",
-    borderRadius: 10,
-    padding: 10,
     gap: 8,
-    marginBottom: 14,
+    backgroundColor: "#FEE2E2",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
   },
   errorText: {
-    flex: 1,
+    color: "#DC2626",
     fontSize: 12,
-    color: "#B91C1C",
+    fontWeight: "500",
+    flex: 1,
   },
-  inputGroup: {
-    marginBottom: 14,
+  cooldownBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEF3C7",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
   },
-  inputLabel: {
+  cooldownText: {
+    color: "#D97706",
+    fontSize: 12,
+    fontWeight: "500",
+    flex: 1,
+  },
+  field: {
+    marginBottom: 12,
+  },
+  label: {
     fontSize: 12,
     fontWeight: "600",
-    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceContainerLow,
   },
   submitButton: {
     backgroundColor: theme.colors.primary,
@@ -393,26 +456,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 8,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
+    marginBottom: 12,
   },
   submitButtonDisabled: {
     opacity: 0.6,
   },
   submitButtonText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
   },
   footerNote: {
     fontSize: 11,
     color: theme.colors.textMuted,
     textAlign: "center",
-    marginTop: 14,
-    marginBottom: 10,
     lineHeight: 16,
+    paddingHorizontal: 12,
+    marginBottom: 8,
   },
 });

@@ -17,6 +17,9 @@ import {
   TripOption,
   ClientAuthManager,
   AuthSession,
+  STORAGE_AUTH_TOKEN_KEY,
+  STORAGE_USER_KEY,
+  LEGACY_STORAGE_CURRENT_SESSION_KEY,
 } from "@corvax/shared";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { theme, lightColors, darkColors, getTheme, setAppTheme } from "./src/theme";
@@ -35,6 +38,19 @@ import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 const STORAGE_THEME_KEY = "odin_mobile_theme_v1";
+
+const mobileMemoryCache = new Map<string, string>();
+ClientAuthManager.setStorageAdapter({
+  getItem: (key: string) => mobileMemoryCache.get(key) ?? null,
+  setItem: (key: string, value: string) => {
+    mobileMemoryCache.set(key, value);
+    AsyncStorage.setItem(key, value).catch(() => {});
+  },
+  removeItem: (key: string) => {
+    mobileMemoryCache.delete(key);
+    AsyncStorage.removeItem(key).catch(() => {});
+  },
+});
 
 function getSuggestionIcon(text: string): IconName {
   const lower = text.toLowerCase();
@@ -105,7 +121,10 @@ function MainApp() {
     ClientAuthManager.getCurrentSession()
   );
 
-  const headerAccount = authSession?.user
+
+
+
+  const headerAccount = (authSession?.user && !authSession.user.isGuest)
     ? {
         name: authSession.user.fullName,
         avatarInitials: authSession.user.fullName
@@ -116,12 +135,12 @@ function MainApp() {
               .slice(0, 2)
               .toUpperCase()
           : "ПУ",
-        tier: authSession.user.tier,
+        tier: authSession.user.tier || "Стандарт",
       }
     : undefined;
 
   const handleOpenProfileOrAuth = () => {
-    if (authSession?.user) {
+    if (authSession?.user && !authSession.user.isGuest) {
       setProfileVisible(true);
     } else {
       setAuthModalVisible(true);
@@ -152,6 +171,33 @@ function MainApp() {
     handleBookingConfirmed,
     resetChat,
   } = useMobileAgent();
+
+  // Synchronize mobile storage cache & ensure guest session
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const [tok, uRaw, lRaw] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_AUTH_TOKEN_KEY),
+          AsyncStorage.getItem(STORAGE_USER_KEY),
+          AsyncStorage.getItem(LEGACY_STORAGE_CURRENT_SESSION_KEY),
+        ]);
+        if (tok) mobileMemoryCache.set(STORAGE_AUTH_TOKEN_KEY, tok);
+        if (uRaw) mobileMemoryCache.set(STORAGE_USER_KEY, uRaw);
+        if (lRaw) mobileMemoryCache.set(LEGACY_STORAGE_CURRENT_SESSION_KEY, lRaw);
+
+        await ClientAuthManager.ensureAuthToken(backendUrl);
+        if (isMounted) {
+          setAuthSession(ClientAuthManager.getCurrentSession());
+        }
+      } catch {
+        // fallback
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [backendUrl]);
 
   const handleSendActiveChat = () => {
     if (!inputText.trim() || isThinking || isStreaming) return;
@@ -370,8 +416,8 @@ function MainApp() {
           currentUser={authSession?.user || null}
           onOpenAuth={() => setAuthModalVisible(true)}
           onLogout={() => {
-            ClientAuthManager.logout();
-            setAuthSession(null);
+            ClientAuthManager.logout(backendUrl);
+            setAuthSession(ClientAuthManager.getCurrentSession());
           }}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
@@ -386,6 +432,7 @@ function MainApp() {
             setAuthSession(session);
           }}
           isDark={isDark}
+          baseUrl={backendUrl}
         />
       </KeyboardAvoidingView>
 

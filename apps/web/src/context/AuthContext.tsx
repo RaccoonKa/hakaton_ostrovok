@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { AuthUser, AuthSession, ClientAuthManager, LoginCredentials, RegisterCredentials } from "@corvax/shared";
+import {
+  AuthUser,
+  AuthSession,
+  ClientAuthManager,
+  LoginCredentials,
+  RegisterCredentials,
+} from "@corvax/shared";
 
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
@@ -16,14 +23,27 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<AuthSession | null>(() => ClientAuthManager.getCurrentSession());
+  const [session, setSession] = useState<AuthSession | null>(() =>
+    ClientAuthManager.getCurrentSession()
+  );
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    const current = ClientAuthManager.getCurrentSession();
-    if (current) {
-      setSession(current);
-    }
+    let isMounted = true;
+    ClientAuthManager.ensureAuthToken()
+      .then(() => {
+        if (isMounted) {
+          setSession(ClientAuthManager.getCurrentSession());
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSession(ClientAuthManager.getCurrentSession());
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const openAuthModal = () => setIsAuthModalOpen(true);
@@ -43,15 +63,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     ClientAuthManager.logout();
-    setSession(null);
+    setSession(ClientAuthManager.getCurrentSession());
   };
+
+  const isGuest = Boolean(session?.user?.isGuest ?? true);
+  const isAuthenticated = Boolean(session?.user && !session.user.isGuest);
 
   return (
     <AuthContext.Provider
       value={{
         user: session?.user || null,
         token: session?.token || null,
-        isAuthenticated: Boolean(session?.user),
+        isAuthenticated,
+        isGuest,
         isAuthModalOpen,
         openAuthModal,
         closeAuthModal,

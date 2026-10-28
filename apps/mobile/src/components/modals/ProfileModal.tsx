@@ -50,9 +50,9 @@ export const POPULAR_CURRENCIES = [
 
 export const SERVER_PRESETS = [
   { label: "Туннель", url: "https://strong-colts-own.loca.lt" },
-  { label: "Wi-Fi LAN", url: "http://192.168.1.79:8000" },
-  { label: "Эмулятор", url: "http://10.0.2.2:8000" },
-  { label: "Localhost", url: "http://localhost:8000" },
+  { label: "Wi-Fi LAN", url: "http://192.168.1.79:8080" },
+  { label: "Эмулятор", url: "http://10.0.2.2:8080" },
+  { label: "Localhost", url: "http://localhost:8080" },
 ];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -320,7 +320,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   style={[styles.fieldInput, styles.serverInput]}
                   value={serverUrl}
                   onChangeText={setServerUrl}
-                  placeholder="http://192.168.1.79:8000"
+                  placeholder="http://192.168.1.79:8080"
                   autoCapitalize="none"
                   autoCorrect={false}
                   placeholderTextColor={theme.colors.textMuted}

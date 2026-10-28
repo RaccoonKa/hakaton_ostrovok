@@ -1,9 +1,23 @@
-import React, { useState } from "react";
-import { X, Mail, Lock, User, Phone, LogIn, UserPlus, Eye, EyeOff, AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  LogIn,
+  UserPlus,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Clock,
+  Sparkles,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { AuthRateLimitError } from "@corvax/shared";
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, closeAuthModal, login, register } = useAuth();
+  const { isAuthModalOpen, closeAuthModal, login, register, isGuest } = useAuth();
   const [tab, setTab] = useState<"login" | "register">("login");
 
   // Form states
@@ -13,14 +27,25 @@ export const AuthModal: React.FC = () => {
   const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Status states
+  // Status & Rate Limit states
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => (prev > 1 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
 
   if (!isAuthModalOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldown > 0) return;
+
     setError(null);
     setLoading(true);
 
@@ -53,7 +78,10 @@ export const AuthModal: React.FC = () => {
       setName("");
       setPhone("");
     } catch (err: unknown) {
-      if (err instanceof Error) {
+      if (err instanceof AuthRateLimitError || (err as any)?.status === 429) {
+        setCooldown(60);
+        setError("Превышен лимит попыток входа (максимум 5 в минуту). Пожалуйста, подождите 60 секунд.");
+      } else if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Произошла непредвиденная ошибка");
@@ -100,6 +128,13 @@ export const AuthModal: React.FC = () => {
               ? "Войдите для доступа к сохранённым маршрутам и бронированиям"
               : "Создайте аккаунт для персонализированных рекомендаций и скидок"}
           </p>
+
+          {isGuest && (
+            <div className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/15 border border-white/20 text-[11px] text-white/95">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span>Текущие диалоги и туры автоматически сохранятся в вашем профиле</span>
+            </div>
+          )}
         </div>
 
         {/* Tab switchers */}
@@ -142,6 +177,13 @@ export const AuthModal: React.FC = () => {
             <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {cooldown > 0 && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
+              <Clock className="w-4 h-4 shrink-0 animate-pulse" />
+              <span>Повторная попытка будет доступна через {cooldown} сек.</span>
             </div>
           )}
 
@@ -226,11 +268,13 @@ export const AuthModal: React.FC = () => {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-2.5 px-4 mt-2 rounded-xl bg-gradient-to-r from-[#581c87] to-[#7e22ce] hover:from-[#4a1674] hover:to-[#6b21a8] text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            disabled={loading || cooldown > 0}
+            className="w-full py-2.5 px-4 mt-2 rounded-xl bg-gradient-to-r from-[#581c87] to-[#7e22ce] hover:from-[#4a1674] hover:to-[#6b21a8] text-white text-xs sm:text-sm font-bold shadow-md shadow-purple-900/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : cooldown > 0 ? (
+              <span>Подождите {cooldown} сек...</span>
             ) : tab === "login" ? (
               <>
                 <LogIn className="w-4 h-4" />
