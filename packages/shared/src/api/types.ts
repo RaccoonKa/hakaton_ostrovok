@@ -1,4 +1,4 @@
-import { ChatMessage, ServiceMetadata, TripOption } from "../domain/types";
+import { ChatMessage, TripOption } from "../domain/types";
 
 export enum AgUiEventType {
   RUN_START = "RUN_START",
@@ -52,6 +52,7 @@ export interface ClientCallbacks {
   onToken?: (token: string) => void;
   onMessage?: (message: ChatMessage) => void;
   onTripOptions?: (options: TripOption[]) => void;
+  onSuggestions?: (suggestions: string[]) => void;
   onError?: (error: Error | string) => void;
   onComplete?: () => void;
 }

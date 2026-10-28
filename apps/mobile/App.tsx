@@ -1,358 +1,531 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
-  Text,
   View,
-  TextInput,
-  TouchableOpacity,
+  Text,
   ScrollView,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
+  useColorScheme,
+  Appearance,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
-  formatPrice,
-  formatDateRange,
-  MOCK_TRIP_OPTIONS,
+  SHARED_SUGGESTIONS,
   TripOption,
+  ClientAuthManager,
+  AuthSession,
 } from "@corvax/shared";
-import { theme } from "./src/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { theme, lightColors, darkColors, getTheme, setAppTheme } from "./src/theme";
+import { Icon, IconName } from "./src/components/common/Icon";
+import { Header } from "./src/components/common/Header";
+import { ChatMessageItem } from "./src/components/chat/ChatMessageItem";
+import { ChatInputBar } from "./src/components/chat/ChatInputBar";
+import { ThinkingBubble } from "./src/components/chat/ThinkingBubble";
+import { TripCardMobile } from "./src/components/cards/TripCardMobile";
+import { TripDossierView } from "./src/components/cards/TripDossierView";
+import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
+import { SidebarDrawer } from "./src/components/drawer/SidebarDrawer";
+import { ProfileModal } from "./src/components/modals/ProfileModal";
+import { AuthModal } from "./src/components/modals/AuthModal";
+import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
+import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
-export default function App() {
-  const [messages, setMessages] = useState<Array<{ id: string; role: "user" | "assistant"; text: string }>>([
-    {
-      id: "1",
-      role: "assistant",
-      text: "Привет! Я AI-ассистент «О!дин запрос». Расскажите, куда и как вы хотите поехать — я подберу готовый маршрут с отелями и билетами.",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [tripOptions, setTripOptions] = useState<TripOption[]>([]);
-  const [selectedOption, setSelectedOption] = useState<TripOption | null>(null);
+const STORAGE_THEME_KEY = "odin_mobile_theme_v1";
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    const userText = input.trim();
-    setInput("");
+function getSuggestionIcon(text: string): IconName {
+  const lower = text.toLowerCase();
+  if (lower.includes("море") || lower.includes("пляж") || lower.includes("июле")) {
+    return "sun";
+  }
+  if (lower.includes("лыжи") || lower.includes("сочи") || lower.includes("январе")) {
+    return "mountain";
+  }
+  if (lower.includes("стамбул") || lower.includes("отель") || lower.includes("тур")) {
+    return "building";
+  }
+  return "sparkles";
+}
 
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), role: "user", text: userText },
-      {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        text: "По вашему запросу я подобрал отличные варианты. Обратите внимание: цены и доступность являются демонстрационными.",
-      },
-    ]);
+function MainApp() {
+  const [inputText, setInputText] = useState("");
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [authModalVisible, setAuthModalVisible] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);
 
-    setTripOptions(MOCK_TRIP_OPTIONS);
+  // System OS color scheme auto-detection
+  const systemColorScheme = useColorScheme();
+  const [manualTheme, setManualTheme] = useState<"light" | "dark" | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_THEME_KEY);
+        if (saved === "light" || saved === "dark") {
+          setManualTheme(saved);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
+  // Listen to system Appearance changes
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      if (!manualTheme) {
+        setAppTheme(colorScheme === "dark");
+      }
+    });
+    return () => subscription.remove();
+  }, [manualTheme]);
+
+  // Effective theme: manual override takes precedence, otherwise automatically follow system OS
+  const isDark = manualTheme !== null ? manualTheme === "dark" : systemColorScheme === "dark";
+
+  useEffect(() => {
+    setAppTheme(isDark);
+  }, [isDark]);
+
+  const toggleTheme = () => {
+    const nextTheme: "light" | "dark" = isDark ? "light" : "dark";
+    setManualTheme(nextTheme);
+    setAppTheme(nextTheme === "dark");
+    AsyncStorage.setItem(STORAGE_THEME_KEY, nextTheme).catch(() => {});
   };
 
+  const currentTheme = getTheme(isDark);
+  const colors = currentTheme.colors;
+
+  const [authSession, setAuthSession] = useState<AuthSession | null>(() =>
+    ClientAuthManager.getCurrentSession()
+  );
+
+  const headerAccount = authSession?.user
+    ? {
+        name: authSession.user.fullName,
+        avatarInitials: authSession.user.fullName
+          ? authSession.user.fullName
+              .split(" ")
+              .map((w) => w[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+          : "ПУ",
+        tier: authSession.user.tier,
+      }
+    : undefined;
+
+  const handleOpenProfileOrAuth = () => {
+    if (authSession?.user) {
+      setProfileVisible(true);
+    } else {
+      setAuthModalVisible(true);
+    }
+  };
+
+  const scrollViewRef = useRef<any>(null);
+
+  const {
+    messages,
+    tripOptions,
+    selectedOption,
+    isThinking,
+    thinkingText,
+    isStreaming,
+    checkoutVisible,
+    checkoutOption,
+    backendUrl,
+    setBackendUrl,
+    sendMessage,
+    selectOption,
+    selectSession,
+    deleteSession,
+    savedSessions,
+    activeSessionId,
+    openCheckout,
+    closeCheckout,
+    handleBookingConfirmed,
+    resetChat,
+  } = useMobileAgent();
+
+  const handleSendActiveChat = () => {
+    if (!inputText.trim() || isThinking || isStreaming) return;
+    const text = inputText;
+    setInputText("");
+    sendMessage(text);
+  };
+
+  const handleSelectChip = (chipText: string) => {
+    if (isThinking || isStreaming) return;
+    sendMessage(chipText);
+  };
+
+  const handleSelectOption = (opt: TripOption | null) => {
+    selectOption(opt);
+  };
+
+  const handleApplyFilters = (filterPrompt: string) => {
+    if (messages.length === 0) {
+      setInputText((prev) =>
+        prev.trim() ? `${prev.trim()} (${filterPrompt})` : filterPrompt
+      );
+    } else {
+      sendMessage(filterPrompt);
+    }
+  };
+
+  // Scroll to bottom when new messages arrive, thinking toggles, or options update (when in chat feed mode)
+  useEffect(() => {
+    if (selectedOption) return;
+    const timer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [messages, isThinking, tripOptions, selectedOption]);
+
+  const isInitialState = messages.length === 0;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.rootContainer, { backgroundColor: colors.background }]}>
+      <StatusBar style="light" />
+
+      {/* Top Header matching Web Stitch Purple #581C87 */}
+      <Header
+        title="О!дин запрос"
+        subtitle="Ассистент путешествий"
+        onMenuPress={() => setHistoryVisible(true)}
+        onNewChatPress={resetChat}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+      />
+
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerTitleRow}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoText}>О!</Text>
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>О!дин запрос</Text>
-              <Text style={styles.headerSubtitle}>AI Travel Planner • Mobile</Text>
-            </View>
-          </View>
-          <View style={styles.demoPill}>
-            <Text style={styles.demoPillText}>Демо-режим</Text>
-          </View>
-        </View>
-
-        {/* Messages Feed */}
-        <ScrollView style={styles.feed} contentContainerStyle={styles.feedContent}>
-          {messages.map((m) => (
-            <View
-              key={m.id}
-              style={[
-                styles.messageBubble,
-                m.role === "user" ? styles.userBubble : styles.assistantBubble,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  m.role === "user" ? styles.userText : styles.assistantText,
-                ]}
-              >
-                {m.text}
+        {/* Messages and Content Feed */}
+        <ScrollView
+          ref={scrollViewRef}
+          style={[styles.feed, { backgroundColor: colors.background }]}
+          contentContainerStyle={[
+            styles.feedContent,
+            isInitialState ? styles.feedContentInitial : { paddingBottom: 40 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() => {
+            if (!isInitialState) {
+              scrollViewRef.current?.scrollToEnd({ animated: true });
+            }
+          }}
+        >
+          {/* Screen 1: Welcome matching Web ChatView Hero with raised cards */}
+          {isInitialState ? (
+            <View style={styles.welcomeHero}>
+              <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>
+                Куда хотите поехать?
               </Text>
-            </View>
-          ))}
+              <Text style={[styles.heroDescription, { color: colors.textSecondary }]}>
+                Опишите поездку своими словами: даты, бюджет, пожелания к пляжу
+                или компании. ИИ подберёт честные варианты и соберёт готовый маршрут.
+              </Text>
 
-          {/* Render Trip Options if available */}
-          {tripOptions.length > 0 && (
-            <View style={styles.cardsSection}>
-              <Text style={styles.cardsTitle}>Рекомендованные варианты поездки</Text>
-              {tripOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.id}
-                  style={[
-                    styles.card,
-                    selectedOption?.id === opt.id && styles.selectedCard,
-                  ]}
-                  onPress={() => setSelectedOption(opt)}
-                >
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardDestination}>{opt.destination}</Text>
-                    <Text style={styles.cardPrice}>
-                      {formatPrice(opt.total_price, opt.currency)}
-                    </Text>
-                  </View>
-                  <Text style={styles.cardTitle}>{opt.title}</Text>
-                  {opt.hotels?.[0] && (
-                    <Text style={styles.cardHotel}>
-                      🏨 {opt.hotels[0].hotel} ({formatDateRange(opt.hotels[0].check_in, opt.hotels[0].check_out)})
-                    </Text>
-                  )}
-                  {opt.flights?.[0] && (
-                    <Text style={styles.cardFlight}>
-                      ✈️ {opt.flights[0].origin} → {opt.flights[0].destination}
-                    </Text>
-                  )}
-                  <View style={styles.cardFooter}>
-                    <Text style={styles.demoWarning}>[Демонстрационные данные]</Text>
-                    <Text style={styles.selectAction}>
-                      {selectedOption?.id === opt.id ? "✓ Выбрано" : "Выбрать →"}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {/* Starter Scenarios Cards raised up, filling screen space beautifully */}
+              <View style={styles.starterCardsContainer}>
+                {SHARED_SUGGESTIONS.slice(0, 4).map((suggestionText) => {
+                  const iconName = getSuggestionIcon(suggestionText);
+                  return (
+                    <TouchableOpacity
+                      key={suggestionText}
+                      style={[
+                        styles.starterCard,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: colors.border,
+                        },
+                      ]}
+                      onPress={() => handleSelectChip(suggestionText)}
+                      activeOpacity={0.75}
+                    >
+                      <View
+                        style={[
+                          styles.starterCardIconBox,
+                          {
+                            backgroundColor: isDark
+                              ? colors.surfaceContainer
+                              : colors.canvasMuted,
+                          },
+                        ]}
+                      >
+                        <Icon name={iconName} size={16} color={colors.primary} />
+                      </View>
+                      <Text
+                        style={[
+                          styles.starterCardText,
+                          { color: colors.textPrimary },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {suggestionText}
+                      </Text>
+                      <Icon
+                        name="arrow-up-right"
+                        size={15}
+                        color={colors.textMuted}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ) : (
+            /* Screen 2, 3, 4: Active Chat & Recommendations Flow */
+            <View style={styles.activeChatWrapper}>
+              {/* Message Turns */}
+              <View style={styles.messagesList}>
+                {messages.map((m) => (
+                  <ChatMessageItem
+                    key={m.id}
+                    message={m}
+                    selectedOption={selectedOption}
+                    selectedOptionId={selectedOption?.id}
+                    onSelectOption={handleSelectOption}
+                    onBookDemo={openCheckout}
+                    onSelectChip={handleSelectChip}
+                    isDark={isDark}
+                  />
+                ))}
+
+                {isThinking && (
+                  <ThinkingBubble
+                    isThinking={true}
+                    statusText={thinkingText}
+                    isDark={isDark}
+                  />
+                )}
+              </View>
+
+              {/* Fallback Trip Dossier View if an option was loaded but not tied to a specific turn */}
+              {selectedOption &&
+                !messages.some((m) =>
+                  (m.trip_options || m.tripOptions)?.some(
+                    (o) =>
+                      o.id === selectedOption.id ||
+                      o.title === selectedOption.title
+                  )
+                ) && (
+                  <TripDossierView
+                    option={selectedOption}
+                    onBackToList={() => handleSelectOption(null)}
+                    onBookTour={openCheckout}
+                    isDark={isDark}
+                  />
+                )}
             </View>
           )}
         </ScrollView>
 
-        {/* Input Bar */}
-        <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Куда и когда вы хотите поехать?..."
-            placeholderTextColor={theme.colors.textMuted}
+        {/* Docked Bottom Chat Bar */}
+        <View
+          style={[
+            styles.dockedBottomContainer,
+            {
+              backgroundColor: colors.background,
+              borderTopColor: colors.borderSubtle,
+            },
+          ]}
+        >
+          <ChatInputBar
+            value={inputText}
+            onChangeText={setInputText}
+            onSend={handleSendActiveChat}
+            disabled={isThinking || isStreaming}
+            onFilterPress={() => setFiltersVisible(true)}
+            isDark={isDark}
           />
-          <TouchableOpacity
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!input.trim()}
-          >
-            <Text style={styles.sendButtonText}>→</Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Real Production-grade Booking Checkout Modal */}
+        <BookingCheckoutModal
+          visible={checkoutVisible}
+          option={checkoutOption}
+          onClose={closeCheckout}
+          onConfirmSuccess={handleBookingConfirmed}
+          initialTraveler={{
+            name: authSession?.user?.fullName || "",
+            phone: authSession?.user?.phone || "",
+            email: authSession?.user?.email || "",
+          }}
+        />
+
+        {/* Traveler Profile & Settings Modal */}
+        <ProfileModal
+          visible={profileVisible}
+          onClose={() => setProfileVisible(false)}
+          currentUser={authSession?.user || null}
+          onOpenAuth={() => setAuthModalVisible(true)}
+          onLogout={() => {
+            ClientAuthManager.logout();
+            setAuthSession(null);
+          }}
+          backendUrl={backendUrl}
+          onUpdateBackendUrl={setBackendUrl}
+          isDark={isDark}
+        />
+
+        {/* Real Authentication Modal (Login & Registration) */}
+        <AuthModal
+          visible={authModalVisible}
+          onClose={() => setAuthModalVisible(false)}
+          onAuthSuccess={(session) => {
+            setAuthSession(session);
+          }}
+          isDark={isDark}
+        />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+
+      {/* Animated Slide-out Sidebar Drawer (in-tree root overlay, 0ms status bar flicker) */}
+      <SidebarDrawer
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        savedSessions={savedSessions}
+        activeSessionId={activeSessionId}
+        onSelectSession={(session) => selectSession(session)}
+        onDeleteSession={(id) => deleteSession(id)}
+        onNewChat={resetChat}
+        activeAccount={headerAccount}
+        onOpenProfileOrAuth={handleOpenProfileOrAuth}
+        isDark={isDark}
+      />
+
+      {/* Travel Search Filters Overlay (1:1 Web Parity, 0ms opening lag) */}
+      <TravelFiltersModal
+        visible={filtersVisible}
+        onClose={() => setFiltersVisible(false)}
+        onApplyFilters={handleApplyFilters}
+        isDark={isDark}
+      />
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  rootContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
   },
   keyboardContainer: {
     flex: 1,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.card,
-  },
-  headerTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-  },
-  logoBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    color: theme.colors.textSecondary,
-  },
-  demoPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: "#FEF3C7",
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  demoPillText: {
-    fontSize: 11,
-    color: "#92400E",
-    fontWeight: "600",
-  },
   feed: {
     flex: 1,
   },
   feedContent: {
     padding: theme.spacing.md,
-    gap: theme.spacing.md,
+    gap: 12,
   },
-  messageBubble: {
-    maxWidth: "85%",
+  feedContentInitial: {
+    paddingBottom: 40,
+  },
+  welcomeHero: {
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  heroTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: theme.colors.textPrimary,
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  heroDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 21,
+    marginTop: 8,
+    maxWidth: 320,
+  },
+  starterCardsContainer: {
+    width: "100%",
+    marginTop: 22,
+    gap: 10,
+  },
+  starterCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    padding: 13,
     borderRadius: theme.borderRadius.lg,
-  },
-  userBubble: {
-    alignSelf: "flex-end",
-    backgroundColor: theme.colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  assistantBubble: {
-    alignSelf: "flex-start",
-    backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderBottomLeftRadius: 4,
+    gap: 12,
+    ...theme.shadows.sm,
   },
-  messageText: {
-    fontSize: 14,
-    lineHeight: 20,
+  starterCardDark: {
+    backgroundColor: darkColors.surface,
+    borderColor: darkColors.border,
   },
-  userText: {
-    color: "#FFFFFF",
-  },
-  assistantText: {
-    color: theme.colors.textPrimary,
-  },
-  cardsSection: {
-    marginTop: theme.spacing.sm,
-    gap: theme.spacing.sm,
-  },
-  cardsTitle: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  card: {
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    gap: 6,
-  },
-  selectedCard: {
-    borderColor: theme.colors.primary,
-    borderWidth: 2,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  cardDestination: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: theme.colors.primary,
-    textTransform: "uppercase",
-  },
-  cardPrice: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.colors.textPrimary,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: theme.colors.textPrimary,
-  },
-  cardHotel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  cardFlight: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
-  cardFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.surfaceMuted,
-  },
-  demoWarning: {
-    fontSize: 10,
-    color: "#B45309",
-    fontWeight: "500",
-  },
-  selectAction: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.primary,
-  },
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.card,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-    gap: theme.spacing.sm,
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    backgroundColor: theme.colors.surfaceMuted,
+  starterCardIconBox: {
+    width: 36,
+    height: 36,
     borderRadius: theme.borderRadius.md,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: theme.borderRadius.md,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceContainer,
     alignItems: "center",
     justifyContent: "center",
   },
-  sendButtonDisabled: {
-    opacity: 0.4,
+  starterCardIconBoxDark: {
+    backgroundColor: darkColors.surfaceContainer,
   },
-  sendButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
+  starterCardText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+    flex: 1,
+    lineHeight: 18,
+  },
+  textPrimaryDark: {
+    color: darkColors.textPrimary,
+  },
+  textSecondaryDark: {
+    color: darkColors.textSecondary,
+  },
+  rootContainerDark: {
+    backgroundColor: darkColors.background,
+  },
+  feedDark: {
+    backgroundColor: darkColors.background,
+  },
+  activeChatWrapper: {
+    width: "100%",
+    gap: 12,
+  },
+  messagesList: {
+    gap: 12,
+  },
+  dockedBottomContainer: {
+    backgroundColor: theme.colors.background,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderSubtle,
+  },
+  dockedBottomContainerDark: {
+    backgroundColor: darkColors.background,
+    borderTopColor: darkColors.borderSubtle,
   },
 });

@@ -17,7 +17,15 @@ dist/
 *.tsbuildinfo
 .npm/
 .turbo/
+# Env
+.env
+.env*.local
 .env.local
 .env.*.local
 .venv/
 *.db
+*.db*
+*.sqlite
+*.sqlite*
+data/*.db
+data/*.sqlite

@@ -1,4 +1,5 @@
 import { ChatMessage } from "../domain/types";
+import { normalizeTripOptions } from "../domain/normalize";
 import { ClientCallbacks } from "./types";
 
 /**
@@ -19,6 +20,8 @@ export class FastApiStreamClient {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      "bypass-tunnel-reminder": "true",
+      "Bypass-Tunnel-Reminder": "true",
     };
     if (this.authSecret) {
       headers["Authorization"] = `Bearer ${this.authSecret}`;
@@ -47,12 +50,20 @@ export class FastApiStreamClient {
       stream_tokens: options.streamTokens ?? true,
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 12000);
+
+    const onExternalAbort = () => controller.abort();
+    signal?.addEventListener("abort", onExternalAbort);
+
     try {
       const response = await fetch(url, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify(payload),
-        signal,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -97,7 +108,10 @@ export class FastApiStreamClient {
                     const msg = parsed.content as ChatMessage;
                     callbacks.onMessage?.(msg);
                     if (msg.custom_data?.trip_options) {
-                      callbacks.onTripOptions?.(msg.custom_data.trip_options);
+                      callbacks.onTripOptions?.(normalizeTripOptions(msg.custom_data.trip_options));
+                    }
+                    if (Array.isArray(msg.custom_data?.suggestions) && msg.custom_data.suggestions.length > 0) {
+                      callbacks.onSuggestions?.(msg.custom_data.suggestions);
                     }
                     break;
                   }
@@ -105,7 +119,7 @@ export class FastApiStreamClient {
                     callbacks.onError?.(new Error(parsed.content || "Internal stream error"));
                     break;
                 }
-              } catch (e) {
+              } catch {
                 callbacks.onToken?.(dataStr);
               }
             }
@@ -118,7 +132,10 @@ export class FastApiStreamClient {
       if (signal?.aborted) {
         return;
       }
-      callbacks.onError?.(err instanceof Error ? err : new Error(String(err)));
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+      signal?.removeEventListener("abort", onExternalAbort);
     }
   }
 }

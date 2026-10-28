@@ -17,11 +17,15 @@ logger = logging.getLogger(__name__)
 TZ_MSK = timezone(timedelta(hours=3))
 
 CITY_ALIASES: dict[str, str] = {
+    # Москва (город и синонимы, без смешивания конкретных аэропортов SVO/DME/VKO)
     "moscow": "москва",
     "mow": "москва",
+    "мск": "москва",
+    # Сочи
     "sochi": "сочи",
     "адлер": "сочи",
     "adler": "сочи",
+    # Санкт-Петербург
     "saint petersburg": "санкт-петербург",
     "st. petersburg": "санкт-петербург",
     "st petersburg": "санкт-петербург",
@@ -29,10 +33,32 @@ CITY_ALIASES: dict[str, str] = {
     "спб": "санкт-петербург",
     "питер": "санкт-петербург",
     "петербург": "санкт-петербург",
+    "пулково": "санкт-петербург",
+    "pulkovo": "санкт-петербург",
+    # Калининград
     "kaliningrad": "калининград",
     "кёнигсберг": "калининград",
     "кенигсберг": "калининград",
     "храброво": "калининград",
+    "khrabrovo": "калининград",
+    # Екатеринбург
+    "екатеринбург": "екатеринбург",
+    "екб": "екатеринбург",
+    "ekaterinburg": "екатеринбург",
+    "yekaterinburg": "екатеринбург",
+    "кольцово": "екатеринбург",
+    "koltsovo": "екатеринбург",
+    # Казань
+    "казань": "казань",
+    "kazan": "казань",
+    # Новосибирск
+    "новосибирск": "новосибирск",
+    "новосиб": "новосибирск",
+    "novosibirsk": "новосибирск",
+    "толмачево": "новосибирск",
+    "толмачёво": "новосибирск",
+    "tolmachevo": "новосибирск",
+    # Международные
     "istanbul": "стамбул",
     "antalya": "анталья",
 }
@@ -166,6 +192,8 @@ def _build_flight_leg(
         )
         duration = arr_dt - dep_dt
 
+    layover = _parse_iso_duration(f.get("layover_duration"))
+
     return Flight(
         origin=f["origin"],
         destination=f["destination"],
@@ -180,7 +208,105 @@ def _build_flight_leg(
         currency=Currency(f["currency"]) if f.get("currency") else Currency.RUB,
         refundable=f.get("refundable"),
         changeable=f.get("changeable"),
+        transit_point=f.get("transit_point"),
+        layover_duration=layover,
     )
+
+
+def _synthesize_transit_connections(
+    origin: str,
+    destination: str,
+    dep_date: date,
+    travelers: int,
+    max_price: float | None,
+    hubs: list[str] | None = None,
+) -> list[Flight]:
+    """
+    Синтезирует 2-плечевые транзитные маршруты (Origin -> Hub -> Destination)
+    через московские и петербургские авиахабы.
+    """
+    if hubs is None:
+        hubs = ["Москва", "Санкт-Петербург"]
+
+    synthesized: list[Flight] = []
+    seen_combos: set[tuple[str, str]] = set()
+
+    for hub in hubs:
+        if _match_point(origin, hub, hub, "") or _match_point(destination, hub, hub, ""):
+            continue
+
+        raw_leg1 = _load_raw_flights(origin, hub)
+        raw_leg2 = _load_raw_flights(hub, destination)
+
+        leg1_candidates = [
+            f for f in raw_leg1
+            if int(f.get("stops", 0)) == 0 and _match_route(f, origin, hub)
+        ]
+        leg2_candidates = [
+            f for f in raw_leg2
+            if int(f.get("stops", 0)) == 0 and _match_route(f, hub, destination)
+        ]
+
+        for f1 in leg1_candidates:
+            f1_obj = _build_flight_leg(f1, dep_date, 1, None)
+            if f1_obj is None:
+                continue
+
+            for f2 in leg2_candidates:
+                f2_dep_date = f1_obj.arrival_at.date()
+                f2_obj = _build_flight_leg(f2, f2_dep_date, 1, None)
+                if f2_obj is None:
+                    continue
+
+                if f2_obj.departure_at < f1_obj.arrival_at:
+                    f2_obj = _build_flight_leg(f2, f2_dep_date + timedelta(days=1), 1, None)
+                    if f2_obj is None:
+                        continue
+
+                layover = f2_obj.departure_at - f1_obj.arrival_at
+                f1_dest_code = str(f1.get("destination_code", ""))
+                f2_orig_code = str(f2.get("origin_code", ""))
+
+                same_airport = (f1_dest_code == f2_orig_code) and bool(f1_dest_code)
+                min_layover = timedelta(minutes=50) if same_airport else timedelta(hours=3, minutes=30)
+                max_layover = timedelta(hours=8)
+
+                if min_layover <= layover <= max_layover:
+                    combo_key = (str(f1.get("flight_number")), str(f2.get("flight_number")))
+                    if combo_key in seen_combos:
+                        continue
+                    seen_combos.add(combo_key)
+
+                    total_price_pp = float(f1.get("price", 0.0)) + float(f2.get("price", 0.0))
+                    total_price = round(total_price_pp * travelers, 2)
+                    if max_price is not None and total_price > max_price:
+                        continue
+
+                    carrier1 = f1.get("carrier")
+                    carrier2 = f2.get("carrier")
+                    carrier = carrier1 if carrier1 == carrier2 else f"{carrier1} / {carrier2}"
+                    transit_pt = f"{hub} ({f1_dest_code})" if f1_dest_code else hub
+
+                    composite_flight = Flight(
+                        origin=f1["origin"],
+                        destination=f2["destination"],
+                        departure_at=f1_obj.departure_at,
+                        arrival_at=f2_obj.arrival_at,
+                        duration=f2_obj.arrival_at - f1_obj.departure_at,
+                        carrier=carrier,
+                        flight_number=f"{f1['flight_number']} / {f2['flight_number']}",
+                        stops=1,
+                        baggage=f1.get("baggage"),
+                        price=total_price,
+                        currency=Currency.RUB,
+                        refundable=bool(f1.get("refundable")) and bool(f2.get("refundable")),
+                        changeable=bool(f1.get("changeable")) and bool(f2.get("changeable")),
+                        transit_point=transit_pt,
+                        layover_duration=layover,
+                    )
+                    synthesized.append(composite_flight)
+
+    return synthesized
 
 
 def search_flights(
@@ -190,6 +316,7 @@ def search_flights(
     return_date: date | str | None = None,
     travelers: int = 1,
     max_price: float | None = None,
+    max_stops: int | None = None,
 ) -> list[Flight]:
     """
     Поиск авиабилетов по маршруту, дате отправления и возврата с расчётом цены.
@@ -207,14 +334,41 @@ def search_flights(
             if flight_obj is not None:
                 result.append(flight_obj)
 
+    # 1.1. Синтез пересадок через хабы если рейсов меньше 3
+    if (max_stops is None or max_stops >= 1) and len(result) < 3:
+        synthesized_out = _synthesize_transit_connections(
+            origin, destination, dep_date, travelers, max_price
+        )
+        existing_numbers = {f.flight_number for f in result}
+        for s_f in synthesized_out:
+            if s_f.flight_number not in existing_numbers:
+                result.append(s_f)
+                existing_numbers.add(s_f.flight_number)
+
     # 2. Поиск обратного направления (return leg) если запрошен return_date
     if return_date is not None:
         ret_date = _parse_date(return_date)
         ret_raw_flights = _load_raw_flights(destination, origin)
+        ret_result: list[Flight] = []
         for f in ret_raw_flights:
             if _match_route(f, destination, origin):
                 ret_flight = _build_flight_leg(f, ret_date, travelers, max_price)
                 if ret_flight is not None:
-                    result.append(ret_flight)
+                    ret_result.append(ret_flight)
+
+        if (max_stops is None or max_stops >= 1) and len(ret_result) < 3:
+            synthesized_ret = _synthesize_transit_connections(
+                destination, origin, ret_date, travelers, max_price
+            )
+            existing_numbers = {f.flight_number for f in ret_result}
+            for s_f in synthesized_ret:
+                if s_f.flight_number not in existing_numbers:
+                    ret_result.append(s_f)
+                    existing_numbers.add(s_f.flight_number)
+
+        result.extend(ret_result)
+
+    if max_stops is not None:
+        result = [f for f in result if f.stops <= max_stops]
 
     return result

@@ -35,7 +35,10 @@
       "branded",
       "comfortable_rail"
     ],
-    "notes": "Фирменный двухэтажный поезд до Адлера/Сочи. В пути 23ч 40мин."
+    "notes": "Фирменный двухэтажный поезд до Адлера/Сочи. В пути 23ч 40мин.",
+    "station_origin_code": "MOW_KAZ",
+    "station_dest_code": "AER_VOKZAL",
+    "stops": 0
   },
   {
     "train_number": "103В",
@@ -73,7 +76,10 @@
       "double_decker",
       "branded"
     ],
-    "notes": "Обратный фирменный поезд из Сочи/Адлера в Москву."
+    "notes": "Обратный фирменный поезд из Сочи/Адлера в Москву.",
+    "station_origin_code": "AER_VOKZAL",
+    "station_dest_code": "MOW_KAZ",
+    "stops": 0
   },
   {
     "train_number": "772А",
@@ -116,7 +122,10 @@
       "sapsan",
       "central_to_central"
     ],
-    "notes": "Скоростной Сапсан из центра Москвы в центр Петербурга ровно за 3ч 50мин."
+    "notes": "Скоростной Сапсан из центра Москвы в центр Петербурга ровно за 3ч 50мин.",
+    "station_origin_code": "MOW_LEN",
+    "station_dest_code": "SPB_MOS",
+    "stops": 0
   },
   {
     "train_number": "771А",
@@ -154,7 +163,10 @@
       "high_speed",
       "sapsan"
     ],
-    "notes": "Обратный дневной Сапсан из Санкт-Петербурга в Москву."
+    "notes": "Обратный дневной Сапсан из Санкт-Петербурга в Москву.",
+    "station_origin_code": "SPB_MOS",
+    "station_dest_code": "MOW_LEN",
+    "stops": 0
   },
   {
     "train_number": "756А",
@@ -192,7 +204,10 @@
       "high_speed",
       "sapsan"
     ],
-    "notes": "Самый ранний скоростной рейс Сапсана."
+    "notes": "Самый ранний скоростной рейс Сапсана.",
+    "station_origin_code": "MOW_LEN",
+    "station_dest_code": "SPB_MOS",
+    "stops": 0
   },
   {
     "train_number": "054Ч",
@@ -230,6 +245,606 @@
       "night",
       "luxury"
     ],
-    "notes": "Легендарный отель на колесах, прибытие прямо к началу рабочего/экскурсионного дня в СПб."
+    "notes": "Легендарный отель на колесах, прибытие прямо к началу рабочего/экскурсионного дня в СПб.",
+    "station_origin_code": "MOW_LEN",
+    "station_dest_code": "SPB_MOS",
+    "stops": 0
+  },
+  {
+    "train_number": "029Ч",
+    "train_name": "Янтарь",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Москва (Белорусский вокзал)",
+    "destination": "Калининград (Южный вокзал)",
+    "origin_city": "Москва",
+    "destination_city": "Калининград",
+    "station_origin_code": "MOW_BEL",
+    "station_dest_code": "KGD_YUZH",
+    "departure_time": "19:53",
+    "arrival_time": "14:38",
+    "day_offset": 1,
+    "duration": "PT19H45M",
+    "duration_minutes": 1185,
+    "price": 4900.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 2800.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 4900.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 14200.0
+      }
+    ],
+    "conditions": "Фирменный скорый поезд 'Янтарь'. ВНИМАНИЕ: Маршрут проходит транзитом через Литву. Для посадки обязателен действующий заграничный паспорт гражданина РФ и оформленный УПД-ЖД (упрощённый транзитный документ). Проезд по внутреннему паспорту РФ невозможен.",
+    "reference_departure": "2026-07-01T19:53:00+03:00",
+    "reference_arrival": "2026-07-02T14:38:00+02:00",
+    "tags": [
+      "branded",
+      "yantar",
+      "visa_required",
+      "international_transit",
+      "validator_trap"
+    ],
+    "notes": "КЕЙС-ЛОВУШКА ДЛЯ ВАЛИДАТОРА: В отличие от авиаперелёта в Калининград, поезд требует загранпаспорта РФ и транзитного документа Литвы (УПД-ЖД). Валидатор обязан подсветить требования к документам."
+  },
+  {
+    "train_number": "030Ч",
+    "train_name": "Янтарь",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Калининград (Южный вокзал)",
+    "destination": "Москва (Белорусский вокзал)",
+    "origin_city": "Калининград",
+    "destination_city": "Москва",
+    "station_origin_code": "KGD_YUZH",
+    "station_dest_code": "MOW_BEL",
+    "departure_time": "15:30",
+    "arrival_time": "09:41",
+    "day_offset": 1,
+    "duration": "PT17H11M",
+    "duration_minutes": 1031,
+    "price": 4900.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 2800.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 4900.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 14200.0
+      }
+    ],
+    "conditions": "Фирменный скорый поезд 'Янтарь'. ВНИМАНИЕ: Маршрут проходит транзитом через Литву. Обязателен загранпаспорт РФ и УПД-ЖД.",
+    "reference_departure": "2026-07-08T15:30:00+02:00",
+    "reference_arrival": "2026-07-09T09:41:00+03:00",
+    "tags": [
+      "branded",
+      "yantar",
+      "visa_required",
+      "international_transit",
+      "return"
+    ],
+    "notes": "Обратный поезд из Калининграда в Москву."
+  },
+  {
+    "train_number": "035А",
+    "train_name": "Северная Пальмира",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Санкт-Петербург (Московский вокзал)",
+    "destination": "Адлер / Сочи (Вокзал Адлер)",
+    "origin_city": "Санкт-Петербург",
+    "destination_city": "Сочи",
+    "station_origin_code": "SPB_MOS",
+    "station_dest_code": "AER_VOKZAL",
+    "departure_time": "20:06",
+    "arrival_time": "10:32",
+    "day_offset": 2,
+    "duration": "PT38H26M",
+    "duration_minutes": 2306,
+    "price": 8200.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 8200.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс двухместный)",
+        "price": 21000.0
+      }
+    ],
+    "conditions": "Фирменный двухэтажный скорый поезд 'Северная Пальмира'. Душ в вагоне, кондиционер, ресторан, Wi-Fi. Рекомендован для туристов с аэрофобией.",
+    "reference_departure": "2026-07-01T20:06:00+03:00",
+    "reference_arrival": "2026-07-03T10:32:00+03:00",
+    "tags": [
+      "double_decker",
+      "branded",
+      "aerophobia_choice",
+      "long_distance"
+    ],
+    "notes": "Классический вариант для путешественников из СПб, избегающих авиаперелетов. Время в пути 38 часов, прибытие через 2 дня (day_offset: 2)."
+  },
+  {
+    "train_number": "036А",
+    "train_name": "Северная Пальмира",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Адлер / Сочи (Вокзал Адлер)",
+    "destination": "Санкт-Петербург (Московский вокзал)",
+    "origin_city": "Сочи",
+    "destination_city": "Санкт-Петербург",
+    "station_origin_code": "AER_VOKZAL",
+    "station_dest_code": "SPB_MOS",
+    "departure_time": "17:52",
+    "arrival_time": "07:43",
+    "day_offset": 2,
+    "duration": "PT37H51M",
+    "duration_minutes": 2271,
+    "price": 8200.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 8200.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 21000.0
+      }
+    ],
+    "conditions": "Фирменный двухэтажный скорый поезд 'Северная Пальмира'. Душ в вагоне, кондиционер, ресторан.",
+    "reference_departure": "2026-07-08T17:52:00+03:00",
+    "reference_arrival": "2026-07-10T07:43:00+03:00",
+    "tags": [
+      "double_decker",
+      "branded",
+      "aerophobia_choice",
+      "long_distance",
+      "return"
+    ],
+    "notes": "Обратный поезд из Сочи/Адлера в Санкт-Петербург (day_offset: 2)."
+  },
+  {
+    "train_number": "001Г",
+    "train_name": "Татарстан Премиум",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Казань (Казань-Пассажирская)",
+    "destination": "Москва (Казанский вокзал)",
+    "origin_city": "Казань",
+    "destination_city": "Москва",
+    "station_origin_code": "KZN_PASS",
+    "station_dest_code": "MOW_KAZ",
+    "departure_time": "21:00",
+    "arrival_time": "07:10",
+    "day_offset": 1,
+    "duration": "PT10H10M",
+    "duration_minutes": 610,
+    "price": 3900.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 3900.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 11500.0
+      }
+    ],
+    "conditions": "Фирменный двухэтажный ночной экспресс. Свежее постельное бельё, дорожный набор, горячий завтрак включён. Прибытие в центр Москвы в 07:10 утра под пересадку.",
+    "reference_departure": "2026-07-01T21:00:00+03:00",
+    "reference_arrival": "2026-07-02T07:10:00+03:00",
+    "tags": [
+      "double_decker",
+      "branded",
+      "overnight",
+      "optimal_schedule"
+    ],
+    "notes": "Идеальный ночной поезд: вечером выезд из Казани, утром прибытие на Казанский вокзал, позволяющее удобно пересесть на рейс или поезд до Сочи/СПб."
+  },
+  {
+    "train_number": "002Г",
+    "train_name": "Татарстан Премиум",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Москва (Казанский вокзал)",
+    "destination": "Казань (Казань-Пассажирская)",
+    "origin_city": "Москва",
+    "destination_city": "Казань",
+    "station_origin_code": "MOW_KAZ",
+    "station_dest_code": "KZN_PASS",
+    "departure_time": "22:08",
+    "arrival_time": "08:00",
+    "day_offset": 1,
+    "duration": "PT9H52M",
+    "duration_minutes": 592,
+    "price": 3900.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "coupe",
+        "name": "Купе (двухэтажный вагон)",
+        "price": 3900.0
+      },
+      {
+        "class_type": "sv",
+        "name": "СВ (Люкс)",
+        "price": 11500.0
+      }
+    ],
+    "conditions": "Фирменный двухэтажный ночной экспресс. Свежее постельное бельё, дорожный набор, завтрак включён.",
+    "reference_departure": "2026-07-08T22:08:00+03:00",
+    "reference_arrival": "2026-07-09T08:00:00+03:00",
+    "tags": [
+      "double_decker",
+      "branded",
+      "overnight",
+      "return"
+    ],
+    "notes": "Обратный ночной экспресс Москва - Казань."
+  },
+  {
+    "train_number": "727М",
+    "train_name": "Ласточка",
+    "carrier": "РЖД",
+    "transport_type": "train",
+    "origin": "Нижний Новгород (Московский вокзал)",
+    "destination": "Москва (Восточный вокзал)",
+    "origin_city": "Нижний Новгород",
+    "destination_city": "Москва",
+    "station_origin_code": "GOJ_MOS",
+    "station_dest_code": "MOW_VOST",
+    "departure_time": "07:15",
+    "arrival_time": "11:00",
+    "day_offset": 0,
+    "duration": "PT3H45M",
+    "duration_minutes": 225,
+    "price": 1850.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "economy",
+        "name": "Эконом (сидячий)",
+        "price": 1850.0
+      },
+      {
+        "class_type": "business",
+        "name": "Бизнес-класс",
+        "price": 3400.0
+      }
+    ],
+    "conditions": "Скоростной электропоезд 'Ласточка'. Удобные кресла, кондиционер, кулер с водой, розетки.",
+    "reference_departure": "2026-07-01T07:15:00+03:00",
+    "reference_arrival": "2026-07-01T11:00:00+03:00",
+    "tags": [
+      "high_speed",
+      "lastochka",
+      "budget",
+      "morning"
+    ],
+    "notes": "Скоростное утреннее сообщение из Нижнего Новгорода в Москву за 3ч 45мин."
+  },
+  {
+    "train_number": "732М",
+    "train_name": "Ласточка",
+    "carrier": "РЖД",
+    "transport_type": "train",
+    "origin": "Москва (Восточный вокзал)",
+    "destination": "Нижний Новгород (Московский вокзал)",
+    "origin_city": "Москва",
+    "destination_city": "Нижний Новгород",
+    "station_origin_code": "MOW_VOST",
+    "station_dest_code": "GOJ_MOS",
+    "departure_time": "16:30",
+    "arrival_time": "20:15",
+    "day_offset": 0,
+    "duration": "PT3H45M",
+    "duration_minutes": 225,
+    "price": 1850.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "economy",
+        "name": "Эконом (сидячий)",
+        "price": 1850.0
+      },
+      {
+        "class_type": "business",
+        "name": "Бизнес-класс",
+        "price": 3400.0
+      }
+    ],
+    "conditions": "Скоростной электропоезд 'Ласточка'. Удобные кресла, кондиционер.",
+    "reference_departure": "2026-07-08T16:30:00+03:00",
+    "reference_arrival": "2026-07-08T20:15:00+03:00",
+    "tags": [
+      "high_speed",
+      "lastochka",
+      "budget",
+      "return"
+    ],
+    "notes": "Дневной скоростной рейс из Москвы в Нижний Новгород."
+  },
+  {
+    "train_number": "055Е",
+    "train_name": "Урал",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Екатеринбург (Екатеринбург-Пассажирский)",
+    "destination": "Москва (Ярославский вокзал)",
+    "origin_city": "Екатеринбург",
+    "destination_city": "Москва",
+    "station_origin_code": "SVX_PASS",
+    "station_dest_code": "MOW_YAR",
+    "departure_time": "09:20",
+    "arrival_time": "10:28",
+    "day_offset": 1,
+    "duration": "PT27H08M",
+    "duration_minutes": 1628,
+    "price": 6700.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3600.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 6700.0
+      }
+    ],
+    "conditions": "Скорый поезд через Урал и Поволжье на Ярославский вокзал. Вагон-ресторан, кондиционер, биотуалеты.",
+    "reference_departure": "2026-07-01T09:20:00+05:00",
+    "reference_arrival": "2026-07-02T10:28:00+03:00",
+    "tags": [
+      "transsib",
+      "long_distance",
+      "coupe"
+    ],
+    "notes": "Поезд из столицы Урала в Москву. В пути 27 часов."
+  },
+  {
+    "train_number": "056Е",
+    "train_name": "Урал",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Москва (Ярославский вокзал)",
+    "destination": "Екатеринбург (Екатеринбург-Пассажирский)",
+    "origin_city": "Москва",
+    "destination_city": "Екатеринбург",
+    "station_origin_code": "MOW_YAR",
+    "station_dest_code": "SVX_PASS",
+    "departure_time": "13:20",
+    "arrival_time": "18:05",
+    "day_offset": 1,
+    "duration": "PT26H45M",
+    "duration_minutes": 1605,
+    "price": 6700.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3600.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 6700.0
+      }
+    ],
+    "conditions": "Скорый поезд из Москвы в Екатеринбург. Вагон-ресторан, кондиционер.",
+    "reference_departure": "2026-07-08T13:20:00+03:00",
+    "reference_arrival": "2026-07-09T18:05:00+05:00",
+    "tags": [
+      "transsib",
+      "long_distance",
+      "return"
+    ],
+    "notes": "Обратный рейс из Москвы на Урал."
+  },
+  {
+    "train_number": "491Э",
+    "train_name": "Казань - Адлер",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Казань (Казань-Пассажирская)",
+    "destination": "Адлер / Сочи (Вокзал Адлер)",
+    "origin_city": "Казань",
+    "destination_city": "Сочи",
+    "station_origin_code": "KZN_PASS",
+    "station_dest_code": "AER_VOKZAL",
+    "departure_time": "11:30",
+    "arrival_time": "07:15",
+    "day_offset": 2,
+    "duration": "PT43H45M",
+    "duration_minutes": 2625,
+    "price": 6400.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3900.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 6400.0
+      }
+    ],
+    "conditions": "Прямой курортный поезд из Поволжья на Черноморское побережье без пересадок.",
+    "reference_departure": "2026-07-01T11:30:00+03:00",
+    "reference_arrival": "2026-07-03T07:15:00+03:00",
+    "tags": [
+      "seasonal",
+      "resort",
+      "direct_rail"
+    ],
+    "notes": "Прямой наземный маршрут Казань - Сочи. В пути 43ч 45м, прибытие через 2 дня (day_offset: 2)."
+  },
+  {
+    "train_number": "492Э",
+    "train_name": "Адлер - Казань",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Адлер / Сочи (Вокзал Адлер)",
+    "destination": "Казань (Казань-Пассажирская)",
+    "origin_city": "Сочи",
+    "destination_city": "Казань",
+    "station_origin_code": "AER_VOKZAL",
+    "station_dest_code": "KZN_PASS",
+    "departure_time": "13:40",
+    "arrival_time": "09:25",
+    "day_offset": 2,
+    "duration": "PT43H45M",
+    "duration_minutes": 2625,
+    "price": 6400.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3900.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 6400.0
+      }
+    ],
+    "conditions": "Прямой курортный поезд с юга в Поволжье.",
+    "reference_departure": "2026-07-08T13:40:00+03:00",
+    "reference_arrival": "2026-07-10T09:25:00+03:00",
+    "tags": [
+      "seasonal",
+      "resort",
+      "direct_rail",
+      "return"
+    ],
+    "notes": "Обратный поезд из Сочи в Казань."
+  },
+  {
+    "train_number": "079Ч",
+    "train_name": "Санкт-Петербург - Калининград",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Санкт-Петербург (Витебский вокзал)",
+    "destination": "Калининград (Южный вокзал)",
+    "origin_city": "Санкт-Петербург",
+    "destination_city": "Калининград",
+    "station_origin_code": "SPB_VIT",
+    "station_dest_code": "KGD_YUZH",
+    "departure_time": "18:23",
+    "arrival_time": "18:48",
+    "day_offset": 1,
+    "duration": "PT25H25M",
+    "duration_minutes": 1525,
+    "price": 5100.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3100.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 5100.0
+      }
+    ],
+    "conditions": "Скорый поезд через Беларусь и Литву. ВНИМАНИЕ: Обязателен загранпаспорт РФ и транзитная виза / УПД-ЖД.",
+    "reference_departure": "2026-07-01T18:23:00+03:00",
+    "reference_arrival": "2026-07-02T18:48:00+02:00",
+    "tags": [
+      "baltic",
+      "visa_required",
+      "international_transit"
+    ],
+    "notes": "Поезд из СПб в Калининград через Литву с обязательным требованием загранпаспорта РФ."
+  },
+  {
+    "train_number": "080Ч",
+    "train_name": "Калининград - Санкт-Петербург",
+    "carrier": "РЖД / ФПК",
+    "transport_type": "train",
+    "origin": "Калининград (Южный вокзал)",
+    "destination": "Санкт-Петербург (Витебский вокзал)",
+    "origin_city": "Калининград",
+    "destination_city": "Санкт-Петербург",
+    "station_origin_code": "KGD_YUZH",
+    "station_dest_code": "SPB_VIT",
+    "departure_time": "09:30",
+    "arrival_time": "11:58",
+    "day_offset": 1,
+    "duration": "PT25H28M",
+    "duration_minutes": 1528,
+    "price": 5100.0,
+    "currency": "RUB",
+    "stops": 0,
+    "available_classes": [
+      {
+        "class_type": "reserved_seat",
+        "name": "Плацкарт",
+        "price": 3100.0
+      },
+      {
+        "class_type": "coupe",
+        "name": "Купе",
+        "price": 5100.0
+      }
+    ],
+    "conditions": "Скорый поезд через Литву и Беларусь. Требуется загранпаспорт РФ и УПД-ЖД.",
+    "reference_departure": "2026-07-08T09:30:00+02:00",
+    "reference_arrival": "2026-07-09T11:58:00+03:00",
+    "tags": [
+      "baltic",
+      "visa_required",
+      "international_transit",
+      "return"
+    ],
+    "notes": "Обратный поезд из Калининграда в Санкт-Петербург."
   }
 ]

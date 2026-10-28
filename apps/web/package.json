@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "check:types": "tsc --noEmit",
-    "lint": "echo Web lint passed"
+    "lint": "oxlint src",
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "@corvax/shared": "workspace:*",

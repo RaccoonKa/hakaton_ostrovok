@@ -153,29 +153,29 @@ def _format_money(amount: float, currency: str | None) -> str:
 
 def format_request_summary(request) -> str:
     """Сформировать аккуратную и читаемую сверку полного запроса."""
-    lines = ["Давайте сверимся перед поиском:\n"]
+    items: list[str] = []
 
     # 1. Маршрут
     origin = _city_name(getattr(request, "origin", None)) or "Москва"
     dest = _city_name(getattr(request, "destination", None))
-    lines.append(f"• **Маршрут:** {origin} → {dest}")
+    items.append(f"- **Маршрут:** {origin} → {dest}")
 
     # 2. Транспорт (если явно указан)
     transport = getattr(request, "preferred_transport", None)
     if transport:
         t_val = getattr(transport, "value", str(transport))
         t_map = {"plane": "самолёт", "train": "поезд", "bus": "автобус", "car": "автомобиль"}
-        lines.append(f"• **Транспорт:** {t_map.get(t_val, t_val)}")
+        items.append(f"- **Транспорт:** {t_map.get(t_val, t_val)}")
 
     # 3. Даты
     exact = list(getattr(request.date_preferences, "exact_dates", None) or [])
     if len(exact) >= 2:
         nights = (exact[1] - exact[0]).days
-        lines.append(f"• **Даты:** {exact[0].strftime('%d.%m.%Y')} – {exact[1].strftime('%d.%m.%Y')} ({nights} ноч.)")
+        items.append(f"- **Даты:** {exact[0].strftime('%d.%m.%Y')} – {exact[1].strftime('%d.%m.%Y')} ({nights} ноч.)")
     elif getattr(request, "duration", None):
         month = getattr(request.date_preferences, "month", None) or []
         month_txt = month[0].value if month else "месяц"
-        lines.append(f"• **Период:** {month_txt}, {request.duration} дн.")
+        items.append(f"- **Период:** {month_txt}, {request.duration} дн.")
 
     # 4. Состав гостей
     adults = getattr(request, "adults", None)
@@ -186,47 +186,54 @@ def format_request_summary(request) -> str:
             parts.append(f"{adults} взр.")
         if children:
             parts.append(f"{children} детей")
-        lines.append(f"• **Гости:** {', '.join(parts)}")
+        items.append(f"- **Гости:** {', '.join(parts)}")
     else:
         travelers = getattr(request, "travelers", 1)
-        lines.append(f"• **Гости:** {travelers} чел.")
+        items.append(f"- **Гости:** {travelers} чел.")
 
     # 5. Бюджет
     mode = getattr(request, "budget_mode", "unknown")
     if mode == "no_limit":
-        lines.append("• **Бюджет:** без ограничений")
+        items.append("- **Бюджет:** без ограничений")
     elif mode == "flexible_scenarios":
-        lines.append("• **Бюджет:** подберём варианты разных ценовых категорий")
+        items.append("- **Бюджет:** подберём варианты разных ценовых категорий")
     elif getattr(request, "budget_range", None):
         lo, hi = request.budget_range
-        lines.append(f"• **Бюджет:** от {_format_money(lo, getattr(request.currency, 'value', None))} до {_format_money(hi, getattr(request.currency, 'value', None))}")
+        items.append(f"- **Бюджет:** от {_format_money(lo, getattr(request.currency, 'value', None))} до {_format_money(hi, getattr(request.currency, 'value', None))}")
     elif getattr(request, "budget", None) is not None:
-        lines.append(f"• **Бюджет:** {_format_money(request.budget, getattr(request.currency, 'value', None))}")
+        items.append(f"- **Бюджет:** {_format_money(request.budget, getattr(request.currency, 'value', None))}")
 
     # 6. Предпочтения
     prefs = [_VIBE_DISPLAY.get(p.name, p.name) for p in getattr(request, "preferences", [])]
     if prefs:
-        lines.append(f"• **Вайб:** {', '.join(prefs)}")
+        items.append(f"- **Вайб:** {', '.join(prefs)}")
 
     # 7. Пожелания и фильтры
     extras = [_CONSTRAINT_DISPLAY.get(c.name, c.name) for c in getattr(request, "constraints", [])]
     extras += [_HOTEL_REQ_DISPLAY.get(r, r) for r in getattr(request, "hotel_requirements", [])]
     if extras:
-        lines.append(f"• **Пожелания:** {', '.join(dict.fromkeys(extras))}")
+        items.append(f"- **Пожелания:** {', '.join(dict.fromkeys(extras))}")
 
-    # 8. Документы для зарубежных направлений (Турция)
+    # 8. Документы для зарубежных поездок и транзитных поездов
     dest_raw = getattr(request, "destination", "") or ""
     dest_obj = ds.get_destination_by_city(dest_raw) if dest_raw else None
     country = dest_obj.country if dest_obj else getattr(request, "destination_country", None)
-    if not country and dest in {"Стамбул", "Анталья"}:
-        country = "Турция"
+    transport_val = getattr(getattr(request, "preferred_transport", None), "value", None)
 
     if country == "Турция" or dest in {"Стамбул", "Анталья", "Istanbul", "Antalya"}:
-        lines.append("• **Документы:** для въезда в Турцию потребуется загранпаспорт РФ (действителен от 120 дней, виза не нужна)")
+        items.append("- **Документы:** для въезда в Турцию потребуется загранпаспорт РФ (действителен от 120 дней, без визы)")
+    elif dest in {"Калининград", "Kaliningrad"}:
+        if transport_val == "train":
+            items.append("- **Документы:** для поезда в Калининград обязателен загранпаспорт РФ и УПД-ЖД (транзит через Литву)")
+        elif transport_val == "plane":
+            items.append("- **Документы:** для авиаперелёта в Калининград достаточно внутреннего паспорта РФ")
 
-    lines.append("\nНачинаем поиск или нужно ещё что-то уточнить?")
-    return "\n".join(lines)
-
+    body = "\n".join(items)
+    return (
+        "**Давайте сверимся перед поиском:**\n\n"
+        f"{body}\n\n"
+        "Начинаем поиск или нужно ещё что-то уточнить?"
+    )
 
 def _filter_questions(
         questions: list[str],

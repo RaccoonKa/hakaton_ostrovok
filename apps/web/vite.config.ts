@@ -13,21 +13,10 @@ export default defineConfig({
   server: {
     port: 8080,
     host: true,
+    allowedHosts: true,
     proxy: {
-      "/agui": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/info": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/stream": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: true,
-      },
-      "/travel": {
-        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8000",
+      "^/(health|agui|info|stream|travel|travel_agent)": {
+        target: process.env.VITE_BACKEND_URL || "http://127.0.0.1:8080",
         changeOrigin: true,
       },
     },

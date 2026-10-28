@@ -59,11 +59,18 @@ for raw in _raw_destinations:
     ))
 
 # --- 2. Точки отправления (Origins) ---
+_ORIGIN_CITIES = {
+    "Москва": "MOW",
+    "Санкт-Петербург": "LED",
+    "Екатеринбург": "SVX",
+    "Казань": "KZN",
+    "Новосибирск": "OVB",
+    "Нижний Новгород": "GOJ",
+}
 ORIGINS: list[Destination] = [
-    d for d in DESTINATIONS if d.city in ["Москва", "Санкт-Петербург"]
+    Destination(city=city, country="Россия", iata=iata, vibes=[], seasons=[], price_level=PriceLevel.MEDIUM)
+    for city, iata in _ORIGIN_CITIES.items()
 ]
-if not ORIGINS: # Фолбек на случай пустого JSON
-    ORIGINS = [Destination(city="Москва", country="Россия", iata="MOW", vibes=[], seasons=[], price_level=PriceLevel.MEDIUM)]
 
 DEFAULT_ORIGIN = "Москва"
 
@@ -78,6 +85,10 @@ CITY_ALIASES: dict[str, list[str]] = {
     "стамбул": ["стамбул", "истанбул"],
     "анталья": ["анталья", "анталия"],
     "москва": ["москва", "мск"],
+    "екатеринбург": ["екатеринбург", "екб", "кольцово"],
+    "казань": ["казань", "казани"],
+    "новосибирск": ["новосибирск", "новосиб", "толмачево", "толмачёво"],
+    "нижний новгород": ["нижний новгород", "нижний", "горький"],
 }
 
 COUNTRY_ALIASES: dict[str, list[str]] = {

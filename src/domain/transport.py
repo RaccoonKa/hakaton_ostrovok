@@ -57,3 +57,18 @@ class Transport(BaseModel):
         description="Условия поездки (тариф, правила, ограничения).",
         default=None,
     )
+    stops: int = Field(
+        description="Количество пересадок (0 — прямой, 1 — с пересадкой).",
+        default=0,
+        examples=[0, 1],
+    )
+    transit_point: str | None = Field(
+        description="Пункт и вокзал пересадки при стыковочном маршруте.",
+        default=None,
+        examples=["Москва (Казанский ➔ Ленинградский вокзал)"],
+    )
+    layover_duration: timedelta | None = Field(
+        description="Длительность пересадки между поездами.",
+        default=None,
+        examples=["PT1H50M"],
+    )

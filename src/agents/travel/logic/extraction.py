@@ -100,7 +100,7 @@ _HOTEL_REQ_TOKENS: dict[str, list[str]] = {
     "center": ["в центре", "центр", "center"],
     "pool": ["бассейн", "pool"],
     "breakfast": ["завтрак", "breakfast", "питание"],
-    "sea_view": ["вид на море", "sea view"],
+    "sea_view": ["вид на море", "sea view", "у моря", "первая линия", "на берегу", "рядом с морем", "возле моря"],
     "spa": ["спа", "spa"],
     "all_inclusive": ["все включено", "всё включено", "all inclusive"],
     "pet_friendly": [
@@ -198,10 +198,19 @@ def _contains(lowered: str, token: str) -> bool:
 
 def _detect_transport(text: str) -> TransportType | None:
     lowered = _normalize(text)
+    # 1. Поезда и аэрофобия
+    train_triggers = [
+        "поезд", "train", "жд", "ж/д", "поедем на поезде", "боюсь летать",
+        "боязнь перелетов", "боязнь перелётов", "аэрофоби", "только не самолет",
+        "без самолетов", "только поездом"
+    ]
+    if any(t in lowered for t in train_triggers):
+        return TransportType.TRAIN
+
+    # 2. Самолёты
     if any(t in lowered for t in ["самолет", "самолёт", "авиа", "plane", "fly", "перелет", "перелёт", "летим", "лечу", "полети"]):
         return TransportType.PLANE
-    if any(t in lowered for t in ["поезд", "train", "жд", "поедем на поезде"]):
-        return TransportType.TRAIN
+
     if any(t in lowered for t in ["автобус", "bus"]):
         return TransportType.BUS
     if any(t in lowered for t in ["машин", "авто", "car"]):
@@ -358,54 +367,67 @@ def _extract_budget(
             currency = cur
             break
 
-    # Если указано "100к" без явной валюты — по умолчанию это рубли
-    if not currency and re.search(r"\d+\s*[кk]\b", lowered):
+    # Ищем "100к" или "80k" строго с границей слова
+    has_k_shortcut = bool(re.search(r"\d+\s*[кk]\b", lowered))
+    if not currency and has_k_shortcut:
         currency = Currency.RUB
 
-    def normalize(num_str: str, full_match: str) -> float:
+    def normalize(num_str: str, match_context: str) -> float:
         value = float(num_str.replace(" ", "").replace(",", "."))
-        # Проверяем наличие маркера тысяч в полном совпадении (например, "100к" или "100 тыс")
-        if any(k in full_match for k in ["тысяч", "тыс", "к", "k"]):
+        # Проверяем маркеры тысяч строго по словам/суффиксам
+        if re.search(r"(?:тысяч|тыс|\d+\s*[кk]\b)", match_context):
             if value < 1000:
                 value *= 1000
         return value
 
+    # Контекст бюджета (буквы "к" и "k" проверяем только рядом с цифрами)
     budget_words = [
         "бюджет", "лимит", "потрат", "потрач",
-        "тысяч", "тыс", "евро", "доллар", "рубл", "€", "$", "₽", "к", "k"
+        "тысяч", "тыс", "евро", "доллар", "рубл", "€", "$", "₽"
     ]
-    has_budget_context = any(k in lowered for k in budget_words)
+    has_budget_context = any(k in lowered for k in budget_words) or has_k_shortcut
+
+    # Единицы измерения, которые гарантируют, что число — НЕ бюджет
+    non_budget_units = r"^\s*(?:звезд|\*|★|чел|гост|взросл|дет|ребен|дн|ден|ноч|сут|лет|год)"
 
     if has_budget_context:
         # Диапазон бюджета: "100 - 150к"
         for rng in re.finditer(
                 r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
-                r"(тысяч|тыс|к\b|k\b|евро|доллар|рубл|€|\$|₽)?",
+                r"(тысяч\w*|тыс\w*|[кk]\b|евро|доллар\w*|рубл\w*|€|\$|₽)?",
                 lowered,
         ):
+            tail = lowered[rng.end():rng.end() + 15]
+            if re.match(non_budget_units, tail):
+                continue
             lo_raw, hi_raw, unit = rng.group(1), rng.group(2), rng.group(3) or ""
             lo = normalize(lo_raw, unit or rng.group(0))
             hi = normalize(hi_raw, unit or rng.group(0))
             if 0 < lo < hi:
                 return None, (lo, hi), currency
 
-    # Одиночная сумма: "100к", "150 тыс", "50 000 руб"
-    money_unit = r"(тысяч|тыс|к\b|k\b|евро|доллар|рубл|€|\$|₽)"
-    single = re.search(rf"(\d[\d\s]*)\s*{money_unit}", lowered)
-    if single:
-        num = normalize(single.group(1), single.group(0))
+    # Одиночная сумма с явной валютой/тысячами: "100к", "150 тыс", "50 000 руб"
+    money_unit = r"(?:тысяч\w*|тыс\w*|[кk]\b|евро|доллар\w*|рубл\w*|€|\$|₽)"
+    for single in re.finditer(rf"(\d[\d\s]*)\s*({money_unit})", lowered):
+        tail = lowered[single.end():single.end() + 15]
+        if re.match(non_budget_units, tail):
+            continue
+        num = normalize(single.group(1), single.group(2))
         if num > 0:
             return num, None, currency
 
-    # Число рядом со словом "бюджет": "бюджет 100000"
+    # Число строго после ключевого слова бюджета с границами \b
     marker = re.search(
-        r"(?:бюджет|лимит|потрат\w*|потрач\w*|до|около|примерно|максимум)\D{0,12}?(\d[\d\s]*)",
+        r"\b(?:бюджет|лимит|потрат\w*|потрач\w*|до|около|примерно|максимум)\b\D{0,12}?(\d[\d\s]*)",
         lowered,
     )
     if marker:
-        num = normalize(marker.group(1), marker.group(0))
-        if num > 0:
-            return num, None, currency
+        tail = lowered[marker.end():marker.end() + 15]
+        # Проверяем, что это не "до 5 дней" или "около 4 человек"
+        if not re.match(non_budget_units, tail):
+            num = normalize(marker.group(1), marker.group(0))
+            if num > 0:
+                return num, None, currency
 
     return None, None, currency
 

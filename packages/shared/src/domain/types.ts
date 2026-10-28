@@ -29,6 +29,9 @@ export interface Constraint {
 export interface UserRequest {
   origin?: string | null;
   destination?: string | null;
+  destination_country?: string | null;
+  excluded_destinations?: string[];
+  excluded_countries?: string[];
   date_preferences?: DatePreferences;
   duration?: number | null;
   travelers?: number;
@@ -64,6 +67,8 @@ export interface Flight {
   currency?: Currency | null;
   refundable?: boolean | null;
   changeable?: boolean | null;
+  transit_point?: string | null;
+  layover_duration?: string | null;
 }
 
 export interface Hotel {
@@ -114,6 +119,9 @@ export interface Transport {
   price?: number | null;
   currency?: Currency | null;
   conditions?: string | null;
+  stops?: number;
+  transit_point?: string | null;
+  layover_duration?: string | null;
 }
 
 export interface Itinerary {
@@ -162,9 +170,10 @@ export interface TravelState {
   messages?: string[];
 }
 
-export interface ChatMessage {
-  id?: string;
-  type: "human" | "ai" | "tool" | "custom";
+export interface UnifiedChatMessage {
+  id: string;
+  type?: "human" | "ai" | "tool" | "custom";
+  role?: "user" | "assistant" | "system";
   content: string;
   run_id?: string | null;
   tool_calls?: Array<{
@@ -178,10 +187,24 @@ export interface ChatMessage {
     itinerary?: Itinerary;
     unresolved_questions?: string[];
     is_demo?: boolean;
+    suggestions?: string[];
+    stage?: string;
     [key: string]: unknown;
   };
   created_at?: string;
+  timestamp?: string;
+  trip_options?: TripOption[];
+  tripOptions?: TripOption[]; // camelCase alias for mobile compatibility
+  suggestions?: string[];
+  is_thinking?: boolean;
+  isThinking?: boolean;       // camelCase alias for mobile compatibility
+  thinking_step?: string;
+  thinkingStep?: string;       // camelCase alias for mobile compatibility
+  thinking_text?: string;
+  thinkingText?: string;       // camelCase alias for mobile compatibility
 }
+
+export type ChatMessage = UnifiedChatMessage;
 
 export interface ServiceMetadata {
   agents: Array<{ key: string; description: string }>;
