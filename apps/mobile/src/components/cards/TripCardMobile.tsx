@@ -39,6 +39,8 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
 
   const mainFlight = option.flights?.[0];
   const returnFlight = option.flights?.[1];
+  const primaryTransport = option.transports?.[0] || option.transport?.[0];
+  const isTrain = !mainFlight && !!primaryTransport;
   const mainHotel = option.hotels?.[0];
 
   // Dynamic realistic image fallback matching web getDestinationImage
@@ -98,7 +100,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
               { backgroundColor: isDark ? colors.surfaceContainer : "#F0EDF1" },
             ]}
           >
-            <Icon name="hotel" size={32} color={colors.primary} />
+            <Icon name={isTrain ? "train" : "hotel"} size={32} color={colors.primary} />
             <Text style={[styles.fallbackText, { color: colors.textSecondary }]}>
               {mainHotel?.hotel || option.title}
             </Text>
@@ -144,25 +146,49 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
 
         {/* Description */}
         {option.description ? (
-          <Text style={[styles.descriptionText, { color: colors.textSecondary }]} numberOfLines={2}>
+          <Text style={[styles.descriptionText, { color: colors.textSecondary }]}>
             {option.description}
           </Text>
         ) : null}
 
         {/* Dynamic Features Row */}
         <View style={styles.featuresRow}>
-          <View
-            style={[
-              styles.featureItem,
-              { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
-            ]}
-          >
-            <Icon name="plane" size={12} color={colors.primary} />
-            <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-              {mainFlight?.carrier || "Прямой рейс"}
-              {mainFlight?.duration ? ` • ${formatDuration(mainFlight.duration)}` : ""}
-            </Text>
-          </View>
+          {isTrain ? (
+            <View
+              style={[
+                styles.featureItem,
+                { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
+              ]}
+            >
+              <Icon name="train" size={12} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                {primaryTransport?.carrier || "Поезд РЖД"}
+                {primaryTransport?.transit_point
+                  ? ` • Стыковка: ${primaryTransport.transit_point}`
+                  : primaryTransport?.duration
+                  ? ` • ${formatDuration(primaryTransport.duration)}`
+                  : ""}
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.featureItem,
+                { backgroundColor: isDark ? colors.surfaceContainerLow : "#F6F2F7" },
+              ]}
+            >
+              <Icon name="plane" size={12} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.textSecondary }]}>
+                {mainFlight?.stops && mainFlight.stops > 0
+                  ? `${mainFlight.carrier || "Рейс"} • ${mainFlight.stops} пересадк${
+                      mainFlight.stops === 1 ? "а" : mainFlight.stops < 5 ? "и" : "ек"
+                    }${mainFlight.transit_point ? ` (${mainFlight.transit_point})` : ""}`
+                  : `${mainFlight?.carrier || "Прямой рейс"}${
+                      mainFlight?.duration ? ` • ${formatDuration(mainFlight.duration)}` : ""
+                    }`}
+              </Text>
+            </View>
+          )}
 
           <View
             style={[
@@ -172,7 +198,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
           >
             <Icon name="briefcase" size={12} color={colors.textMuted} />
             <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-              {mainFlight?.baggage || "Багаж 20 кг"}
+              {mainFlight?.baggage || primaryTransport?.baggage || "Багаж включён"}
             </Text>
           </View>
 
@@ -214,27 +240,53 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
         {/* Dynamic Chronological Itinerary */}
         {isExpanded && (
           <View style={styles.timeline}>
-            {/* Step 1: Outbound flight */}
-            <View style={styles.timelineStep}>
-              <View style={styles.timelineIconCol}>
-                <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
-                  <Icon name="plane" size={10} color="#FFFFFF" />
+            {/* Step 1: Outbound Transport */}
+            {isTrain ? (
+              <View style={styles.timelineStep}>
+                <View style={styles.timelineIconCol}>
+                  <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
+                    <Icon name="train" size={10} color="#FFFFFF" />
+                  </View>
+                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
                 </View>
-                <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Поезд</Text>
+                  <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
+                    Поезд: {primaryTransport?.origin || "Москва"} → {primaryTransport?.destination || option.destination}
+                  </Text>
+                  <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
+                    {primaryTransport?.carrier || "Поезд РЖД"}
+                    {primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""} •{" "}
+                    {primaryTransport?.transit_point ? `Стыковка: ${primaryTransport.transit_point}` : "Прямой маршрут"} •{" "}
+                    {primaryTransport?.duration ? `В пути ${formatDuration(primaryTransport.duration)}` : "Комфортный вагон"}
+                  </Text>
+                </View>
               </View>
-              <View style={styles.timelineContent}>
-                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Перелёт</Text>
-                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
-                  Вылет: {mainFlight?.origin || "Москва"} → {mainFlight?.destination || option.destination}
-                </Text>
-                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
-                  {mainFlight?.carrier || "Регулярный рейс"}
-                  {mainFlight?.flight_number ? ` (${mainFlight.flight_number})` : ""} •{" "}
-                  {mainFlight?.stops === 0 ? "Прямой рейс" : "С пересадкой"} •{" "}
-                  {mainFlight?.duration ? `В пути ${formatDuration(mainFlight.duration)}` : "Удобное расписание"}
-                </Text>
+            ) : (
+              <View style={styles.timelineStep}>
+                <View style={styles.timelineIconCol}>
+                  <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
+                    <Icon name="plane" size={10} color="#FFFFFF" />
+                  </View>
+                  <View style={[styles.timelineLine, { backgroundColor: colors.border }]} />
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Перелёт</Text>
+                  <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
+                    Вылет: {mainFlight?.origin || "Москва"} → {mainFlight?.destination || option.destination}
+                  </Text>
+                  <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
+                    {mainFlight?.carrier || "Регулярный рейс"}
+                    {mainFlight?.flight_number ? ` (${mainFlight.flight_number})` : ""} •{" "}
+                    {mainFlight?.stops === 0
+                      ? "Прямой рейс"
+                      : `С пересадкой${mainFlight?.transit_point ? ` (${mainFlight.transit_point})` : ""}`} •{" "}
+                    {mainFlight?.duration ? `В пути ${formatDuration(mainFlight.duration)}` : "Удобное расписание"}
+                    {mainFlight?.layover_duration ? ` • Стыковка ${formatDuration(mainFlight.layover_duration)}` : ""}
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
 
             {/* Step 2: Transfer */}
             <View style={styles.timelineStep}>
@@ -256,7 +308,9 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
                 <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День 1 • Трансфер</Text>
                 <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>Встреча и трансфер в отель</Text>
                 <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
-                  Комфортабельный трансфер от аэропорта до стойки регистрации отеля
+                  {isTrain
+                    ? "Комфортабельный трансфер от вокзала до стойки регистрации отеля"
+                    : "Комфортабельный трансфер от аэропорта до стойки регистрации отеля"}
                 </Text>
               </View>
             </View>
@@ -285,29 +339,49 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
                 <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
                   {mainHotel?.city ? `Курорт ${mainHotel.city}. ` : ""}
                   {mainHotel?.meal_plan ? `${formatMealPlan(mainHotel.meal_plan)}. ` : "Питание включено. "}
-                  Комфортный номер, пляж и инфраструктура отеля
+                  Комфортный номер, отдых и инфраструктура отеля
                 </Text>
               </View>
             </View>
 
-            {/* Step 4: Return flight */}
-            <View style={styles.timelineStep}>
-              <View style={styles.timelineIconCol}>
-                <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
-                  <Icon name="plane" size={10} color="#FFFFFF" />
+            {/* Step 4: Return transport */}
+            {isTrain ? (
+              <View style={styles.timelineStep}>
+                <View style={styles.timelineIconCol}>
+                  <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
+                    <Icon name="train" size={10} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День выезда • Обратный поезд</Text>
+                  <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
+                    Поезд: {primaryTransport?.destination || option.destination} →{" "}
+                    {primaryTransport?.origin || "Москва"}
+                  </Text>
+                  <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
+                    Трансфер на вокзал и дневная поездка домой на поезде {primaryTransport?.carrier || "РЖД"}
+                  </Text>
                 </View>
               </View>
-              <View style={styles.timelineContent}>
-                <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День выезда • Обратный вылет</Text>
-                <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
-                  Перелёт: {returnFlight?.origin || mainFlight?.destination || option.destination} →{" "}
-                  {returnFlight?.destination || mainFlight?.origin || "Москва"}
-                </Text>
-                <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
-                  Трансфер в аэропорт и комфортный рейс домой
-                </Text>
+            ) : (
+              <View style={styles.timelineStep}>
+                <View style={styles.timelineIconCol}>
+                  <View style={[styles.timelineDotPrimary, { backgroundColor: colors.primary }]}>
+                    <Icon name="plane" size={10} color="#FFFFFF" />
+                  </View>
+                </View>
+                <View style={styles.timelineContent}>
+                  <Text style={[styles.timelineStepTime, { color: colors.primary }]}>День выезда • Обратный вылет</Text>
+                  <Text style={[styles.timelineStepTitle, { color: colors.textPrimary }]}>
+                    Перелёт: {returnFlight?.origin || mainFlight?.destination || option.destination} →{" "}
+                    {returnFlight?.destination || mainFlight?.origin || "Москва"}
+                  </Text>
+                  <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
+                    Трансфер в аэропорт и комфортный рейс домой
+                  </Text>
+                </View>
               </View>
-            </View>
+            )}
           </View>
         )}
 

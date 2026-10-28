@@ -1,5 +1,5 @@
 import React from "react";
-import { Plane, Star, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { Plane, Star, Clock, CheckCircle2, ArrowRight, Train } from "lucide-react";
 import { TripOption } from "../../types/travel";
 import { formatPrice } from "@corvax/shared";
 
@@ -15,6 +15,7 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
   onSelect,
 }) => {
   const primaryFlight = option.flights?.[0];
+  const primaryTransport = option.transports?.[0] || option.transport?.[0];
   const primaryHotel = option.hotels?.[0];
 
   // Image mapped based on destination or default fallback
@@ -36,6 +37,8 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
   };
 
   const imageSrc = getDestinationImage(option.destination || option.title);
+  const flightStops = primaryFlight?.stops ?? 0;
+  const flightStopsSuffix = flightStops === 1 ? "а" : flightStops < 5 ? "и" : "ек";
 
   return (
     <div
@@ -79,9 +82,23 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
 
           <div className="flex items-center gap-2 text-[11px] text-content-muted mt-0.5">
             <span className="flex items-center gap-1">
-              <Plane className="w-3 h-3 text-header" />
+              {!primaryFlight && primaryTransport ? (
+                <Train className="w-3 h-3 text-header" />
+              ) : (
+                <Plane className="w-3 h-3 text-header" />
+              )}
               <span>
-                {primaryFlight?.duration ? "Прямой рейс" : "Удобный перелёт"}
+                {primaryFlight
+                  ? flightStops === 0
+                    ? "Прямой рейс"
+                    : `${flightStops} пересадк${flightStopsSuffix}${
+                        primaryFlight.transit_point ? ` (${primaryFlight.transit_point})` : ""
+                      }`
+                  : primaryTransport
+                  ? primaryTransport.stops && primaryTransport.stops > 0
+                    ? `Стыковка (${primaryTransport.transit_point || "пересадка"})`
+                    : primaryTransport.carrier || "Поезд РЖД"
+                  : "Удобный перелёт"}
               </span>
             </span>
             <span>•</span>

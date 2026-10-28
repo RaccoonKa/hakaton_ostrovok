@@ -108,3 +108,52 @@ test("normalizeTripOptions handles null, empty array, or malformed list graceful
   assert.equal(results[1].title, "Эконом");
   assert.equal(results[1].total_price, 50000);
 });
+
+test("normalizeTripOption correctly normalizes transit flights with transit_point and layover_duration", () => {
+  const rawTransit = {
+    destination: "Анталья",
+    package_type: "С пересадкой",
+    grand_total: 120000,
+    transport: {
+      type: "Рейс",
+      id: "TK-1984",
+      carrier: "Turkish Airlines",
+      stops: 1,
+      transit_point: "Стамбул (IST)",
+      layover_duration: "PT2H30M",
+      price_total: 45000,
+    },
+  };
+
+  const normalized = normalizeTripOption(rawTransit);
+  assert.equal(normalized.flights?.length, 1);
+  assert.equal(normalized.flights?.[0].stops, 1);
+  assert.equal(normalized.flights?.[0].transit_point, "Стамбул (IST)");
+  assert.equal(normalized.flights?.[0].layover_duration, "PT2H30M");
+  assert.equal(normalized.flights?.[0].carrier, "Turkish Airlines");
+});
+
+test("normalizeTripOption correctly normalizes train transport", () => {
+  const rawTrain = {
+    destination: "Калининград",
+    package_type: "Поезд",
+    grand_total: 65000,
+    transport: {
+      type: "Поезд",
+      id: "029Ч",
+      carrier: "РЖД Янтарь",
+      stops: 1,
+      transit_point: "Вильнюс (тех. стоянка)",
+      price_total: 18000,
+      baggage: "Включен",
+    },
+  };
+
+  const normalized = normalizeTripOption(rawTrain);
+  assert.equal(normalized.transports?.length, 1);
+  assert.equal(normalized.transport?.length, 1);
+  assert.equal(normalized.transports?.[0].carrier, "РЖД Янтарь");
+  assert.equal(normalized.transports?.[0].stops, 1);
+  assert.equal(normalized.transports?.[0].transit_point, "Вильнюс (тех. стоянка)");
+  assert.equal(normalized.flights?.length, 0);
+});

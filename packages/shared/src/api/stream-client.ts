@@ -51,11 +51,28 @@ export class FastApiStreamClient {
     };
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      controller.abort();
-    }, 12000);
+    let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => {
+      controller.abort(
+        new Error("Время ожидания ответа агента истекло (120 секунд). Попробуйте повторить запрос.")
+      );
+    }, 120000);
 
-    const onExternalAbort = () => controller.abort();
+    const resetTimeout = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          controller.abort(new Error("Поток данных от агента прерван по таймауту неактивности."));
+        }, 60000);
+      }
+    };
+
+    const onExternalAbort = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      controller.abort();
+    };
     signal?.addEventListener("abort", onExternalAbort);
 
     try {
@@ -81,6 +98,8 @@ export class FastApiStreamClient {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+
+        resetTimeout();
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n\n");
@@ -132,9 +151,12 @@ export class FastApiStreamClient {
       if (signal?.aborted) {
         return;
       }
+      if (controller.signal.aborted && controller.signal.reason instanceof Error) {
+        throw controller.signal.reason;
+      }
       throw err;
     } finally {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       signal?.removeEventListener("abort", onExternalAbort);
     }
   }

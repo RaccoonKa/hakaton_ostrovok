@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, Calendar, Plane, Car, Hotel } from "lucide-react";
+import { Route, Calendar, Plane, Car, Hotel, Train } from "lucide-react";
 import { ActivityItem } from "./ActivityItem";
 import { TripOption } from "../../types/travel";
 import { formatDateRange } from "@corvax/shared";
@@ -15,6 +15,8 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
 }) => {
   const primaryFlight = option?.flights?.[0];
   const returnFlight = option?.flights?.[1];
+  const primaryTransport = option?.transports?.[0] || option?.transport?.[0];
+  const isTrain = !primaryFlight && !!primaryTransport;
   const primaryHotel = option?.hotels?.[0];
   const destination = option?.destination || "Курорт";
 
@@ -23,6 +25,11 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
     (primaryHotel?.check_in && primaryHotel?.check_out
       ? formatDateRange(primaryHotel.check_in, primaryHotel.check_out)
       : "12 — 19 ноября (7 ночей)");
+
+  const outboundFlightStops =
+    primaryFlight?.stops && primaryFlight.stops > 0
+      ? `С пересадкой${primaryFlight.transit_point ? ` в ${primaryFlight.transit_point}` : ""}`
+      : "Прямой рейс";
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-surface-container-low rounded-xl border border-surface-container-highest/60 shadow-sm">
@@ -41,15 +48,27 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
       {/* 4 unified chronological segments */}
       <div className="pt-2">
         {/* Segment 1: Outbound Transport */}
-        <ActivityItem
-          index={1}
-          title={`Вылет: ${primaryFlight?.origin || "Москва (SVO)"} → ${primaryFlight?.destination || "Дубай (DXB)"}`}
-          subtitle={primaryFlight?.carrier || "Прямой рейс"}
-          timeLabel="День 1 • 08:45"
-          description={`Прямой дневной рейс ${primaryFlight?.carrier || "авиакомпании"} ${primaryFlight?.flight_number || "FZ-968"}. Прибытие без ночной усталости, включён багаж 20 кг.`}
-          icon={Plane}
-          variant="primary"
-        />
+        {isTrain ? (
+          <ActivityItem
+            index={1}
+            title={`Поезд: ${primaryTransport?.origin || "Москва"} → ${primaryTransport?.destination || destination}`}
+            subtitle={`${primaryTransport?.carrier || "Поезд РЖД"}${primaryTransport?.transit_point ? ` • Стыковка: ${primaryTransport.transit_point}` : ""}`}
+            timeLabel="День 1 • 08:30"
+            description={`Поездка на поезде ${primaryTransport?.carrier || "РЖД"}${primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""}.${primaryTransport?.transit_point ? ` Стыковка в ${primaryTransport.transit_point}.` : ""} Комфортабельный вагон, прибытие на вокзал.`}
+            icon={Train}
+            variant="primary"
+          />
+        ) : (
+          <ActivityItem
+            index={1}
+            title={`Вылет: ${primaryFlight?.origin || "Москва (SVO)"} → ${primaryFlight?.destination || "Дубай (DXB)"}`}
+            subtitle={primaryFlight?.carrier ? `${primaryFlight.carrier} • ${outboundFlightStops}` : outboundFlightStops}
+            timeLabel="День 1 • 08:45"
+            description={`${outboundFlightStops} ${primaryFlight?.carrier || "авиакомпании"} ${primaryFlight?.flight_number || "FZ-968"}.${primaryFlight?.transit_point ? ` Стыковка в ${primaryFlight.transit_point}.` : ""} Прибытие без ночной усталости, включён багаж 20 кг.`}
+            icon={Plane}
+            variant="primary"
+          />
+        )}
 
         {/* Segment 2: Transfer & Check-in */}
         <ActivityItem
@@ -71,16 +90,29 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
           variant="secondary"
         />
 
-        {/* Segment 4: Return Flight */}
-        <ActivityItem
-          index={4}
-          title={`Обратный выезд и перелёт: ${returnFlight?.origin || "Дубай"} → ${returnFlight?.destination || "Москва"}`}
-          timeLabel="День 8 • 16:30"
-          description="Трансфер из отеля в аэропорт за 3 часа до вылета. Дневной перелёт домой, прибытие в Москву вечером."
-          icon={Plane}
-          variant="primary"
-          isLast
-        />
+        {/* Segment 4: Return Flight / Transport */}
+        {isTrain ? (
+          <ActivityItem
+            index={4}
+            title={`Обратный выезд на поезде: ${primaryTransport?.destination || destination} → ${primaryTransport?.origin || "Москва"}`}
+            subtitle={primaryTransport?.carrier || "Поезд РЖД"}
+            timeLabel="День 8 • 16:30"
+            description="Трансфер из отеля на вокзал. Дневной рейс домой, прибытие вечером."
+            icon={Train}
+            variant="primary"
+            isLast
+          />
+        ) : (
+          <ActivityItem
+            index={4}
+            title={`Обратный выезд и перелёт: ${returnFlight?.origin || "Дубай"} → ${returnFlight?.destination || "Москва"}`}
+            timeLabel="День 8 • 16:30"
+            description="Трансфер из отеля в аэропорт за 3 часа до вылета. Дневной перелёт домой, прибытие в Москву вечером."
+            icon={Plane}
+            variant="primary"
+            isLast
+          />
+        )}
       </div>
     </div>
   );
