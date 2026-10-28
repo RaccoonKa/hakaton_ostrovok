@@ -143,6 +143,23 @@ async def init_db_and_seed() -> bool:
                     );
                     CREATE INDEX IF NOT EXISTS idx_transfers_route ON transfers(origin, destination);
                     CREATE INDEX IF NOT EXISTS idx_transfers_payload ON transfers USING gin (payload);
+
+                    CREATE TABLE IF NOT EXISTS users (
+                        id TEXT PRIMARY KEY,
+                        email TEXT UNIQUE,
+                        password_hash TEXT,
+                        full_name TEXT,
+                        phone TEXT,
+                        created_at TEXT
+                    );
+
+                    CREATE TABLE IF NOT EXISTS user_threads (
+                        thread_id TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        title TEXT,
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_user_threads_user_id ON user_threads (user_id);
                     """
                 )
 

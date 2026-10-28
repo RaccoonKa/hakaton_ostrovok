@@ -8,8 +8,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from domain.common import Currency, Season
+from domain.common import Currency
 from domain.planning import Destination, PriceLevel
+
 
 def _get_data_dir() -> Path:
     return Path(__file__).resolve().parent.parent.parent.parent.parent / "data"
@@ -18,7 +19,7 @@ def load_destinations() -> list[dict]:
     file_path = _get_data_dir() / "destinations.json"
     if not file_path.exists():
         return []
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 # --- Детерминированные курсы валют ---

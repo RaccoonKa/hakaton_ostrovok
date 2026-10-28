@@ -1,3 +1,10 @@
+from schema.auth import (
+    AuthSessionResponse,
+    AuthUser,
+    GuestSessionResponse,
+    LoginRequest,
+    RegisterRequest,
+)
 from schema.models import AllModelEnum
 from schema.schema import (
     AgentInfo,
@@ -17,15 +24,20 @@ from schema.schema import (
 __all__ = [
     "AgentInfo",
     "AllModelEnum",
-    "UserInput",
+    "AuthSessionResponse",
+    "AuthUser",
+    "ChatHistory",
+    "ChatHistoryInput",
     "ChatMessage",
-    "ServiceMetadata",
-    "StreamInput",
     "Feedback",
     "FeedbackResponse",
-    "ChatHistoryInput",
-    "ChatHistory",
-    "UserThreadsInput",
+    "GuestSessionResponse",
+    "LoginRequest",
+    "RegisterRequest",
+    "ServiceMetadata",
+    "StreamInput",
     "ThreadSummary",
+    "UserInput",
     "UserThreads",
+    "UserThreadsInput",
 ]

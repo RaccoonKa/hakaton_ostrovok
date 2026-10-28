@@ -7,9 +7,10 @@
 
 
 from __future__ import annotations
+
 from agents.travel.logic.decision import suggest_date_ranges, suggest_destinations
-from agents.travel.tools import mock_dataset as ds
 from agents.travel.state import TravelState
+from agents.travel.tools import mock_dataset as ds
 
 
 def _get(state, key, default=None):
