@@ -160,9 +160,13 @@ def search_and_package_trip(
 
     # --- ФИЛЬТРАЦИЯ ПЕРЕСАДОК (no_stops) ---
     if no_stops:
-        outbound_transports = [t for t in outbound_transports if t.get("stops", 0) == 0]
+        direct_out = [t for t in outbound_transports if t.get("stops", 0) == 0]
+        if direct_out:
+            outbound_transports = direct_out
         if inbound_transports:
-            inbound_transports = [t for t in inbound_transports if t.get("stops", 0) == 0]
+            direct_in = [t for t in inbound_transports if t.get("stops", 0) == 0]
+            if direct_in:
+                inbound_transports = direct_in
 
     # --- ФИЛЬТРАЦИЯ ПО ВОЗВРАТНОСТИ ---
     if require_refundable:
@@ -192,10 +196,14 @@ def search_and_package_trip(
     hotels = [h for h in all_hotels if h.get("city", "").lower() == city_name.lower()]
 
     if free_cancellation:
-        hotels = [h for h in hotels if h.get("free_cancellation", False)]
+        fc_hotels = [h for h in hotels if h.get("free_cancellation", False)]
+        if fc_hotels:
+            hotels = fc_hotels
 
     if pet_friendly:
-        hotels = [h for h in hotels if h.get("pet_friendly", False)]
+        pf_hotels = [h for h in hotels if h.get("pet_friendly", False)]
+        if pf_hotels:
+            hotels = pf_hotels
 
     # 1. Фильтрация по требуемой звёздности
     target_stars = None
@@ -317,8 +325,12 @@ def search_and_package_trip(
         outbound_offset = t_out.get("day_offset", 0)
         hotel_nights = max(1, nights - outbound_offset)
 
+        # Учитываем количество номеров: стандартный номер вмещает до 2-3 человек
+        # Если едет 4 человека и более — требуется минимум 2 номера
+        rooms_needed = max(1, (passengers + 1) // 2) if passengers > 3 else 1
+
         pet_fee = hotel.get("pet_fee_per_night", 0) * hotel_nights if pet_friendly else 0
-        hotel_total = (hotel["price_per_night"] * hotel_nights) + pet_fee
+        hotel_total = (hotel["price_per_night"] * hotel_nights * rooms_needed) + pet_fee
 
         # --- ИНТЕГРАЦИЯ ТРАНСФЕРОВ ---
         hotel_name = hotel.get("hotel")
@@ -370,9 +382,10 @@ def search_and_package_trip(
         transfer_desc = f" Включен трансфер ({transfer_info['vehicle']})." if transfer_info else ""
         pet_desc = " Включена доплата за питомца." if pet_friendly and pet_fee > 0 else ""
         stars_badge = "" if "★" in hotel_name else f" ({hotel['stars']}★)"
+        rooms_desc = f" ({rooms_needed} ном.)" if rooms_needed > 1 else ""
 
         full_desc = (
-            f"{desc} Отель {hotel_name}{stars_badge}. "
+            f"{desc} Отель {hotel_name}{stars_badge}{rooms_desc}. "
             f"{t_out['type']} {t_out['carrier']} {t_out['id']}{transit_desc}.{warning_str}"
             f"{transfer_desc}{pet_desc}"
         )
@@ -402,6 +415,7 @@ def search_and_package_trip(
                 "rating": hotel.get("rating", 0),
                 "price_total": round(hotel_total, 2),
                 "nights": hotel_nights,
+                "rooms": rooms_needed,
             },
             "grand_total": round(grand_total, 2),
             "currency": Currency.RUB.value,
