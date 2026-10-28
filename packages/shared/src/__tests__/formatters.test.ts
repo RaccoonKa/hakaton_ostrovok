@@ -7,6 +7,7 @@ import {
   formatNights,
   formatTransportType,
   formatMealPlan,
+  formatDisplayTime,
 } from "../formatters/travel";
 import { Currency, TransportType, MealPlan } from "../domain/constants";
 
@@ -42,4 +43,19 @@ test("formatNights handles Russian pluralization", () => {
 test("formatTransportType and formatMealPlan translate correctly", () => {
   assert.equal(formatTransportType(TransportType.PLANE), "Самолёт");
   assert.equal(formatMealPlan(MealPlan.ALL_INCLUSIVE), "Всё включено");
+});
+
+test("formatDisplayTime normalizes ISO timestamps and HH:MM strings safely", () => {
+  assert.equal(formatDisplayTime("18:42"), "18:42");
+  assert.equal(formatDisplayTime("9:05"), "9:05");
+  // Full ISO string with microseconds
+  const isoStr = "2026-10-28T18:42:30.123456+00:00";
+  const formatted = formatDisplayTime(isoStr);
+  assert.match(formatted, /^\d{2}:\d{2}$/);
+
+  // Null, undefined, empty, or invalid
+  assert.equal(formatDisplayTime(null), "");
+  assert.equal(formatDisplayTime(undefined), "");
+  assert.equal(formatDisplayTime(""), "");
+  assert.equal(formatDisplayTime("not-a-date"), "");
 });

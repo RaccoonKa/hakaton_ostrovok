@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { TripOption, AgentStepPhase, ChatMessage } from "../types/travel";
 import { PriceOptimizationDiff } from "../components/cards/PriceBreakdown";
-import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage } from "@corvax/shared";
+import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage, formatDisplayTime } from "@corvax/shared";
 import { AuthContext } from "./AuthContext";
 
 export interface SavedChatSession {
@@ -107,6 +107,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 merged[existingIdx].title = t.title;
               }
             }
+            merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             saveSessionsToStorage(merged);
             return merged;
           });
@@ -152,13 +153,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
           selectedOption: currSelectedOpt,
         };
 
-        let next: SavedChatSession[];
-        if (existingIdx >= 0) {
-          next = [...prev];
-          next[existingIdx] = updatedSession;
-        } else {
-          next = [updatedSession, ...prev];
-        }
+        const remaining = prev.filter((s) => s.id !== activeId);
+        const next = [updatedSession, ...remaining];
         saveSessionsToStorage(next);
         return next;
       });
@@ -197,34 +193,50 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setOptimizationDiff(null);
       setIsBookingModalOpen(false);
 
-      if (target.messages && target.messages.length > 0) {
+      const hasBothUserAndAI = target.messages && target.messages.length > 1;
+      if (hasBothUserAndAI) {
         setMessages(target.messages);
         setTripOptions(target.tripOptions || []);
         setSelectedOption(target.selectedOption || null);
       } else {
-        // Fetch thread messages from backend
+        // Fetch thread messages from backend (for cross-platform sync or missing AI messages)
         try {
           const history = await clientRef.current.getHistory(target.id);
-          if (history?.messages && Array.isArray(history.messages)) {
-            const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => ({
-              id: m.run_id || `srv_${target.id}_${idx}`,
-              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-              type: m.type === "human" ? "human" : "ai",
-              role: m.type === "human" ? "user" : "assistant",
-              timestamp: m.created_at || target.timestamp || new Date().toISOString(),
-            }));
+          if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
+            let extractedOptions: TripOption[] = target.tripOptions || [];
+            const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => {
+              const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+              if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+                extractedOptions = normalizeTripOptions(rawOpts);
+              }
+              return {
+                id: m.run_id || `srv_${target.id}_${idx}`,
+                content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+                type: m.type === "human" ? "human" : "ai",
+                role: m.type === "human" ? "user" : "assistant",
+                timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+                trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+                tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+              };
+            });
             setMessages(mapped);
-            setTripOptions(target.tripOptions || []);
+            setTripOptions(extractedOptions);
             setSelectedOption(target.selectedOption || null);
             setSessions((prev) => {
-              const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped } : s));
+              const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
               saveSessionsToStorage(updated);
               return updated;
             });
+          } else if (target.messages && target.messages.length > 0) {
+            setMessages(target.messages);
+            setTripOptions(target.tripOptions || []);
+            setSelectedOption(target.selectedOption || null);
+          } else {
+            setMessages([]);
           }
         } catch (e) {
           console.warn("Failed to load server thread messages:", e);
-          setMessages([]);
+          setMessages(target.messages || []);
         }
       }
     },
@@ -431,6 +443,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               clearTimeout(stepTimer2);
               setIsLoading(false);
               setCurrentStep("ready");
+              setMessages((latest) => {
+                persistCurrentState(latest, tripOptions, selectedOption, currentThreadId);
+                return latest;
+              });
             },
           },
           abortController.signal

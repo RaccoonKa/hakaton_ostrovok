@@ -387,10 +387,26 @@ async def history(
             tup = await checkpointer.aget_tuple(config)
             if tup and "__previous__" in (tup.checkpoint.get("channel_values") or {}):
                 messages = messages_from_checkpoint(tup.checkpoint)
+        state_snapshot = await agent.aget_state(config=config)
         if not messages:
-            state_snapshot = await agent.aget_state(config=config)
-            messages = state_snapshot.values.get("messages", [])
+            messages = list(state_snapshot.values.get("messages", []))
+
+        # Check for active interrupts (e.g. ask node prompted the user and paused)
+        if hasattr(state_snapshot, "tasks"):
+            for task in state_snapshot.tasks:
+                for inter in getattr(task, "interrupts", []):
+                    if inter.value:
+                        messages.append(AIMessage(content=str(inter.value)))
+
         chat_messages: list[ChatMessage] = [langchain_to_chat_message(m) for m in messages]
+
+        # Attach trip_options to the last AI message if available in state
+        trip_options = state_snapshot.values.get("trip_options")
+        if trip_options and chat_messages:
+            for cm in reversed(chat_messages):
+                if cm.type == "ai":
+                    cm.custom_data = {**cm.custom_data, "trip_options": trip_options}
+                    break
         return ChatHistory(messages=chat_messages)
     except Exception as e:
         logger.error(f"An exception occurred: {e}")

@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { TripOption } from "@corvax/shared";
+import { TripOption, formatDisplayTime } from "@corvax/shared";
 import { theme, getTheme } from "../../theme";
 import { MobileChatMessage } from "../../types";
 import { TripCardMobile } from "../cards/TripCardMobile";
@@ -64,7 +64,7 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
           <View style={styles.assistantMetaRow}>
             <Text style={[styles.assistantBrandName, { color: colors.textPrimary }]}>О!дин запрос</Text>
             {message.timestamp && (
-              <Text style={[styles.assistantTimestamp, { color: colors.textMuted }]}>• {message.timestamp}</Text>
+              <Text style={[styles.assistantTimestamp, { color: colors.textMuted }]}>• {formatDisplayTime(message.timestamp)}</Text>
             )}
           </View>
         </View>
@@ -135,7 +135,7 @@ export const ChatMessageItemComponent: React.FC<ChatMessageItemProps> = ({
             {isUser && (
               <View style={styles.userMetaRow}>
                 {message.timestamp && (
-                  <Text style={[styles.userTimestamp, { color: colors.textMuted }]}>{message.timestamp}</Text>
+                  <Text style={[styles.userTimestamp, { color: colors.textMuted }]}>{formatDisplayTime(message.timestamp)}</Text>
                 )}
                 <Icon name="check" size={12} color={colors.primary} />
               </View>

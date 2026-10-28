@@ -76,13 +76,6 @@ export const HOTEL_RATING_OPTIONS = [
   { rating: 5, label: "5★ Luxe" },
 ];
 
-export const SERVER_PRESETS = [
-  { label: "Туннель", url: "https://strong-colts-own.loca.lt" },
-  { label: "Wi-Fi LAN", url: "http://192.168.1.79:8080" },
-  { label: "Эмулятор", url: "http://10.0.2.2:8080" },
-  { label: "Localhost", url: "http://localhost:8080" },
-];
-
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   visible,
   onClose,
@@ -103,10 +96,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [activeTab, setActiveTab] = useState<"search" | "account">(initialTab);
   const [draftPrefs, setDraftPrefs] = useState<MobilePreferences>(preferences);
   const [customCityInput, setCustomCityInput] = useState("");
-
-  const [serverUrl, setServerUrl] = useState(backendUrl || "https://strong-colts-own.loca.lt");
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
-  const [statusMessage, setStatusMessage] = useState("");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   useEffect(() => {
@@ -114,40 +103,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       setActiveTab(initialTab);
       setDraftPrefs(preferences);
       setSavedSuccess(false);
-      if (backendUrl) {
-        setServerUrl(backendUrl);
-      }
     }
-  }, [visible, initialTab, preferences, backendUrl]);
-
-  const testConnection = async (testUrl?: string) => {
-    const targetUrl = (testUrl || serverUrl).trim().replace(/\/$/, "");
-    setConnectionStatus("testing");
-    setStatusMessage("Проверка связи...");
-    try {
-      const res = await fetch(`${targetUrl}/health`, {
-        headers: { "Bypass-Tunnel-Reminder": "true" },
-      });
-      if (res.ok) {
-        setConnectionStatus("ok");
-        setStatusMessage("✓ Сервер онлайн (200 OK)");
-      } else {
-        setConnectionStatus("error");
-        setStatusMessage(`Ошибка сервера: ${res.status}`);
-      }
-    } catch {
-      setConnectionStatus("error");
-      setStatusMessage("✗ Сервер недоступен (проверьте URL)");
-    }
-  };
-
-  const handleSelectPreset = (url: string) => {
-    setServerUrl(url);
-    if (onUpdateBackendUrl) {
-      onUpdateBackendUrl(url);
-    }
-    testConnection(url);
-  };
+  }, [visible, initialTab, preferences]);
 
   const handleSaveSearchSettings = () => {
     const finalCity = customCityInput.trim() ? customCityInput.trim() : draftPrefs.homeCity;
@@ -157,10 +114,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     };
     setDraftPrefs(finalPrefs);
     onSavePreferences?.(finalPrefs);
-
-    if (onUpdateBackendUrl && serverUrl.trim()) {
-      onUpdateBackendUrl(serverUrl.trim().replace(/\/$/, ""));
-    }
 
     setSavedSuccess(true);
     setTimeout(() => {
@@ -491,91 +444,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       })}
                     </View>
                   </View>
-                </View>
-
-                {/* 4. Backend Connection Settings */}
-                <View style={[styles.sectionCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Icon name="refresh" size={14} color={colors.primary} />
-                    <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Подключение к серверу ИИ</Text>
-                  </View>
-                  <Text style={[styles.sectionHint, { color: colors.textSecondary }]}>
-                    Выберите пресет или введите адрес FastAPI бэкенда:
-                  </Text>
-
-                  <View style={styles.presetButtonsRow}>
-                    {SERVER_PRESETS.map((p) => {
-                      const isActive = serverUrl === p.url;
-                      return (
-                        <TouchableOpacity
-                          key={p.label}
-                          style={[
-                            styles.presetButton,
-                            isActive && styles.presetButtonActive,
-                          ]}
-                          onPress={() => handleSelectPreset(p.url)}
-                          activeOpacity={0.7}
-                        >
-                          <Text
-                            style={[
-                              styles.presetButtonText,
-                              isActive && styles.presetButtonTextActive,
-                            ]}
-                          >
-                            {p.label}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-
-                  <View style={styles.serverInputRow}>
-                    <TextInput
-                      style={[
-                        styles.fieldInput,
-                        styles.serverInput,
-                        {
-                          backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
-                          color: colors.textPrimary,
-                          borderColor: colors.borderSubtle,
-                        },
-                      ]}
-                      value={serverUrl}
-                      onChangeText={setServerUrl}
-                      placeholder="http://192.168.1.79:8080"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      placeholderTextColor={colors.textMuted}
-                    />
-                    <TouchableOpacity
-                      style={[
-                        styles.testButton,
-                        connectionStatus === "ok" && styles.testButtonOk,
-                        connectionStatus === "error" && styles.testButtonError,
-                      ]}
-                      onPress={() => testConnection()}
-                      disabled={connectionStatus === "testing"}
-                      activeOpacity={0.8}
-                    >
-                      {connectionStatus === "testing" ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                      ) : (
-                        <Text style={styles.testButtonText}>Тест</Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {statusMessage ? (
-                    <Text
-                      style={[
-                        styles.statusMessageText,
-                        connectionStatus === "ok" && styles.statusMessageOk,
-                        connectionStatus === "error" && styles.statusMessageError,
-                      ]}
-                    >
-                      {statusMessage}
-                    </Text>
-                  ) : null}
                 </View>
 
                 {/* Save Button */}
@@ -982,75 +850,6 @@ const styles = StyleSheet.create({
   ratingButtonText: {
     fontSize: 12,
     fontWeight: "600",
-  },
-  presetButtonsRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 10,
-  },
-  presetButton: {
-    flex: 1,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: "rgba(0,0,0,0.04)",
-    alignItems: "center",
-  },
-  presetButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  presetButtonText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-  },
-  presetButtonTextActive: {
-    color: "#FFFFFF",
-  },
-  serverInputRow: {
-    flexDirection: "row",
-    gap: 8,
-    alignItems: "center",
-  },
-  fieldInput: {
-    flex: 1,
-    height: 42,
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    fontSize: 12,
-  },
-  serverInput: {
-    fontFamily: undefined,
-  },
-  testButton: {
-    paddingHorizontal: 16,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  testButtonOk: {
-    backgroundColor: "#10B981",
-  },
-  testButtonError: {
-    backgroundColor: "#EF4444",
-  },
-  testButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  statusMessageText: {
-    marginTop: 8,
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  statusMessageOk: {
-    color: "#10B981",
-  },
-  statusMessageError: {
-    color: "#EF4444",
   },
   saveButton: {
     flexDirection: "row",

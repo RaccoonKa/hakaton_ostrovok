@@ -8,6 +8,7 @@ import {
   UnifiedChatMessage,
   AuthSession,
   ClientAuthManager,
+  formatDisplayTime,
 } from "@corvax/shared";
 import { MobileChatMessage } from "../types";
 
@@ -152,6 +153,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               merged[existingIdx].title = t.title;
             }
           }
+          merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setSavedSessions(merged);
           await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(merged));
         }
@@ -216,13 +218,8 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
           tripOptions: options,
           selectedOption: selectedOpt,
         };
-        let next: SavedMobileSession[];
-        if (existingIdx >= 0) {
-          next = [...prev];
-          next[existingIdx] = updated;
-        } else {
-          next = [updated, ...prev];
-        }
+        const remaining = prev.filter((s) => s.id !== activeId);
+        const next = [updated, ...remaining];
         saveSessionsToStorage(next);
         return next;
       });
@@ -529,30 +526,48 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
       setIsThinking(false);
       setIsStreaming(false);
 
-      if (session.messages && session.messages.length > 0) {
+      const hasBothUserAndAI = session.messages && session.messages.length > 1;
+      if (hasBothUserAndAI) {
         setMessages(session.messages);
         setTripOptions(session.tripOptions || []);
         setSelectedOption(session.selectedOption || null);
       } else {
-        // Fetch server history
+        // Fetch server history (for cross-client sync or missing AI responses)
         try {
           const history = await clientRef.current.getHistory(session.id);
-          if (history?.messages && Array.isArray(history.messages)) {
-            const mapped: MobileChatMessage[] = history.messages.map((m: any, idx: number) => ({
-              id: m.run_id || `srv_${session.id}_${idx}`,
-              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-              role: m.type === "human" ? "user" : "assistant",
-              timestamp: m.created_at || session.timestamp || formatCurrentTime(),
-            }));
+          if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
+            let extractedOptions: TripOption[] = session.tripOptions || [];
+            const mapped: MobileChatMessage[] = history.messages.map((m: any, idx: number) => {
+              const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+              if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+                extractedOptions = normalizeTripOptions(rawOpts);
+              }
+              return {
+                id: m.run_id || `srv_${session.id}_${idx}`,
+                content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+                role: m.type === "human" ? "user" : "assistant",
+                timestamp: formatDisplayTime(m.created_at || m.timestamp) || formatCurrentTime(),
+                trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+                tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+              };
+            });
             setMessages(mapped);
+            setTripOptions(extractedOptions);
+            setSelectedOption(session.selectedOption || null);
             setSavedSessions((prev) => {
-              const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped } : s));
+              const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
               safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(updated));
               return updated;
             });
+          } else if (session.messages && session.messages.length > 0) {
+            setMessages(session.messages);
+            setTripOptions(session.tripOptions || []);
+            setSelectedOption(session.selectedOption || null);
+          } else {
+            setMessages([]);
           }
         } catch {
-          setMessages([]);
+          setMessages(session.messages || []);
         }
       }
     },
