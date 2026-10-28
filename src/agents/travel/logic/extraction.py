@@ -74,7 +74,7 @@ _VIBE_TOKENS: dict[str, list[str]] = {
     "romance": ["романт", "romance", "свадь", "медовый"],
     "family": ["семь", "ребен", "ребён", "дети", "детей", "детск", "family"],
     "adventure": ["приключ", "adventure", "экстрим"],
-    "shopping": ["шопинг", "shopping", "магазин"],
+    "shopping": ["шопинг", "шоппинг", "shopping", "магазин"],
     "warm_weather": ["тепл", "жарк", "тёпл"],
     "wellness": ["спа ", "wellness", "оздоров", "йог"],
     "city": ["город", "city"],
@@ -87,7 +87,8 @@ _VIBE_TOKENS: dict[str, list[str]] = {
 # Токены ограничений (constraints) - применяются ко всему пакету (в т.ч. перелетам)
 _CONSTRAINT_TOKENS: dict[str, list[str]] = {
     "with_child": ["с ребен", "с ребён", "с дет", "с малыш", "ребен", "ребён"],
-    "limited_mobility": ["не могу много ходить", "ограниченная мобильность", "маломобильн", "инвалид", "на коляске", "в коляске"],
+    "limited_mobility": ["не могу много ходить", "ограниченная мобильность", "маломобильн", "инвалид", "на коляске",
+                         "в коляске"],
     "accessible_hotel": ["доступн", "безбарьерн", "accessible"],
     "no_night_flights": ["без ночных", "не ночн", "днем", "днём"],
     "no_stops": ["без пересад", "прямой рейс", "прямой перелет", "no stops"],
@@ -177,6 +178,11 @@ _NEGATION_MARKERS = (
     "не нужна", "не хочу с",
 )
 
+_JOKE_BUDGET_MARKERS = [
+    "сухарик", "доширак", "почк", "фантик", "борзыми щенками",
+    "за спасибо", "красивые глаза", "картошк"
+]
+
 
 def _normalize(text: str) -> str:
     """Привести текст к нижнему регистру и унифицировать ё/е, пробелы."""
@@ -210,7 +216,8 @@ def _detect_transport(text: str) -> TransportType | None:
     if any(t in lowered for t in train_triggers):
         return TransportType.TRAIN
 
-    if any(t in lowered for t in ["самолет", "самолёт", "авиа", "plane", "fly", "перелет", "перелёт", "летим", "лечу", "полети"]):
+    if any(t in lowered for t in
+           ["самолет", "самолёт", "авиа", "plane", "fly", "перелет", "перелёт", "летим", "лечу", "полети"]):
         return TransportType.PLANE
 
     if any(t in lowered for t in ["автобус", "bus"]):
@@ -346,13 +353,27 @@ def _extract_travelers(
     return None, None, None, None
 
 
+# Исправление бага 2: поддержка числительных словами ("две недели", "три недели")
 def _extract_duration(text: str) -> int | None:
     lowered = _normalize(text)
+
+    # 1. Поиск недель ("две недели", "2 недели", "на неделю")
+    week_match = re.search(rf"{_COUNT_TOKEN}\s*недел", lowered)
+    if week_match:
+        val = _parse_count(week_match.group(1))
+        if val:
+            return val * 7
+
     if re.search(r"\bнедел", lowered):
-        weeks = re.search(r"(\d+)\s*недел", lowered)
-        if weeks:
-            return int(weeks.group(1)) * 7
         return 7
+
+    # 2. Поиск дней ("10 дней", "двенадцать дней", "на 14 дней")
+    day_match = re.search(rf"(?:на\s+)?{_COUNT_TOKEN}\s*(?:дн|ден|ноч|night|day)", lowered)
+    if day_match:
+        val = _parse_count(day_match.group(1))
+        if val:
+            return val
+
     m = re.search(r"(?:на\s+)?(\d+)\s*(?:дн|ден|ноч|night|day)", lowered)
     if m:
         return int(m.group(1))
@@ -363,6 +384,10 @@ def _extract_budget(
         text: str,
 ) -> tuple[float | None, tuple[float, float] | None, Currency | None]:
     lowered = _normalize(text)
+
+    if any(m in lowered for m in _JOKE_BUDGET_MARKERS):
+        return None, None, None
+
     currency = None
     for cur, tokens in _CURRENCY_TOKENS.items():
         if any(tok in lowered for tok in tokens):
@@ -465,10 +490,12 @@ def _extract_budget(
     return None, None, currency
 
 
+# Исправление бага 3: "не знаю" не затирает заданный бюджет
 def _extract_budget_mode(
         text: str,
         budget: float | None,
         budget_range: tuple[float, float] | None,
+        has_existing_budget: bool = False,
 ) -> str | None:
     if budget is not None or budget_range is not None:
         return "specified"
@@ -483,43 +510,34 @@ def _extract_budget_mode(
     if any(k in lowered for k in strong_no_limit):
         return "no_limit"
 
+    has_money_context = any(w in lowered for w in ["бюджет", "деньг", "цен", "лимит", "стоимост", "потрат", "рубл"])
+
     no_limit_markers = [
         "не важен", "не важно", "не важна", "не имеет значения",
         "не принципиален", "не принципиально", "не принципиальна",
-        "не критично", "не критичен", "не критична",
-        "не суть важно", "не суть", "неважно", "неважен",
-        "не играет роли", "роли не играет", "значения не имеет",
-        "без ограничения", "без лимитов", "не ограничива",
-        "не ограничена", "не ограничены", "не ограничиваемся",
-        "без рамок", "вне рамок", "не в рамках",
-        "без потолка", "потолка нет", "без верхней границы",
-        "любая сумма", "на любую сумму", "произвольный бюджет",
-        "произвольная сумма", "какой угодно", "какая угодно",
-        "любой вариант", "на твоё усмотрение", "на ваше усмотрение",
-        "на усмотрение", "как скажешь", "как решите",
-        "деньги не важны", "деньги не главное", "деньги есть",
-        "с деньгами проблем нет", "финансовый вопрос не стоит",
-        "по деньгам не вопрос", "средства есть", "бюджет позволяет",
-        "бесконечный бюджет", "бездонный", "сколько нужно",
-        "сколько потребуется", "сколько надо", "не считаем деньги",
-        "не экономим", "не нужно экономить", "не экономь",
-        "пофиг", "по фиг", "по барабану", "параллельно",
-        "всё равно", "все равно", "без разницы", "безразлично",
-        "не парюсь", "не парься", "не заморачивайся",
-        "сколько хочешь", "сколько скажешь", "трать сколько хочешь",
-        "не жалко", "денег не жалко", "unlimited", "no budget",
-        "any budget", "money is not an issue", "money is no object",
-        "whatever it takes", "sky is the limit", "no cap"
+        "не критично", "не критичен", "без рамок", "без потолка",
+        "любая сумма", "на любую сумму", "деньги не важны", "деньги есть",
+        "без разницы", "все равно", "всё равно"
     ]
-    if any(k in lowered for k in no_limit_markers):
-        return "no_limit"
+    for m in no_limit_markers:
+        if m in lowered:
+            if m in ["все равно", "всё равно", "без разницы", "не важно", "не принципиально"]:
+                if has_money_context:
+                    return "no_limit"
+            else:
+                return "no_limit"
 
-    flexible_markers = [
-        "не знаю", "пока не знаю", "не определил", "не представляю",
-        "разные цен", "разные уровн", "разные вариант", "по стоимости",
-        "разброс цен", "покажи вариант", "подбери вариант", "сложно сказать",
+    explicit_flexible = [
+        "разные цен", "разные уровн", "разные вариант по стоимости",
+        "по стоимости", "разброс цен", "разные вариант по цене",
+        "покажи разные по стоимости", "разные по цене", "разные категории"
     ]
-    if any(k in lowered for k in flexible_markers):
+    if any(k in lowered for k in explicit_flexible):
+        return "flexible_scenarios"
+
+    # Если уже есть заданный бюджет, фраза "не знаю" не должна переключать его в flexible_scenarios
+    if not has_existing_budget and has_money_context and any(
+            k in lowered for k in ["не знаю", "пока не знаю", "сложно сказать", "не определил"]):
         return "flexible_scenarios"
 
     return None
@@ -563,6 +581,27 @@ def _extract_dates(text: str, reference_date: date) -> list[date] | None:
         if reference_date > date(year, 5, 10):
             year += 1
         return [date(year, 5, 1), date(year, 5, 10)]
+
+    # Диапазон через разные месяцы: "с 28 декабря по 5 января"
+    m_cross = re.search(
+        r"(?:с\s+)?(\d{1,2})\s+([а-яёa-z]+)\s*(?:[-–—]|по)\s*(\d{1,2})\s+([а-яёa-z]+)(?:\s+(\d{4}))?",
+        lowered,
+    )
+    if m_cross:
+        d1, m1_tok, d2, m2_tok = int(m_cross.group(1)), m_cross.group(2), int(m_cross.group(3)), m_cross.group(4)
+        m1 = _month_from_token(m1_tok)
+        m2 = _month_from_token(m2_tok)
+        if m1 and m2:
+            year1 = int(m_cross.group(5)) if m_cross.group(5) else _resolve_year(m1, d1, reference_date)
+            if year1:
+                year2 = year1 + 1 if m2 < m1 else year1
+                try:
+                    start = date(year1, m1, d1)
+                    end = date(year2, m2, d2)
+                    if start >= reference_date and end >= start:
+                        return [start, end]
+                except ValueError:
+                    pass
 
     # Классический диапазон: "с 10 по 15 сентября"
     m = re.search(
@@ -608,6 +647,11 @@ def _extract_dates(text: str, reference_date: date) -> list[date] | None:
                     pass
         if parsed:
             parsed.sort()
+            if len(parsed) >= 2:
+                start, end = parsed[0], parsed[-1]
+                if end < start:
+                    end = date(end.year + 1, end.month, end.day)
+                return [start, end]
             return [parsed[0], parsed[-1]]
 
     # ISO формат (2026-07-01)
@@ -696,6 +740,26 @@ def _extract_preference_status(
     return None
 
 
+_REMOVED_CONSTRAINT_TOKENS: dict[str, list[str]] = {
+    "no_stops": [
+        "можно с пересад", "согласен на пересад", "давай с пересад",
+        "пересадки не пугают", "не против пересад", "любой рейс", "рейсы с пересадкой"
+    ],
+    "with_baggage": ["без багажа", "багаж не нужен", "только ручная кладь", "ручной кладью"],
+    "refundable_ticket": ["невозвратн", "можно невозвратн", "билеты можно невозвратн"],
+    "with_child": ["без детей", "дети не едут", "без ребенка"],
+}
+
+
+def _extract_removed_constraints(text: str) -> list[str] | None:
+    lowered = _normalize(text)
+    removed: list[str] = []
+    for con_name, tokens in _REMOVED_CONSTRAINT_TOKENS.items():
+        if any(tok in lowered for tok in tokens):
+            removed.append(con_name)
+    return removed or None
+
+
 def _extract_constraints(text: str) -> list[Constraint] | None:
     lowered = _normalize(text)
     found: list[Constraint] = []
@@ -778,9 +842,21 @@ def _mentioned_destination_cities(text: str, origin: str | None = None) -> list:
     lowered = _normalize(text)
     found: dict[str, object] = {}
 
+    _NEGATED_DEST_RE = re.compile(
+        r"(?:не\s+в|кроме|только\s+не\s+(?:в\s+)?|не\s+хочу\s+в|не\s+надо\s+в|не\s+летим\s+в|не\s+едем\s+в)\s*$",
+        re.IGNORECASE,
+    )
+
+    def _is_dest_negated(text: str, start_idx: int) -> bool:
+        prefix = text[max(0, start_idx - 30):start_idx].strip()
+        return bool(_NEGATED_DEST_RE.search(prefix))
+
     for dest in ds.DESTINATIONS:
-        if dest.city.lower() in lowered:
+        idx = lowered.find(dest.city.lower())
+        if idx != -1:
             if origin and dest.city.lower() == origin.lower():
+                continue
+            if _is_dest_negated(lowered, idx):
                 continue
             found[dest.city] = dest
 
@@ -885,6 +961,17 @@ def extract_user_request(
 
     patch = UserRequestPatch()
 
+    # Смена решения / сброс направления ("передумал", "давай куда-то где...")
+    change_mind_triggers = [
+        "передумал", "передумала", "в другое место", "другой город",
+        "другое направление", "куда-то где", "куда-нибудь где",
+        "поменяй город", "смени город", "не хочу в", "давай лучше в другой",
+        "давай куда-то", "давай в другой"
+    ]
+    if any(t in text.lower() for t in change_mind_triggers):
+        patch.clear_fields.append("destination")
+        patch.destination_ambiguous = False
+
     # извлекаем origin
     origin = _extract_origin(text)
     if origin:
@@ -942,7 +1029,13 @@ def extract_user_request(
         patch.budget = budget
     if currency:
         patch.currency = currency
-    budget_mode = _extract_budget_mode(text, budget, budget_range)
+
+    if any(m in text.lower() for m in _JOKE_BUDGET_MARKERS):
+        patch.hotel_requirements = patch.hotel_requirements or []
+        patch.hotel_requirements.append("joke_budget")
+
+    has_existing_budget = bool(current_request and (current_request.budget or current_request.budget_range))
+    budget_mode = _extract_budget_mode(text, budget, budget_range, has_existing_budget=has_existing_budget)
     if budget_mode:
         patch.budget_mode = budget_mode
 
@@ -960,9 +1053,14 @@ def extract_user_request(
     if constraints:
         patch.constraints = constraints
 
+    removed_con = _extract_removed_constraints(text)
+    if removed_con:
+        patch.removed_constraints = removed_con
+
     hotel_reqs = _extract_hotel_requirements(text)
     if hotel_reqs:
-        patch.hotel_requirements = hotel_reqs
+        patch.hotel_requirements = patch.hotel_requirements or []
+        patch.hotel_requirements.extend(hotel_reqs)
     removed_hotel = _extract_removed_hotel_requirements(text)
     if removed_hotel:
         patch.removed_hotel_requirements = removed_hotel

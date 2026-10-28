@@ -1,9 +1,5 @@
 """
 Узел Human-in-the-loop (ask).
-
-Формирует единое сообщение со всеми уточнениями, выводит климатические ответы
-на врезные вопросы туриста, соблюдает принцип «один шаг — одно действие»
-и вызывает LangGraph interrupt.
 """
 
 from __future__ import annotations
@@ -167,6 +163,7 @@ def _get_destination_info(city: str, month: int | None) -> dict | None:
 
 
 def _is_side_question(text: str) -> bool:
+    """Проверяет, задал ли пользователь вопрос, а не указал критерии тура."""
     if not text:
         return False
     lowered = text.strip().lower()
@@ -176,16 +173,41 @@ def _is_side_question(text: str) -> bool:
     ]
     if any(lowered.startswith(w) for w in confirm_words):
         return False
-    return "?" in lowered or any(k in lowered for k in [
-        "погода", "тепло", "холодно", "градус", "дожд", "море", "купат", "ветер", "сезон", "виз", "паспорт", "одежд",
-        "посетить", "посмотреть", "достопримечательност", "куда сходить", "интересные места"
-    ])
+
+    # Срабатываем ТОЛЬКО на знак вопроса или явные вопросительные конструкции
+    question_triggers = [
+        "подскажи", "как там", "какая погода", "тепло ли", "холодно ли",
+        "можно ли", "стоит ли", "что с погодой", "какая температура",
+        "нужна ли виза", "что посетить", "куда сходить", "что посмотреть",
+        "где шоппинг", "где шопинг", "куда поехать на шоппинг"
+    ]
+    return "?" in lowered or any(k in lowered for k in question_triggers)
 
 
 def _answer_side_question(question: str, request) -> str | None:
-    dest = getattr(request, "destination", None) or "Сочи"
-    month = None
+    dest_raw = getattr(request, "destination", None)
+    # Если направление ещё не выбрано и в вопросе нет конкретного города — не отвечаем за Сочи
+    if not dest_raw:
+        found_city = None
+        for d in ds.DESTINATIONS:
+            if d.city.lower() in question.lower():
+                found_city = d.city
+                break
+        if not found_city:
+            return None
+        dest = found_city
+    else:
+        dest_obj = ds.get_destination_by_city(dest_raw)
+        dest = dest_obj.city if dest_obj else dest_raw
 
+    # Специальный ответ про шоппинг
+    if "шопинг" in question.lower() or "шоппинг" in question.lower():
+        return (
+            "Для отличного шопинга идеален **Стамбул** — там огромные торговые центры (Cevahir, Mall of Istanbul) "
+            "и колоритные базары. Также популярен **Санкт-Петербург** с галереями и бутиками на Невском проспекте."
+        )
+
+    month = None
     if request and request.date_preferences.exact_dates:
         month = request.date_preferences.exact_dates[0].month
     elif request and request.date_preferences.month:
@@ -211,15 +233,7 @@ def _answer_side_question(question: str, request) -> str | None:
             facts.append(f"Сезонность: {info['seasonality']}")
         if info.get("description"):
             facts.append(f"Особенности: {info['description']}")
-        if info.get("districts"):
-            facts.append(f"Популярные места: {', '.join(info['districts'])}")
     facts_str = "; ".join(facts) if facts else f"Город: {dest}"
-
-    fallback_text = (
-        f"В {dest} в этот период воздух прогревается в среднем до +{info.get('air', 28)}°C, "
-        f"а вода в море около +{info.get('water', 26)}°C — отличное время для отдыха!"
-        if info and "air" in info else f"В {dest} отличная атмосфера для отдыха и прогулок!"
-    )
 
     try:
         if hasattr(settings, "DEFAULT_MODEL") and settings.DEFAULT_MODEL in GigaChatModelName:
@@ -228,18 +242,18 @@ def _answer_side_question(question: str, request) -> str | None:
             model = get_model(next(iter(GigaChatModelName)))
 
         prompt = (
-            f"Ты — дружелюбный тревел-консультант. Турист задал вопрос: \"{question}\"\n"
-            f"Факты из базы данных:\n{facts_str}\n\n"
-            f"Ответь на вопрос туриста в 1-2 предложениях на русском языке строго по этим фактам. Без вступительных приветствий."
+            f"Ты — дружелюбный тревел-консультант. Турист спросил: \"{question}\"\n"
+            f"Факты: {facts_str}\n\n"
+            f"Дай краткий ответ в 1-2 предложениях на русском строго по фактам. Без выдумывания цен и без приветствий."
         )
         resp = model.invoke([
-            SystemMessage(content="Отвечай строго по предоставленным фактам, кратко и доброжелательно."),
+            SystemMessage(content="Отвечай строго по фактам базы данных."),
             HumanMessage(content=prompt),
         ])
         return str(resp.content).strip()
     except Exception as e:
-        logger.warning("Ошибка при генерации ответа на врезной вопрос: %s", e)
-        return fallback_text
+        logger.warning("Ошибка при генерации ответа: %s", e)
+        return None
 
 
 def format_request_summary(request) -> str:
@@ -325,8 +339,8 @@ def format_request_summary(request) -> str:
     )
 
 
-def _format_destination_prompt(candidates: list[DestinationCandidate]) -> str:
-    lines = ["**Подобрал отличные направления под ваш запрос:**\n"]
+def _format_destination_prompt(candidates: list[DestinationCandidate], custom_header: str | None = None) -> str:
+    lines = [custom_header or "**Подобрал отличные направления под ваш запрос:**\n"]
     for i, cand in enumerate(candidates, start=1):
         flag = _COUNTRY_FLAGS.get(cand.country, "✈️")
         reason = f" — {cand.reason}" if cand.reason else ""
@@ -372,7 +386,7 @@ def _format_questions_prompt(questions: list[str], history_text: str = "") -> st
 def _filter_questions(questions: list[str], *, has_candidates: bool, has_dates: bool) -> list[str]:
     result = list(questions)
     if has_candidates:
-        markers = ["предложенных городов", "В какой город или страну", "Этого города нет среди доступных"]
+        markers = ["предложенных городов", "В какой город или страну"]
         result = [q for q in result if not any(m in q for m in markers)]
     if has_dates:
         markers = ["предложенных периодов", "На какие даты"]
@@ -390,14 +404,13 @@ def call_ask(state: TravelState | dict) -> dict:
         validation.get("stage") if isinstance(validation, dict) else None
     ) or _get(state, "planning_status", "collecting")
 
-    # 1. Проверяем врезной вопрос туриста
     side_answer = _get(state, "side_answer")
     if not side_answer:
         last_user_text = _last_human_message(state)
         if _is_side_question(last_user_text):
             side_answer = _answer_side_question(last_user_text, request)
 
-    # 2. Если пользователь на этапе сверки (все данные собраны) и задал вопрос — отвечаем и даем мостик
+    # 1. Если пользователь на этапе сверки задал вопрос — отвечаем и даем мостик
     if side_answer and stage == "confirmation":
         dest = _city_name(getattr(request, "destination", None)) if request else ""
         city_phrase = f" о {dest}" if dest and dest != "не выбран" else ""
@@ -410,13 +423,22 @@ def call_ask(state: TravelState | dict) -> dict:
         response = interrupt(prompt)
         return {"messages": [HumanMessage(content=str(response))]}
 
-    # 3. Основной диалоговый шаг (Один шаг — одно действие! Без каши из дат и бюджета в одном сообщении)
+    # 2. Формируем основной диалоговый шаг (без смешивания дат и бюджета)
     if stage == "confirmation" and request is not None:
         main_prompt = format_request_summary(request)
     elif stage in {"preferences", "awaiting_preferences"}:
         main_prompt = PREFERENCE_QUESTION
     elif candidates:
-        main_prompt = _format_destination_prompt(candidates)
+        custom_header = None
+        missing_list = getattr(validation, "missing", []) if validation else []
+        if "destination_unknown" in missing_list:
+            dest_name = getattr(request, "destination", "Этот город")
+            custom_header = (
+                f"К сожалению, сейчас мы не организуем туры в **{dest_name}** "
+                f"(работаем по направлениям: Сочи, Калининград, Санкт-Петербург, Стамбул, Анталья).\n\n"
+                f"**Но я подобрал отличные альтернативы под ваши пожелания:**\n"
+            )
+        main_prompt = _format_destination_prompt(candidates, custom_header)
     elif date_options:
         main_prompt = _format_date_prompt(date_options)
     else:
@@ -424,7 +446,7 @@ def call_ask(state: TravelState | dict) -> dict:
         history_text = _all_human_messages_text(state)
         main_prompt = _format_questions_prompt(extra, history_text)
 
-    # 4. Если был врезной вопрос при одновременном выборе направления/дат — ответ органично ставится сверху
+    # Если был врезной вопрос (например, про шоппинг), ответ ставится сверху
     if side_answer:
         prompt = f"☀️ **Ответ на ваш вопрос:**\n{side_answer}\n\n───────────────────────────────\n\n{main_prompt}"
     else:
