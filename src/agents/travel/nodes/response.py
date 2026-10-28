@@ -1,5 +1,6 @@
 """
-Узел формирования итогового ответа с расширенной реакцией на бюджет.
+Узел формирования итогового ответа с расширенной реакцией на бюджет
+и прозрачной детализацией стоимости (билеты + отель + трансфер).
 """
 
 from __future__ import annotations
@@ -17,18 +18,44 @@ def _format_package(pkg: dict) -> str:
     within = pkg.get("is_within_budget", True)
     mode = pkg.get("budget_mode")
 
+    transport = pkg.get("transport") or {}
+    hotel = pkg.get("hotel") or {}
+    transfer = pkg.get("transfer") or {}
+
+    t_price = transport.get("price_total", 0)
+    t_type = "🚆 Поезд" if transport.get("type") == "Поезд" else "✈️ Перелёт"
+    t_carrier = transport.get("carrier", "")
+    h_price = hotel.get("price_total", 0)
+    h_nights = hotel.get("nights", pkg.get("nights", 0))
+    h_name = hotel.get("name", "Отель")
+    tr_price = transfer.get("price_total", 0)
+
+    # Детализация, что входит в стоимость
+    breakdown_lines = []
+    if t_price:
+        carrier_str = f" ({t_carrier})" if t_carrier else ""
+        breakdown_lines.append(f"  • {t_type}{carrier_str}: **{t_price:,.0f} ₽**")
+    if h_price:
+        breakdown_lines.append(f"  • 🏨 Проживание ({h_name}, {h_nights} ноч.): **{h_price:,.0f} ₽**")
+    if tr_price:
+        tr_veh = transfer.get("vehicle", "Комфорт")
+        breakdown_lines.append(f"  • 🚖 Трансфер ({tr_veh}): **{tr_price:,.0f} ₽**")
+
     status_badge = ""
     if mode != "no_limit":
         status_badge = " — ✅ в бюджете" if within else " — ⚠️ превышает бюджет"
 
+    breakdown_block = "\n".join(breakdown_lines)
+
     lines = [
         f"🌟 **{pkg_type}**{status_badge}",
         f"{desc}",
-        f"💳 Общая стоимость: **{total:,.0f} ₽**".replace(",", " "),
+        f"📋 **В стоимость входит:**\n{breakdown_block}",
+        f"💳 **Итого к оплате:** **{total:,.0f} ₽**".replace(",", " "),
     ]
     if not within and pkg.get("over_budget_amount"):
         over = pkg["over_budget_amount"]
-        lines.append(f"Превышение бюджета: **+{over:,.0f} ₽**".replace(",", " "))
+        lines.append(f"⚠️ Превышение бюджета: **+{over:,.0f} ₽**".replace(",", " "))
     return "\n\n".join(lines)
 
 
@@ -87,7 +114,6 @@ def generate_response(state: TravelState | dict) -> dict:
     all_over = all(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
     any_over = any(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
 
-    # Защита от символического/аномального бюджета
     is_absurd_budget = budget_limit is not None and budget_limit < 5000 and budget_mode != "no_limit"
 
     lines: list[str] = []

@@ -91,14 +91,14 @@ SEARCH_CRITICAL_FIELDS = [
 # Слияние запроса
 # --------------------------------------------------------------------------
 def merge_user_request(
-    current: UserRequest | None,
-    patch: UserRequestPatch,
+        current: UserRequest | None,
+        patch: UserRequestPatch,
 ) -> UserRequest:
-    """Объединить текущий ``UserRequest`` с патчем[cite: 53].
+    """Объединить текущий ``UserRequest`` с патчем.
 
-    ``None`` в патче НЕ стирает значение[cite: 53]. Явные значения из патча заменяют
-    старые[cite: 53]. Диапазоны сохраняются как диапазоны (нижняя граница не теряется),
-    коллекции поддерживают дедупликацию и явную отмену[cite: 53].
+    ``None`` в патче НЕ стирает значение. Явные значения из патча заменяют
+    старые. Диапазоны сохраняются как диапазоны (нижняя граница не теряется),
+    коллекции поддерживают дедупликацию и явную отмену.
     """
     base = current.model_copy(deep=True) if current is not None else UserRequest()
 
@@ -108,7 +108,7 @@ def merge_user_request(
             setattr(base, field, value)
 
     # Явный выбор города снимает неоднозначность, а упоминание нескольких
-    # городов делает направление невыбранным[cite: 53].
+    # городов делает направление невыбранным.
     if patch.destination is not None:
         base.destination_ambiguous = False
     elif patch.destination_ambiguous:
@@ -127,10 +127,10 @@ def merge_user_request(
     if patch.children is not None:
         base.children = patch.children
     if (
-        patch.travelers is not None
-        or patch.traveler_range is not None
-        or patch.adults is not None
-        or patch.children is not None
+            patch.travelers is not None
+            or patch.traveler_range is not None
+            or patch.adults is not None
+            or patch.children is not None
     ):
         base.travelers_provided = True
 
@@ -195,7 +195,11 @@ def merge_user_request(
 
     # --- Явная очистка полей ---
     for field in patch.clear_fields:
-        if field == "budget":
+        if field == "destination":
+            base.destination = None
+            base.destination_country = None
+            base.destination_ambiguous = False
+        elif field == "budget":
             base.budget = None
             base.budget_range = None
             base.budget_mode = "unknown"
@@ -224,23 +228,23 @@ def merge_user_request(
 # Проверка готовности
 # --------------------------------------------------------------------------
 def validate_travel_request(
-    request: UserRequest | None,
-    *,
-    destination_selected: bool = False,
-    confirmed_date_range: DateRange | None = None,
-    travelers_provided: bool | None = None,
-    request_confirmed: bool = False,
-    reference_date: date | None = None,
+        request: UserRequest | None,
+        *,
+        destination_selected: bool = False,
+        confirmed_date_range: DateRange | None = None,
+        travelers_provided: bool | None = None,
+        request_confirmed: bool = False,
+        reference_date: date | None = None,
 ) -> ValidationResult:
-    """Единая deterministic-проверка готовности запроса[cite: 53].
+    """Единая deterministic-проверка готовности запроса.
 
     Возвращает два независимых рубежа:
 
-    * ``ready_for_confirmation`` — все обязательные данные собраны[cite: 53];
-    * ``ready_for_search`` — данные собраны И пользователь подтвердил сверку[cite: 53].
+    * ``ready_for_confirmation`` — все обязательные данные собраны;
+    * ``ready_for_search`` — данные собраны И пользователь подтвердил сверку.
 
     Параметр ``travelers_provided`` переопределяет признак из ``UserRequest``
-    (нужно для вызовов из графа)[cite: 53]. ``None`` означает «взять из запроса»[cite: 53].
+    (нужно для вызовов из графа). ``None`` означает «взять из запроса».
     """
     reference_date = reference_date or date.today()
 
@@ -271,9 +275,9 @@ def validate_travel_request(
     known_city = ds.get_destination_by_city(request.destination) if request.destination else None
     destination_ok = False
     first_stage = (
-        request.destination is None
-        and not request.destination_ambiguous
-        and pref_status == "unknown"
+            request.destination is None
+            and not request.destination_ambiguous
+            and pref_status == "unknown"
     )
 
     if request.destination:
@@ -316,7 +320,7 @@ def validate_travel_request(
     # --- Budget ---
     budget_mode = request.budget_mode
     if budget_mode == "unknown" and (
-        request.budget is not None or request.budget_range is not None
+            request.budget is not None or request.budget_range is not None
     ):
         budget_mode = "specified"
 
@@ -326,13 +330,16 @@ def validate_travel_request(
 
     budget_rub = ds.to_rub(budget_val, request.currency) if budget_val is not None else None
     budget_unrealistic = (
-        budget_mode == "specified"
-        and budget_rub is not None
-        and budget_rub < MIN_REALISTIC_BUDGET_RUB
+            budget_mode == "specified"
+            and budget_rub is not None
+            and budget_rub < MIN_REALISTIC_BUDGET_RUB
     )
 
     if budget_unrealistic:
         missing.append("budget_unrealistic")
+        budget_ok = False
+    elif "joke_budget" in request.hotel_requirements:
+        missing.append("budget")
         budget_ok = False
     else:
         budget_ok = budget_mode in {"specified", "no_limit", "flexible_scenarios"}
@@ -342,18 +349,18 @@ def validate_travel_request(
     # --- Preferences ---
     preference_ok = pref_status in {"specified", "no_preference"}
     if destination_ok:
-        # Явно выбранный пользователем город делает предпочтения необязательными[cite: 53].
+        # Явно выбранный пользователем город делает предпочтения необязательными.
         preference_ok = True
 
     ready_for_confirmation = (
-        not first_stage
-        and destination_ok
-        and bool(request.origin)
-        and date_ok
-        and travelers_ok
-        and budget_ok
-        and preference_ok
-        and not decisions
+            not first_stage
+            and destination_ok
+            and bool(request.origin)
+            and date_ok
+            and travelers_ok
+            and budget_ok
+            and preference_ok
+            and not decisions
     )
     ready_for_search = ready_for_confirmation and request_confirmed
 
@@ -398,10 +405,10 @@ def validate_travel_request(
 
 
 def _build_questions(
-    missing: list[str],
-    decisions: list[str],
-    stage: str,
-    request: UserRequest | None = None,
+        missing: list[str],
+        decisions: list[str],
+        stage: str,
+        request: UserRequest | None = None,
 ) -> list[str]:
     if stage == "preferences":
         return [PREFERENCE_QUESTION]
@@ -410,12 +417,13 @@ def _build_questions(
 
     questions: list[str] = []
     if "destination_unknown" in missing:
+        dest_name = getattr(request, "destination", "Этот город")
         questions.append(
-            "Этого города нет среди доступных направлений. Выберите город из предложенных."
+            f"К сожалению, сейчас мы не организуем туры в **{dest_name}** (работаем по направлениям: Сочи, Калининград, Санкт-Петербург, Стамбул, Анталья). Выберите город из доступных вариантов."
         )
-    if "destination" in missing:
+    if "destination" in missing and "destination_unknown" not in missing:
         questions.append("В какой город или страну планируете поездку?")
-    if "destination_selection" in decisions:
+    if "destination_selection" in decisions and "destination_unknown" not in missing:
         questions.append("Какой из предложенных городов выбираем?")
     if "dates" in missing:
         questions.append("На какие даты планируете поездку?")
@@ -423,6 +431,8 @@ def _build_questions(
         questions.append("Какой из предложенных периодов подходит?")
     if "travelers" in missing:
         questions.append("Сколько человек поедет?")
+
+    # Реакция на бюджет
     if "budget_unrealistic" in missing and request:
         amt = int(request.budget) if request.budget else (
             int(request.budget_range[1]) if request.budget_range else 100
@@ -435,6 +445,7 @@ def _build_questions(
         questions.append(
             "Какой у вас ориентировочный бюджет (валюта) — или бюджет не ограничен?"
         )
+
     if "origin" in missing:
         questions.append("Из какого города вылетаете?")
     return questions
@@ -449,7 +460,7 @@ def suggest_destinations(
     country: str | None = None,
     limit: int = 3,
 ) -> list[DestinationCandidate]:
-    """Сгенерировать подходящие направления из mock dataset[cite: 53]."""
+    """Сгенерировать подходящие направления с учётом реальной температуры воды и воздуха."""
     prefs = set()
     season = None
     month = None
@@ -461,13 +472,14 @@ def suggest_destinations(
             month = request.date_preferences.month[0]
 
     target_country = country or (request.destination_country if request else None)
-
     pool = ds.DESTINATIONS
     if target_country:
         pool = ds.cities_in_country(target_country)
-
     if not pool:
         pool = ds.DESTINATIONS
+
+    is_beach_request = any(p in prefs for p in ["beach", "sea", "warm_weather"])
+    m_num = _MONTH_NUMBER.get(month) if month else None
 
     scored: list[tuple[float, ds.Destination]] = []
     for dest in pool:
@@ -483,10 +495,19 @@ def suggest_destinations(
                 score += 1.0
         if "warm_weather" in prefs and "beach" in dest.vibes:
             score += 1.0
+
+        # Климатическая коррекция: проверяем реальную температуру воды в этот месяц
+        if m_num and is_beach_request:
+            w = ds.get_weather_info(dest.city, m_num)
+            if w and "water_temp" in w:
+                if w["water_temp"] >= 20:
+                    score += 4.0   # Тёплое море для купания (например, Анталья в ноябре +21°C)
+                elif w["water_temp"] < 18:
+                    score -= 6.0   # Холодная вода (Калининград +8°C, Сочи +16°C — не для купания!)
+
         scored.append((score, dest))
 
     scored.sort(key=lambda x: (-x[0], x[1].city))
-
     if scored and scored[0][0] > 0:
         chosen = [d for _, d in scored[:limit]]
     else:
@@ -497,7 +518,7 @@ def suggest_destinations(
             city=d.city,
             country=d.country,
             iata=d.iata,
-            reason=_reason_for(d, prefs),
+            reason=_reason_for(d, prefs, m_num),
         )
         for d in chosen
     ]
@@ -540,8 +561,16 @@ _CITY_HIGHLIGHTS = {
 }
 
 
-def _reason_for(dest: ds.Destination, prefs: set[str]) -> str:
-    """Сформировать понятное и живое описание рекомендации[cite: 53]."""
+def _reason_for(dest: ds.Destination, prefs: set[str], month_num: int | None = None) -> str:
+    """Сформировать реалистичное описание без обещания тёплого моря в холодный сезон."""
+    # Проверяем температуру воды, если запрос был про море
+    if month_num:
+        w = ds.get_weather_info(dest.city, month_num)
+        if w and w.get("water_temp", 25) < 19:
+            if "spa" in dest.vibes or "wellness" in prefs:
+                return "СПА-отдых, подогреваемые бассейны и чистый морской воздух"
+            return _CITY_HIGHLIGHTS.get(dest.city, "экскурсии, природа и прогулки по побережью")
+
     matched = [v for v in dest.vibes if v in prefs]
     if matched:
         desc = _VIBE_DESCRIPTIONS.get(matched[0])
@@ -549,12 +578,11 @@ def _reason_for(dest: ds.Destination, prefs: set[str]) -> str:
             return desc
         return "отличный выбор под ваши предпочтения"
 
-    # Индивидуальное описание для каждого города без повторов[cite: 53]
     return _CITY_HIGHLIGHTS.get(dest.city, "комфортный отдых и новые впечатления")
 
 
 def _contrastive_selection(pool: list, limit: int) -> list:
-    """Выбрать контрастные города (разные price_level и основные vibes)[cite: 53]."""
+    """Выбрать контрастные города (разные price_level и основные vibes)."""
     by_price: dict[str, list] = {}
     for d in pool:
         by_price.setdefault(d.price_level.value, []).append(d)
@@ -576,26 +604,26 @@ def _upcoming_year(month_num: int, reference_date: date) -> int:
     if month_num < reference_date.month:
         return reference_date.year + 1
     if month_num == reference_date.month:
-        # Все стартовые дни (5/12/19/26) уже прошли?[cite: 53]
+        # Все стартовые дни (5/12/19/26) уже прошли?
         if not any(day >= reference_date.day for day in (5, 12, 19, 26)):
             return reference_date.year + 1
     return reference_date.year
 
 
 def suggest_date_ranges(
-    request: UserRequest,
-    *,
-    count: int = 3,
-    year: int | None = None,
-    reference_date: date | None = None,
+        request: UserRequest,
+        *,
+        count: int = 3,
+        year: int | None = None,
+        reference_date: date | None = None,
 ) -> list[DateRange]:
-    """Сгенерировать конкретные периоды из month + duration[cite: 53]."""
+    """Сгенерировать конкретные периоды из month + duration."""
     if not request.date_preferences.month or not request.duration:
         return []
 
     if reference_date is None:
         # Явно заданный год (тесты/демо) считаем опорной точкой на его начало,
-        # иначе используем текущую дату[cite: 53].
+        # иначе используем текущую дату.
         reference_date = date(year, 1, 1) if year else date.today()
     month = request.date_preferences.month[0]
     month_num = _MONTH_NUMBER[month]
@@ -651,7 +679,7 @@ _ORDINAL_WORDS = {
 
 _ORDINAL_TOKEN = r"(\d+|перв\w*|втор\w*|трет\w*|четверт\w*|пят\w*)"
 
-# Слова-маркеры, идущие после чисел, которые НЕ относятся к выбору варианта[cite: 53]
+# Слова-маркеры, идущие после чисел, которые НЕ относятся к выбору варианта
 _UNIT_STOPWORDS = {
     "человек", "чел", "взросл", "гост", "дет", "ребен", "ребён",
     "дней", "дня", "ноч", "недел",
@@ -672,11 +700,11 @@ def _ordinal_index(token: str) -> int | None:
 
 
 def _parse_ordinal_from_text(lowered: str, qualifiers: list[str]) -> int | None:
-    """Универсальный поиск порядкового номера в любом порядке и контексте слов[cite: 53]."""
+    """Универсальный поиск порядкового номера в любом порядке и контексте слов."""
     q_pattern = "|".join(qualifiers)
 
-    # 1. Номер в самом начале строки со знаком: "1.", "1)", "1 -", "1,", "1: "[cite: 53]
-    # Работает для: "1. Планирую в эти выходные. Поедет 2 человека"[cite: 53]
+    # 1. Номер в самом начале строки со знаком: "1.", "1)", "1 -", "1,", "1: "
+    # Работает для: "1. Планирую в эти выходные. Поедет 2 человека"
     m_punct = re.match(
         r"^\s*(?:давай|хочу|выберу|выбираю|пусть будет)?\s*([1-9]|перв\w*|втор\w*|трет\w*|четверт\w*|пят\w*)\s*[\.\)\-,:]",
         lowered,
@@ -687,7 +715,7 @@ def _parse_ordinal_from_text(lowered: str, qualifiers: list[str]) -> int | None:
             return idx
 
     # 2. Номер в начале строки через пробел, если дальше НЕ единица измерения:
-    # "1 Стамбул", "1 едем", но НЕ "2 человека", НЕ "5 дней"[cite: 53]
+    # "1 Стамбул", "1 едем", но НЕ "2 человека", НЕ "5 дней"
     m_space = re.match(
         r"^\s*(?:давай|хочу|выберу|выбираю|пусть будет)?\s*([1-9]|перв\w*|втор\w*|трет\w*|четверт\w*|пят\w*)\s+([а-яёa-z]+)",
         lowered,
@@ -699,21 +727,21 @@ def _parse_ordinal_from_text(lowered: str, qualifiers: list[str]) -> int | None:
             if idx is not None:
                 return idx
 
-    # 3. Номер перед словом: "первый вариант", "1-й вариант", "1 вариант", "первый город"[cite: 53]
+    # 3. Номер перед словом: "первый вариант", "1-й вариант", "1 вариант", "первый город"
     m_qual1 = re.search(rf"\b({_ORDINAL_TOKEN})\s*(?:-?[а-яёa-z]+)?\s*(?:{q_pattern})\b", lowered)
     if m_qual1:
         idx = _ordinal_index(m_qual1.group(1))
         if idx is not None:
             return idx
 
-    # 4. Слово перед номером: "вариант 1", "город первый", "номер 2"[cite: 53]
+    # 4. Слово перед номером: "вариант 1", "город первый", "номер 2"
     m_qual2 = re.search(rf"\b(?:{q_pattern})\s*№?\s*({_ORDINAL_TOKEN})\b", lowered)
     if m_qual2:
         idx = _ordinal_index(m_qual2.group(1))
         if idx is not None:
             return idx
 
-    # 5. Глагол выбора + порядковое: "давай первый", "выберу 1", "хочу второй"[cite: 53]
+    # 5. Глагол выбора + порядковое: "давай первый", "выберу 1", "хочу второй"
     m_verb = re.search(
         rf"(?:давай|выберу|выбираю|хочу|берем|берём|поедем в|едем в|пусть будет)\s+({_ORDINAL_TOKEN})\b",
         lowered,
@@ -723,7 +751,7 @@ def _parse_ordinal_from_text(lowered: str, qualifiers: list[str]) -> int | None:
         if idx is not None:
             return idx
 
-    # 6. Одиночное число/слово во всём сообщении: "1", "первый"[cite: 53]
+    # 6. Одиночное число/слово во всём сообщении: "1", "первый"
     m_single = re.fullmatch(rf"\s*({_ORDINAL_TOKEN})\s*", lowered)
     if m_single:
         idx = _ordinal_index(m_single.group(1))
@@ -751,16 +779,16 @@ def _bare_ordinal(lowered: str) -> int | None:
 
 
 def _resolve_destination_choice(
-    message: str,
-    candidates: list[DestinationCandidate],
-    *,
-    date_expected: bool,
+        message: str,
+        candidates: list[DestinationCandidate],
+        *,
+        date_expected: bool,
 ) -> str | None:
     if not candidates:
         return None
     lowered = (message or "").strip().lower()
 
-    # Проверяем прямое название города или его алиасы[cite: 53]
+    # Проверяем прямое название города или его алиасы
     for c in candidates:
         c_city = c.city.lower()
         if c_city in lowered:
@@ -769,7 +797,7 @@ def _resolve_destination_choice(
             if stem in lowered:
                 return c.city
 
-    # Ищем порядковый номер[cite: 53]
+    # Ищем порядковый номер
     idx = _parse_ordinal_from_text(lowered, ["город", "вариант", "номер", "направление"])
     if idx is not None and 0 <= idx < len(candidates):
         return candidates[idx].city
@@ -778,11 +806,11 @@ def _resolve_destination_choice(
 
 
 def _resolve_date_choice(
-    message: str,
-    date_ranges: list[DateRange],
-    *,
-    destination_expected: bool,
-    reference_date: date | None = None,
+        message: str,
+        date_ranges: list[DateRange],
+        *,
+        destination_expected: bool,
+        reference_date: date | None = None,
 ) -> DateRange | None:
     if not date_ranges:
         return None
@@ -801,17 +829,17 @@ def _resolve_date_choice(
 
 
 def resolve_selections(
-    message: str,
-    candidates: list[DestinationCandidate],
-    date_ranges: list[DateRange] | None = None,
-    *,
-    reference_date: date | None = None,
+        message: str,
+        candidates: list[DestinationCandidate],
+        date_ranges: list[DateRange] | None = None,
+        *,
+        reference_date: date | None = None,
 ) -> tuple[str | None, DateRange | None]:
-    """Разобрать выбор города и периода одновременно[cite: 53].
+    """Разобрать выбор города и периода одновременно.
 
     Числительные, описывающие путешественников/бюджет/даты, не считаются
     выбором города: для города требуется название или явный квалификатор
-    («город 2», «вариант 3»)[cite: 53].
+    («город 2», «вариант 3»).
     """
     date_ranges = date_ranges or []
     city = _resolve_destination_choice(
@@ -827,13 +855,13 @@ def resolve_selections(
 
 
 def resolve_selection(
-    message: str,
-    candidates: list[DestinationCandidate],
-    date_ranges: list[DateRange] | None = None,
-    *,
-    reference_date: date | None = None,
+        message: str,
+        candidates: list[DestinationCandidate],
+        date_ranges: list[DateRange] | None = None,
+        *,
+        reference_date: date | None = None,
 ) -> SelectionResult:
-    """Совместимая обёртка над :func:`resolve_selections`[cite: 53]."""
+    """Совместимая обёртка над :func:`resolve_selections`."""
     city, date_range = resolve_selections(
         message, candidates, date_ranges, reference_date=reference_date
     )
@@ -862,7 +890,7 @@ _CONFIRM_NEGATIONS = [
 
 
 def is_confirmation_message(message: str) -> bool:
-    """Распознать однозначное подтверждение итоговой сверки[cite: 53]."""
+    """Распознать однозначное подтверждение итоговой сверки."""
     lowered = (message or "").strip().lower().replace("ё", "е")
     if not _CONFIRM_PATTERN.match(lowered):
         return False
@@ -872,7 +900,7 @@ def is_confirmation_message(message: str) -> bool:
 
 
 def request_fingerprint(request: UserRequest | None) -> tuple:
-    """Ключ search-критичных полей для инвалидации подтверждения[cite: 53]."""
+    """Ключ search-критичных полей для инвалидации подтверждения."""
     if request is None:
         return ()
     return (
@@ -900,12 +928,12 @@ def request_fingerprint(request: UserRequest | None) -> tuple:
 
 
 def build_search_key(
-    request: UserRequest,
-    dates: list[tuple[str, str | None]],
-    *,
-    budget_mode: str,
-    budget_limit: float | None,
-    currency: str | None,
+        request: UserRequest,
+        dates: list[tuple[str, str | None]],
+        *,
+        budget_mode: str,
+        budget_limit: float | None,
+        currency: str | None,
 ) -> str:
     return "|".join(
         [
@@ -921,7 +949,7 @@ def build_search_key(
 
 
 def trip_option_key(pkg: dict) -> tuple:
-    """Стабильный ключ результата для upsert/дедупликации[cite: 53]."""
+    """Стабильный ключ результата для upsert/дедупликации."""
     flight = pkg.get("flight") or {}
     hotel = pkg.get("hotel") or {}
     return (
@@ -938,7 +966,7 @@ def trip_option_key(pkg: dict) -> tuple:
 
 
 def dedupe_trip_options(packages: list[dict]) -> list[dict]:
-    """Удалить идентичные пакеты, сохранив порядок[cite: 53]."""
+    """Удалить идентичные пакеты, сохранив порядок."""
     seen: set[tuple] = set()
     result: list[dict] = []
     for pkg in packages:
@@ -951,36 +979,36 @@ def dedupe_trip_options(packages: list[dict]) -> list[dict]:
 
 
 def resolve_package_choice(message: str, trip_options: list[dict]) -> dict | None:
-    """Распознать выбранный пользователем вариант поездки[cite: 53]."""
+    """Распознать выбранный пользователем вариант поездки."""
     if not trip_options or not message:
         return None
     lowered = message.strip().lower()
 
-    # 1. По словам "последний", "крайний"[cite: 53]
+    # 1. По словам "последний", "крайний"
     if any(w in lowered for w in ["последн", "крайн"]):
         return trip_options[-1]
 
-    # 2. По тарифу / типу пакета (Люкс, Премиум, Комфорт, Оптимальный, Эконом)[cite: 53]
+    # 2. По тарифу / типу пакета (Люкс, Премиум, Комфорт, Оптимальный, Эконом)
     for pkg in trip_options:
         pkg_type = pkg.get("package_type", "").lower()
         if pkg_type and pkg_type in lowered:
             return pkg
 
-    # 3. По названию отеля (Mercure, Radisson, Swissôtel и т.д.)[cite: 53]
+    # 3. По названию отеля (Mercure, Radisson, Swissôtel и т.д.)
     for pkg in trip_options:
         hotel_name = pkg.get("hotel", {}).get("name", "").lower()
         hotel_stems = [w for w in re.findall(r"[a-zа-яё0-9]+", hotel_name) if len(w) >= 4]
         if any(stem in lowered for stem in hotel_stems):
             return pkg
 
-    # 4. По порядковому номеру: "вариант 3", "номер 2", "3", "3-й"[cite: 53]
+    # 4. По порядковому номеру: "вариант 3", "номер 2", "3", "3-й"
     num_m = re.search(r"(?:вариант|номер|пакет)?\s*(\d+)", lowered)
     if num_m:
         idx = int(num_m.group(1)) - 1
         if 0 <= idx < len(trip_options):
             return trip_options[idx]
 
-    # 5. Порядковые числительные: "первый", "второй", "третий"[cite: 53]
+    # 5. Порядковые числительные: "первый", "второй", "третий"
     ord_words = {"перв": 0, "втор": 1, "трет": 2, "четверт": 3, "пят": 4}
     for stem, idx in ord_words.items():
         if stem in lowered:
