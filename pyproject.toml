@@ -59,7 +59,9 @@ dependencies = [
     "langchain-mcp-adapters>=0.3.0",
     "ddgs>=9.14.4",
     "ag-ui-langgraph~=0.0.42",
+    "bcrypt>=4.0.0",
     "certifi>=2026.10.19",
+    "pyjwt>=2.8.0",
     "qrcode>=8.2",
 ]
 

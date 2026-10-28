@@ -32,7 +32,7 @@ def load_json_data(filename: str) -> list[dict]:
     file_path = _get_data_dir() / filename
     if not file_path.exists():
         return []
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 

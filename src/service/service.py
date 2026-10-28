@@ -4,13 +4,12 @@ import logging
 import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Annotated, Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRoute
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from langchain_core._api import LangChainBetaWarning
 from langchain_core.messages import (
     AIMessage,
@@ -29,7 +28,7 @@ from langsmith import uuid7
 
 from agents import DEFAULT_AGENT, get_agent, get_all_agent_info, load_agent
 from core import settings
-from memory import init_db_and_seed, initialize_database, initialize_store
+from memory import init_db_and_seed, initialize_database, initialize_store, user_storage
 from schema import (
     ChatHistory,
     ChatHistoryInput,
@@ -38,11 +37,14 @@ from schema import (
     FeedbackResponse,
     ServiceMetadata,
     StreamInput,
+    ThreadSummary,
     UserInput,
     UserThreads,
     UserThreadsInput,
 )
 from service.agui import router as agui_router
+from service.auth_router import router as auth_router
+from service.dependencies import CurrentUser, get_current_user
 from service.threads import list_user_threads
 from service.utils import (
     convert_message_content_to_string,
@@ -60,23 +62,11 @@ def custom_generate_unique_id(route: APIRoute) -> str:
     return route.name
 
 
-def verify_bearer(
-    http_auth: Annotated[
-        HTTPAuthorizationCredentials | None,
-        Depends(HTTPBearer(description="Please provide AUTH_SECRET api key.", auto_error=False)),
-    ],
-) -> None:
-    if not settings.AUTH_SECRET:
-        return
-    auth_secret = settings.AUTH_SECRET.get_secret_value()
-    if not http_auth or http_auth.credentials != auth_secret:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         await init_db_and_seed()
+        await user_storage.init_user_tables()
         async with initialize_database() as saver, initialize_store() as store:
             if hasattr(saver, "setup"):
                 await saver.setup()
@@ -85,8 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
             if not settings.AUTH_SECRET:
                 logger.warning(
-                    "AUTH_SECRET is not configured — all API endpoints are unauthenticated. "
-                    "Set AUTH_SECRET in your environment to enable bearer token authentication."
+                    "AUTH_SECRET is not configured — running with fallback dev secrets."
                 )
 
             agents = get_all_agent_info()
@@ -107,10 +96,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(lifespan=lifespan, generate_unique_id_function=custom_generate_unique_id)
-router = APIRouter(dependencies=[Depends(verify_bearer)])
+router = APIRouter(dependencies=[Depends(get_current_user)])
 router.include_router(agui_router)
 
 
+@app.get("/info", tags=["info"])
 @router.get("/info")
 async def info() -> ServiceMetadata:
     models = list(settings.AVAILABLE_MODELS)
@@ -124,12 +114,26 @@ async def info() -> ServiceMetadata:
 
 
 async def _handle_input(
-    user_input: UserInput, agent: CompiledStateGraph, agent_id: str
+    user_input: UserInput,
+    agent: CompiledStateGraph,
+    agent_id: str,
+    current_user: CurrentUser,
 ) -> tuple[dict[str, Any], UUID]:
     run_id = uuid7()
     thread_id = user_input.thread_id or str(uuid4())
-    user_id = user_input.user_id or str(uuid4())
 
+    # Check thread ownership
+    owner_id = await user_storage.get_thread_owner(thread_id)
+    if owner_id and owner_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
+    if not owner_id:
+        title = user_input.message[:60] if user_input.message else None
+        await user_storage.claim_or_touch_thread(thread_id, current_user.id, title=title)
+    else:
+        await user_storage.claim_or_touch_thread(thread_id, owner_id)
+
+    user_id = current_user.id
     configurable = {"thread_id": thread_id, "user_id": user_id}
     if user_input.model is not None:
         ensure_model_available(user_input.model)
@@ -162,14 +166,14 @@ async def _handle_input(
         task for task in state.tasks if hasattr(task, "interrupts") and task.interrupts
     ]
 
-    input: Command | dict[str, Any]
+    input_data: Command | dict[str, Any]
     if interrupted_tasks:
-        input = Command(resume=user_input.message)
+        input_data = Command(resume=user_input.message)
     else:
-        input = {"messages": [HumanMessage(content=user_input.message)]}
+        input_data = {"messages": [HumanMessage(content=user_input.message)]}
 
     kwargs = {
-        "input": input,
+        "input": input_data,
         "config": config,
     }
 
@@ -178,12 +182,20 @@ async def _handle_input(
 
 @router.post("/{agent_id}/invoke", operation_id="invoke_with_agent_id")
 @router.post("/invoke")
-async def invoke(user_input: UserInput, agent_id: str = DEFAULT_AGENT) -> ChatMessage:
+async def invoke(
+    user_input: UserInput,
+    agent_id: str = DEFAULT_AGENT,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ChatMessage:
     agent: CompiledStateGraph = get_agent(agent_id)
-    kwargs, run_id = await _handle_input(user_input, agent, agent_id)
+    kwargs, run_id = await _handle_input(user_input, agent, agent_id, current_user)
 
     try:
-        response_events: list[tuple[str, Any]] = await agent.ainvoke(**kwargs, stream_mode=["updates", "values"])
+        stream_mode_arg: Any = ["updates", "values"]
+        response_events = cast(
+            list[tuple[str, Any]],
+            await agent.ainvoke(**kwargs, stream_mode=stream_mode_arg),
+        )
         response_type, response = response_events[-1]
         if "__interrupt__" in response:
             output = langchain_to_chat_message(
@@ -202,14 +214,20 @@ async def invoke(user_input: UserInput, agent_id: str = DEFAULT_AGENT) -> ChatMe
 
 
 async def message_generator(
-    user_input: StreamInput, agent_id: str = DEFAULT_AGENT
+    user_input: StreamInput,
+    agent_id: str = DEFAULT_AGENT,
+    current_user: CurrentUser | None = None,
 ) -> AsyncGenerator[str, None]:
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     agent: CompiledStateGraph = get_agent(agent_id)
-    kwargs, run_id = await _handle_input(user_input, agent, agent_id)
+    kwargs, run_id = await _handle_input(user_input, agent, agent_id, current_user)
 
     try:
+        stream_mode_arg: Any = ["updates", "messages", "custom"]
         async for stream_event in agent.astream(
-            **kwargs, stream_mode=["updates", "messages", "custom"], subgraphs=True
+            **kwargs, stream_mode=stream_mode_arg, subgraphs=True
         ):
             if not isinstance(stream_event, tuple):
                 continue
@@ -313,9 +331,13 @@ def _sse_response_example() -> dict[int | str, Any]:
     operation_id="stream_with_agent_id",
 )
 @router.post("/stream", response_class=StreamingResponse, responses=_sse_response_example())
-async def stream(user_input: StreamInput, agent_id: str = DEFAULT_AGENT) -> StreamingResponse:
+async def stream(
+    user_input: StreamInput,
+    agent_id: str = DEFAULT_AGENT,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> StreamingResponse:
     return StreamingResponse(
-        message_generator(user_input, agent_id),
+        message_generator(user_input, agent_id, current_user),
         media_type="text.txt/event-stream",
     )
 
@@ -335,7 +357,15 @@ async def feedback(feedback: Feedback) -> FeedbackResponse:
 
 @router.post("/{agent_id}/history", operation_id="history_with_agent_id")
 @router.post("/history")
-async def history(input: ChatHistoryInput, agent_id: str = DEFAULT_AGENT) -> ChatHistory:
+async def history(
+    input: ChatHistoryInput,
+    agent_id: str = DEFAULT_AGENT,
+    current_user: CurrentUser = Depends(get_current_user),
+) -> ChatHistory:
+    owner_id = await user_storage.get_thread_owner(input.thread_id)
+    if owner_id and owner_id != current_user.id and not current_user.is_admin:
+        raise HTTPException(status_code=404, detail="Thread not found")
+
     agent: CompiledStateGraph = get_agent(agent_id)
     config = RunnableConfig(configurable={"thread_id": input.thread_id})
     try:
@@ -347,7 +377,7 @@ async def history(input: ChatHistoryInput, agent_id: str = DEFAULT_AGENT) -> Cha
                 messages = messages_from_checkpoint(tup.checkpoint)
         if not messages:
             state_snapshot = await agent.aget_state(config=config)
-            messages = state_snapshot.values["messages"]
+            messages = state_snapshot.values.get("messages", [])
         chat_messages: list[ChatMessage] = [langchain_to_chat_message(m) for m in messages]
         return ChatHistory(messages=chat_messages)
     except Exception as e:
@@ -358,15 +388,32 @@ async def history(input: ChatHistoryInput, agent_id: str = DEFAULT_AGENT) -> Cha
 @router.get("/{agent_id}/threads", operation_id="threads_with_agent_id")
 @router.get("/threads")
 async def threads(
-    input: UserThreadsInput = Depends(), agent_id: str = DEFAULT_AGENT
+    input: UserThreadsInput = Depends(),
+    agent_id: str = DEFAULT_AGENT,
+    current_user: CurrentUser = Depends(get_current_user),
 ) -> UserThreads:
+    limit = input.limit if input else 50
+    stored_threads = await user_storage.list_user_threads(current_user.id, limit=limit)
+    if stored_threads:
+        summaries = [
+            ThreadSummary(
+                thread_id=t["thread_id"],
+                agent_id=agent_id,
+                updated_at=t.get("updated_at"),
+                title=t.get("title"),
+            )
+            for t in stored_threads
+        ]
+        return UserThreads(threads=summaries)
+
+    # Checkpointer fallback if user_storage has no threads
     agent: CompiledStateGraph = get_agent(agent_id)
     checkpointer = getattr(agent, "checkpointer", None)
     if not checkpointer:
         return UserThreads(threads=[])
 
     try:
-        summaries = await list_user_threads(checkpointer, input.user_id, agent_id, input.limit)
+        summaries = await list_user_threads(checkpointer, current_user.id, agent_id, limit)
     except Exception as e:
         logger.error(f"An exception occurred: {e}")
         raise HTTPException(status_code=500, detail="Unexpected error")
@@ -389,4 +436,5 @@ async def health_check():
     return health_status
 
 
+app.include_router(auth_router)
 app.include_router(router)
