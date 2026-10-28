@@ -1,6 +1,8 @@
 import type { Config } from "tailwindcss";
+import { DESIGN_TOKENS } from "@corvax/shared";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -9,45 +11,62 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Dark purple header color
+        header: {
+          DEFAULT: "#581c87",
+          hover: "#4c1675",
+          dark: "#3b0764",
+        },
+
+        // Centralized tokens from @corvax/shared / CSS variables for theme switching
         primary: {
-          DEFAULT: "#5438DC",
-          hover: "#4328CA",
-          light: "#F0EDFD",
+          ...DESIGN_TOKENS.colors.primary,
+          light: "var(--color-primary-light, #FAF5FF)",
         },
-        secondary: {
-          DEFAULT: "#FF7A30",
-          hover: "#E86922",
-          light: "#FFF4EE",
-        },
-        tertiary: {
-          DEFAULT: "#22C55E",
-          light: "#ECFDF5",
-        },
-        canvas: "#FBFBFD",
+        secondary: DESIGN_TOKENS.colors.secondary,
+        tertiary: DESIGN_TOKENS.colors.tertiary,
+        canvas: "var(--color-canvas, #FBFBFD)",
         surface: {
-          DEFAULT: "#FFFFFF",
-          muted: "#F4F4F6",
-          subtle: "#EEEEF2",
-          border: "#E5E5EB",
+          DEFAULT: "var(--color-surface, #FFFFFF)",
+          muted: "var(--color-surface-muted, #F4F4F6)",
+          subtle: "var(--color-surface-subtle, #EEEEF2)",
+          border: "var(--color-surface-border, #E5E5EB)",
+          borderSubtle: "var(--color-surface-border-subtle, #F3F4F6)",
         },
         content: {
-          primary: "#18181B",
-          secondary: "#3F3F46",
-          muted: "#71717A",
+          primary: "var(--color-content-primary, #18181B)",
+          secondary: "var(--color-content-secondary, #3F3F46)",
+          muted: "var(--color-content-muted, #71717A)",
+          tertiary: "var(--color-content-tertiary, #9CA3AF)",
         },
+
+        // Stitch / Warm Tech Travel Workspace tokens
+        "surface-container-low": "var(--color-surface-container-low, #f6f2f7)",
+        "surface-container": "var(--color-surface-container, #f0edf1)",
+        "surface-container-high": "var(--color-surface-container-high, #eae7eb)",
+        "surface-container-highest": "var(--color-surface-container-highest, #e4e1e6)",
+        "surface-container-lowest": "var(--color-surface-container-lowest, #ffffff)",
+        "on-surface": "var(--color-on-surface, #1b1b1e)",
+        "on-surface-variant": "var(--color-on-surface-variant, #4a4453)",
+        "primary-container": "#581c87",
+        "on-primary-container": "#c7aaff",
+        "primary-fixed": "#ebddff",
+        "on-primary-fixed-variant": "#581db3",
+        "secondary-container": "#d5e3fc",
+        "on-secondary-fixed": "#0d1c2e",
+        "tertiary-container": "#00534c",
+        "tertiary-fixed": "#89f5e7",
+        "outline-variant": "var(--color-outline-variant, #ccc3d6)",
       },
+      borderRadius: DESIGN_TOKENS.borderRadius,
       fontFamily: {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-      },
-      borderRadius: {
-        xl: "12px",
-        "2xl": "16px",
-        "3xl": "24px",
+        code: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
         card: "0 1px 3px rgba(24, 24, 27, 0.04), 0 1px 2px rgba(24, 24, 27, 0.02)",
         "card-hover": "0 4px 12px rgba(24, 24, 27, 0.06), 0 2px 4px rgba(24, 24, 27, 0.03)",
-        focus: "0 0 0 3px rgba(84, 56, 220, 0.2)",
+        focus: "0 0 0 3px rgba(88, 28, 135, 0.25)",
       },
     },
   },

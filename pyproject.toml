@@ -60,6 +60,7 @@ dependencies = [
     "ddgs>=9.14.4",
     "ag-ui-langgraph~=0.0.42",
     "certifi>=2026.10.19",
+    "qrcode>=8.2",
 ]
 
 # Supply-chain cooldown: resolution only considers releases >=14 days old. Needs the

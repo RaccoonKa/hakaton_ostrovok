@@ -1,4 +1,5 @@
 import { AgUiEvent, ClientCallbacks, RunAgentInput } from "./types";
+import { normalizeTripOptions } from "../domain/normalize";
 
 /**
  * Клиент для протокола AG-UI (Agent UI), подключающийся к эндпоинту
@@ -77,7 +78,7 @@ export class AgUiClient {
               try {
                 const event: AgUiEvent = JSON.parse(dataStr);
                 this.handleAgUiEvent(event, callbacks);
-              } catch (e) {
+              } catch {
                 // Если пришла просто строка или невалидный JSON
                 callbacks.onToken?.(dataStr);
               }
@@ -108,7 +109,7 @@ export class AgUiClient {
         if (event.state && typeof event.state === "object") {
           const tripOptions = (event.state as Record<string, unknown>).trip_options;
           if (Array.isArray(tripOptions)) {
-            callbacks.onTripOptions?.(tripOptions);
+            callbacks.onTripOptions?.(normalizeTripOptions(tripOptions));
           }
         }
         break;
