@@ -658,15 +658,9 @@ export const SettingsModal: React.FC = () => {
                     {user.fullName ? user.fullName.slice(0, 1).toUpperCase() : <User className="w-6 h-6" />}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-base font-bold leading-tight">
-                        {user.fullName}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-[10px] font-bold text-emerald-200 uppercase tracking-wide flex items-center gap-1">
-                        <Check className="w-2.5 h-2.5" />
-                        Аккаунт активен
-                      </span>
-                    </div>
+                    <span className="text-base font-bold leading-tight block">
+                      {user.fullName}
+                    </span>
                     <span className="text-xs text-white/80 block mt-0.5">
                       {user.email}
                     </span>

@@ -234,9 +234,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:text-content-primary hover:bg-surface-container dark:hover:bg-white/10 transition-colors shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
-                    openSettingsModal("account");
+                    openSettingsModal("search");
                   }}
-                  title="Настройки профиля и аккаунта"
+                  title="Параметры поиска и предпочтений"
                 >
                   <Settings className="w-4 h-4" />
                 </button>

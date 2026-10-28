@@ -32,12 +32,17 @@ import { TripCardMobile } from "./src/components/cards/TripCardMobile";
 import { TripDossierView } from "./src/components/cards/TripDossierView";
 import { BookingCheckoutModal } from "./src/components/modals/DemoCheckoutModal";
 import { SidebarDrawer } from "./src/components/drawer/SidebarDrawer";
-import { ProfileModal } from "./src/components/modals/ProfileModal";
+import {
+  ProfileModal,
+  MobilePreferences,
+  DEFAULT_MOBILE_PREFERENCES,
+} from "./src/components/modals/ProfileModal";
 import { AuthModal } from "./src/components/modals/AuthModal";
 import { TravelFiltersModal } from "./src/components/modals/TravelFiltersModal";
 import { useMobileAgent } from "./src/hooks/useMobileAgent";
 
 const STORAGE_THEME_KEY = "odin_mobile_theme_v1";
+const STORAGE_PREFERENCES_KEY = "odin_travel_preferences_v1";
 
 const mobileMemoryCache = new Map<string, string>();
 ClientAuthManager.setStorageAdapter({
@@ -70,8 +75,10 @@ function MainApp() {
   const [inputText, setInputText] = useState("");
   const [historyVisible, setHistoryVisible] = useState(false);
   const [profileVisible, setProfileVisible] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<"search" | "account">("account");
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [mobilePrefs, setMobilePrefs] = useState<MobilePreferences>(DEFAULT_MOBILE_PREFERENCES);
 
   // System OS color scheme auto-detection
   const systemColorScheme = useColorScheme();
@@ -80,15 +87,35 @@ function MainApp() {
   useEffect(() => {
     (async () => {
       try {
-        const saved = await AsyncStorage.getItem(STORAGE_THEME_KEY);
-        if (saved === "light" || saved === "dark") {
-          setManualTheme(saved);
+        const [savedTheme, savedPrefs] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_THEME_KEY),
+          AsyncStorage.getItem(STORAGE_PREFERENCES_KEY),
+        ]);
+        if (savedTheme === "light" || savedTheme === "dark") {
+          setManualTheme(savedTheme);
+        }
+        if (savedPrefs) {
+          try {
+            setMobilePrefs((prev) => ({ ...prev, ...JSON.parse(savedPrefs) }));
+          } catch {
+            // fallback
+          }
         }
       } catch {
         // ignore
       }
     })();
   }, []);
+
+  const handleSaveMobilePreferences = (newPrefs: MobilePreferences) => {
+    setMobilePrefs(newPrefs);
+    AsyncStorage.setItem(STORAGE_PREFERENCES_KEY, JSON.stringify(newPrefs)).catch(() => {});
+  };
+
+  const handleOpenProfileModal = (tab: "search" | "account" = "account") => {
+    setProfileInitialTab(tab);
+    setProfileVisible(true);
+  };
 
   // Listen to system Appearance changes
   useEffect(() => {
@@ -141,7 +168,7 @@ function MainApp() {
 
   const handleOpenProfileOrAuth = () => {
     if (authSession?.user && !authSession.user.isGuest) {
-      setProfileVisible(true);
+      handleOpenProfileModal("account");
     } else {
       setAuthModalVisible(true);
     }
@@ -412,6 +439,7 @@ function MainApp() {
         {/* Traveler Profile & Settings Modal */}
         <ProfileModal
           visible={profileVisible}
+          initialTab={profileInitialTab}
           onClose={() => setProfileVisible(false)}
           currentUser={authSession?.user || null}
           onOpenAuth={() => setAuthModalVisible(true)}
@@ -419,6 +447,8 @@ function MainApp() {
             ClientAuthManager.logout(backendUrl);
             setAuthSession(ClientAuthManager.getCurrentSession());
           }}
+          preferences={mobilePrefs}
+          onSavePreferences={handleSaveMobilePreferences}
           backendUrl={backendUrl}
           onUpdateBackendUrl={setBackendUrl}
           isDark={isDark}
@@ -446,8 +476,8 @@ function MainApp() {
         onDeleteSession={(id) => deleteSession(id)}
         onNewChat={resetChat}
         activeAccount={headerAccount}
-        onOpenProfile={() => setProfileVisible(true)}
-        onOpenSearchSettings={() => setFiltersVisible(true)}
+        onOpenProfile={() => handleOpenProfileModal("account")}
+        onOpenSearchSettings={() => handleOpenProfileModal("search")}
         onOpenAuth={() => setAuthModalVisible(true)}
         onOpenProfileOrAuth={handleOpenProfileOrAuth}
         isDark={isDark}
