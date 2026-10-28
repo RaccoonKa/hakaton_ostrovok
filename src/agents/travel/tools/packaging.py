@@ -3,7 +3,7 @@
 
 Собирает перелёт/поезд + отель + трансфер из реальных JSON файлов
 (flights.json, trains.json, hotels.json, transfers.json)
-и применяет строгие фильтры по багажу, отмене, животным и пересадкам.
+и применяет строгие фильтры по багажу, отмене, животным, звёздности и пересадкам.
 """
 
 from __future__ import annotations
@@ -86,7 +86,8 @@ def search_and_package_trip(
         require_refundable: bool = False,
         free_cancellation: bool = False,
         pet_friendly: bool = False,
-        no_stops: bool = False,  # <-- ФИЛЬТР ПЕРЕСАДОК
+        no_stops: bool = False,
+        hotel_requirements: list[str] | None = None,
 ) -> list[dict]:
     """
     Ищет транспорт, отели и трансферы в data/*.json, применяет фильтры
@@ -118,6 +119,7 @@ def search_and_package_trip(
                 "refundable": f.get("refundable", False),
                 "baggage": f.get("baggage", ""),
                 "stops": f.get("stops", 0),
+                "day_offset": f.get("day_offset", 0),
                 "transit_point": f.get("transit_point"),
                 "layover_duration": f.get("layover_duration"),
                 "tags": f.get("tags", []),
@@ -181,6 +183,12 @@ def search_and_package_trip(
             ]
 
     # --- ФИЛЬТРАЦИЯ ОТЕЛЕЙ ---
+    all_reqs = set(hotel_requirements or [])
+    if "free_cancellation" in all_reqs:
+        free_cancellation = True
+    if "pet_friendly" in all_reqs:
+        pet_friendly = True
+
     hotels = [h for h in all_hotels if h.get("city", "").lower() == city_name.lower()]
 
     if free_cancellation:
@@ -189,13 +197,65 @@ def search_and_package_trip(
     if pet_friendly:
         hotels = [h for h in hotels if h.get("pet_friendly", False)]
 
+    # 1. Фильтрация по требуемой звёздности
+    target_stars = None
+    if "stars_5" in all_reqs:
+        target_stars = 5
+    elif "stars_4" in all_reqs:
+        target_stars = 4
+    elif "stars_3" in all_reqs:
+        target_stars = 3
+
+    if target_stars is not None:
+        matched_stars = [h for h in hotels if h.get("stars") == target_stars]
+        if matched_stars:
+            hotels = matched_stars
+
+    # 2. Фильтрация по расположению (центр)
+    if "center" in all_reqs:
+        center_hotels = [
+            h for h in hotels
+            if any(w in h.get("district", "").lower() for w in ["центр", "султанахмет", "невский", "исторический"])
+        ]
+        if center_hotels:
+            hotels = center_hotels
+
+    # 3. Фильтрация по виду на море / первой линии (sea_view)
+    if "sea_view" in all_reqs:
+        sea_hotels = [
+            h for h in hotels
+            if any(w in " ".join(h.get("amenities", [])).lower() for w in ["море", "пляж", "морск"])
+            or "море" in h.get("room_type", "").lower()
+            or "морск" in h.get("room_type", "").lower()
+        ]
+        if sea_hotels:
+            hotels = sea_hotels
+
+    # 4. Фильтрация по бассейну (pool)
+    if "pool" in all_reqs:
+        pool_hotels = [
+            h for h in hotels
+            if any("бассейн" in a.lower() or "pool" in a.lower() for a in h.get("amenities", []))
+        ]
+        if pool_hotels:
+            hotels = pool_hotels
+
+    # 5. Фильтрация по типу питания (all_inclusive, breakfast)
+    if "all_inclusive" in all_reqs:
+        ai_hotels = [h for h in hotels if h.get("meal_plan") == "all_inclusive"]
+        if ai_hotels:
+            hotels = ai_hotels
+    elif "breakfast" in all_reqs:
+        bf_hotels = [h for h in hotels if h.get("meal_plan") in ["breakfast", "half_board", "all_inclusive"]]
+        if bf_hotels:
+            hotels = bf_hotels
+
     nights = _nights(departure_date, return_date)
     budget_rub = _budget_to_rub(budget_limit, currency)
 
-    # Сортируем: при одинаковой цене предпочитаем прямые рейсы
+    # Сортируем транспорт (при равной цене предпочитаем прямые рейсы)
     outbound_transports.sort(key=lambda t: (t.get("stops", 0), t["price"]))
     inbound_transports.sort(key=lambda t: (t.get("stops", 0), t["price"]))
-    hotels.sort(key=lambda h: h["price_per_night"])
 
     if not outbound_transports or not hotels:
         return []
@@ -212,21 +272,35 @@ def search_and_package_trip(
 
     # ОПРЕДЕЛЯЕМ КОМБИНАЦИИ ДО ЦИКЛА
     if budget_rub is None:
-        high_tier_hotels = [h for h in hotels if h.get("stars", 0) >= 4]
-        if high_tier_hotels:
-            hotels = high_tier_hotels
-            hotels.sort(key=lambda h: (h["stars"], h.get("rating", 0), h["price_per_night"]))
+        # Если конкретная звёздность не запрашивалась, выбираем отели от 4★ и выше
+        if target_stars is None:
+            high_tier_hotels = [h for h in hotels if h.get("stars", 0) >= 4]
+            if high_tier_hotels:
+                hotels = high_tier_hotels
+
+        hotels.sort(key=lambda h: (h["stars"], h.get("rating", 0), h["price_per_night"]))
+
+        hotel_comfort = hotels[0]
+        hotel_premium = hotels[len(hotels) // 2]
+        hotel_deluxe = hotels[-1]
 
         combos = [
-            ("Комфорт", mid_out, mid_in, hotels[0], "Отличный комфорт в проверенном отеле.", 1),
-            ("Премиум", best_out, best_in, hotels[len(hotels) // 2], "Высокий уровень сервиса и перелёт регулярным рейсом.", 2),
-            ("Люкс", best_out, best_in, hotels[-1], "Максимальный класс обслуживания: отель 5★ и индивидуальный трансфер.", 2),
+            ("Комфорт", mid_out, mid_in, hotel_comfort, "Отличный комфорт в проверенном отеле.", 1),
+            ("Премиум", best_out, best_in, hotel_premium, "Высокий уровень сервиса и комфортный маршрут.", 2),
+            ("Люкс", best_out, best_in, hotel_deluxe,
+             f"Максимальный класс обслуживания: отель {hotel_deluxe['stars']}★ и индивидуальный трансфер.", 2),
         ]
     else:
+        hotels.sort(key=lambda h: h["price_per_night"])
+        hotel_budget = hotels[0]
+        hotel_comfort = hotels[len(hotels) // 2]
+        hotel_premium = hotels[-1]
+
         combos = [
-            ("Эконом", cheap_out, cheap_in, hotels[0], "Бюджетная поездка и доступный отель.", 0),
-            ("Оптимальный", mid_out, mid_in, hotels[len(hotels) // 2], "Идеальное соотношение цены и комфорта.", 1),
-            ("Комфорт", best_out, best_in, hotels[-1], "Премиальный отдых с лучшими билетами и отелем 5★.", 2),
+            ("Эконом", cheap_out, cheap_in, hotel_budget, "Бюджетная поездка и доступный отель.", 0),
+            ("Оптимальный", mid_out, mid_in, hotel_comfort, "Идеальное соотношение цены и комфорта.", 1),
+            ("Комфорт", best_out, best_in, hotel_premium,
+             f"Премиальный отдых с лучшими билетами и отелем {hotel_premium['stars']}★.", 2),
         ]
 
     packages: list[dict] = []
@@ -239,7 +313,7 @@ def search_and_package_trip(
 
         transport_total = transport_price_per_person * passengers
 
-        # Учитываем день прибытия: если поезд едет 1-2 дня, ночи в отеле считаются с момента приезда
+        # Учитываем день прибытия: дни в пути на поезде не оплачиваются в отеле
         outbound_offset = t_out.get("day_offset", 0)
         hotel_nights = max(1, nights - outbound_offset)
 
@@ -327,6 +401,7 @@ def search_and_package_trip(
                 "stars": hotel["stars"],
                 "rating": hotel.get("rating", 0),
                 "price_total": round(hotel_total, 2),
+                "nights": hotel_nights,
             },
             "grand_total": round(grand_total, 2),
             "currency": Currency.RUB.value,

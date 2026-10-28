@@ -42,7 +42,7 @@ def generate_response(state: TravelState | dict) -> dict:
         selected = getattr(state, "selected_option", None)
         request = getattr(state, "user_request", None)
 
-    # 1. Если вариант уже забронирован — фиксируем бронь и даём меню консьержа
+    # 1. Если вариант уже забронирован — активируем меню консьержа
     if selected:
         pkg_type = selected.get("package_type", "Выбранный вариант")
         total = selected.get("grand_total", 0)
@@ -75,7 +75,7 @@ def generate_response(state: TravelState | dict) -> dict:
             ]
         }
 
-    # 3. Первичный показ списка вариантов с умным анализом бюджета
+    # 3. Анализ бюджета и формирование ответа
     dest = getattr(request, "destination", None) if request else None
     dest_name = _city_name(dest) if dest else ""
 
@@ -87,10 +87,21 @@ def generate_response(state: TravelState | dict) -> dict:
     all_over = all(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
     any_over = any(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
 
+    # Защита от символического/аномального бюджета
+    is_absurd_budget = budget_limit is not None and budget_limit < 5000 and budget_mode != "no_limit"
+
     lines: list[str] = []
 
-    # Формируем человечный заголовок в зависимости от ситуации с бюджетом
-    if all_over and budget_limit:
+    if is_absurd_budget and trip_options:
+        min_price = min(pkg.get("grand_total", 0) for pkg in trip_options)
+        lines.append(
+            f"⚠️ **Обратите внимание по бюджету:**\n"
+            f"Заявленная сумма **{budget_limit:,.0f} ₽** символическая и не покрывает даже минимальную стоимость билетов. "
+            f"Реальная стоимость готового тура в {dest_name} (билеты, отель и трансфер) "
+            f"начинается от **{min_price:,.0f} ₽**.\n\n"
+            f"Вот лучшие найденные варианты:\n".replace(",", " ")
+        )
+    elif all_over and budget_limit:
         min_over = min(pkg.get("over_budget_amount", 0) for pkg in trip_options)
         lines.append(
             f"⚠️ **Обратите внимание по бюджету:**\n"
@@ -113,8 +124,11 @@ def generate_response(state: TravelState | dict) -> dict:
     for pkg in trip_options:
         lines.append(_format_package(pkg))
 
-    # Заключительная подсказка
-    if all_over and budget_limit:
+    if is_absurd_budget:
+        lines.append(
+            "💡 Чтобы мы подобрали варианты строго в рамках ваших возможностей, укажите реальный бюджет (например, 100 000 ₽) или напишите «без ограничений»."
+        )
+    elif all_over and budget_limit:
         lines.append(
             "💡 **Как можно снизить стоимость, чтобы уложиться в бюджет:**\n"
             "• Сократить поездку на 1–2 ночи;\n"

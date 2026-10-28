@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import logging
 from langchain_core.messages import BaseMessage, HumanMessage
 
 from agents.travel.logic.decision import (
@@ -15,9 +16,16 @@ from agents.travel.logic.decision import (
     validate_travel_request,
 )
 from agents.travel.logic.extraction import extract_user_request
+from agents.travel.logic.llm_fallback import (
+    extract_with_llm,
+    merge_llm_into_deterministic,
+    should_call_llm_fallback,
+)
 from agents.travel.state import TravelState
 from agents.travel.tools import mock_dataset as ds
 from domain.request import UserRequest
+
+logger = logging.getLogger(__name__)
 
 
 def _get(state, key, default=None):
@@ -51,23 +59,21 @@ def call_extract(state: TravelState | dict) -> dict:
 
     message = _last_human_message(list(messages))
 
-    # --- Если тур уже выбран и мы в режиме консьержа ---
+    # 1. Режим консьержа
     if selected_option:
-        # Проверяем, не хочет ли пользователь сменить тур
         reset_words = ["другой вариант", "другой тур", "поменяй тур", "выбрать другой", "начать заново", "сброс"]
         if any(w in message.lower() for w in reset_words):
             return {
                 "selected_option": None,
                 "planning_status": "results_ready",
             }
-        # Иначе просто оставляем всё без изменений — консьерж ответит на вопрос
         return {
             "user_request": current_request,
             "selected_option": selected_option,
             "trip_options": trip_options,
         }
 
-    # --- Выбор пакета из предложенных вариантов ---
+    # 2. Выбор пакета
     chosen_package = None
     if trip_options and not selected_option and message:
         chosen_package = resolve_package_choice(message, trip_options)
@@ -75,17 +81,32 @@ def call_extract(state: TravelState | dict) -> dict:
             selected_option = chosen_package
 
     selected_date = None
-    patch = None
+    side_answer = None
 
     if chosen_package:
         request = current_request or UserRequest()
         changed = False
     else:
+        # Первичный детерминированный парсинг
         patch = extract_user_request(message, current_request)
+
+        # Вызов NLU-фоллбэка на GigaChat (Условия А, Б, В и врезные вопросы)
+        last_val = _get(state, "last_validation")
+        stage = getattr(last_val, "stage", None) if last_val else None
+
+        if should_call_llm_fallback(message, patch, current_request, stage):
+            try:
+                llm_patch, side_ans = extract_with_llm(message, current_request)
+                patch = merge_llm_into_deterministic(patch, llm_patch)
+                if side_ans:
+                    side_answer = side_ans
+            except Exception as e:
+                logger.warning("LLM fallback extraction error: %s", e)
 
         if message and "не ограничен" in message.lower():
             patch.budget_mode = "no_limit"
 
+        # Разрешение вариантов при показе кнопок/списков выбора
         if message and (candidates or date_options):
             selected_city, selected_date = resolve_selections(message, candidates, date_options)
             if selected_city:
@@ -159,6 +180,8 @@ def call_extract(state: TravelState | dict) -> dict:
         "aggregate_calls": aggregate_calls,
         "search_diagnostics": search_diagnostics,
     }
+    if side_answer:
+        updates["side_answer"] = side_answer
     if confirmed_range is not None:
         updates["confirmed_date_range"] = confirmed_range
     elif changed:
