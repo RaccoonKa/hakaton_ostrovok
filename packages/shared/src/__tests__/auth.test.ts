@@ -23,8 +23,6 @@ test("ClientAuthManager saves and restores session using standard ticket keys", 
       fullName: "Алексей Смирнов",
       phone: "+79991234567",
       isGuest: false,
-      tier: "Премиум" as const,
-      bonusMiles: 5000,
       createdAt: "2026-10-28T14:00:00Z",
     },
   };

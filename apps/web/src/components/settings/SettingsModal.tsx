@@ -13,10 +13,7 @@ import {
   ShieldCheck,
   Mail,
   Phone,
-  FileText,
-  Send,
   LogOut,
-  Sparkles,
   Search,
   Plus,
   ChevronDown,
@@ -26,7 +23,6 @@ import {
   usePreferences,
   CurrencyCode,
   TravelPreferences,
-  UserProfile,
 } from "../../context/PreferencesContext";
 import { useAuth } from "../../context/AuthContext";
 
@@ -63,17 +59,14 @@ export const SettingsModal: React.FC = () => {
   const {
     preferences,
     updatePreferences,
-    profile,
-    updateProfile,
     isSettingsModalOpen,
     activeTab,
     setActiveTab,
     closeSettingsModal,
   } = usePreferences();
-  const { isAuthenticated, logout, openAuthModal } = useAuth();
+  const { isAuthenticated, user, logout, openAuthModal } = useAuth();
 
   const [draftPrefs, setDraftPrefs] = useState<TravelPreferences>(preferences);
-  const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
   const [isSaved, setIsSaved] = useState(false);
 
   // Dynamic list of city chips: starts with POPULAR_CITIES + includes any selected city
@@ -119,7 +112,6 @@ export const SettingsModal: React.FC = () => {
   useEffect(() => {
     if (isSettingsModalOpen) {
       setDraftPrefs(preferences);
-      setDraftProfile(profile);
       setIsSaved(false);
       setCityQuery("");
       setIsCityDropdownOpen(false);
@@ -131,7 +123,7 @@ export const SettingsModal: React.FC = () => {
         );
       }
     }
-  }, [isSettingsModalOpen, preferences, profile]);
+  }, [isSettingsModalOpen, preferences]);
 
   // Click outside to close dropdowns
   useEffect(() => {
@@ -197,7 +189,6 @@ export const SettingsModal: React.FC = () => {
 
   const handleSave = () => {
     updatePreferences(draftPrefs);
-    updateProfile(draftProfile);
     setIsSaved(true);
     setTimeout(() => {
       closeSettingsModal();
@@ -634,7 +625,7 @@ export const SettingsModal: React.FC = () => {
                 </div>
               </div>
             </>
-          ) : !isAuthenticated ? (
+          ) : !isAuthenticated || !user || user.isGuest ? (
             /* Unauthenticated Account State */
             <div className="p-8 rounded-2xl bg-surface-muted/50 dark:bg-white/5 border border-surface-border text-center flex flex-col items-center justify-center my-4">
               <div className="w-14 h-14 rounded-full bg-[#581c87]/15 dark:bg-purple-900/30 text-[#581c87] dark:text-purple-300 flex items-center justify-center mb-3.5 shadow-xs">
@@ -644,7 +635,7 @@ export const SettingsModal: React.FC = () => {
                 Личный кабинет путешественника
               </h4>
               <p className="text-xs text-content-muted mb-5 max-w-sm">
-                Войдите или зарегистрируйтесь, чтобы сохранять историю маршрутов, управлять бронированиями и быстро оформлять билеты.
+                Войдите или зарегистрируйтесь, чтобы сохранять историю диалогов на сервере и синхронизировать поездки.
               </p>
               <button
                 type="button"
@@ -658,184 +649,84 @@ export const SettingsModal: React.FC = () => {
               </button>
             </div>
           ) : (
-            /* TAB 2: User Profile & Account Settings */
-            <>
-              {/* Premium Tier Card */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-900 to-[#6b3b90] text-white shadow-sm flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white shrink-0">
-                    <User className="w-6 h-6" />
+            /* TAB 2: User Profile & Account Details (Real Backend Data) */
+            <div className="space-y-4">
+              {/* Account summary card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-[#581c87] to-[#7e22ce] text-white shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center text-white text-lg font-bold shrink-0">
+                    {user.fullName ? user.fullName.slice(0, 1).toUpperCase() : <User className="w-6 h-6" />}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-base font-bold leading-tight">
-                        {draftProfile.fullName}
+                        {user.fullName}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full bg-amber-400/25 border border-amber-300/40 text-[10px] font-bold text-amber-200 uppercase tracking-wide flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        Премиум
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-[10px] font-bold text-emerald-200 uppercase tracking-wide flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5" />
+                        Аккаунт активен
                       </span>
                     </div>
                     <span className="text-xs text-white/80 block mt-0.5">
-                      {draftProfile.email}
+                      {user.email}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Personal Details */}
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
+              <div className="p-4 rounded-xl border border-surface-border bg-surface-muted/30 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-2">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  <span>Данные аккаунта</span>
+                  <span>Данные профиля</span>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-content-secondary mb-1">
-                      Имя и фамилия
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 text-content-muted absolute left-3 top-2.5" />
-                      <input
-                        type="text"
-                        value={draftProfile.fullName}
-                        onChange={(e) =>
-                          setDraftProfile((p) => ({ ...p, fullName: e.target.value }))
-                        }
-                        className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                      />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-lg bg-surface border border-surface-border">
+                    <span className="text-content-muted block text-[11px] mb-1">Имя пользователя</span>
+                    <div className="flex items-center gap-2 font-medium text-content-primary">
+                      <User className="w-3.5 h-3.5 text-content-muted shrink-0" />
+                      <span>{user.fullName || "—"}</span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-xs font-medium text-content-secondary mb-1">
-                        Электронная почта
-                      </label>
-                      <div className="relative">
-                        <Mail className="w-4 h-4 text-content-muted absolute left-3 top-2.5" />
-                        <input
-                          type="email"
-                          value={draftProfile.email}
-                          onChange={(e) =>
-                            setDraftProfile((p) => ({ ...p, email: e.target.value }))
-                          }
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                        />
-                      </div>
+                  <div className="p-3 rounded-lg bg-surface border border-surface-border">
+                    <span className="text-content-muted block text-[11px] mb-1">Электронная почта</span>
+                    <div className="flex items-center gap-2 font-medium text-content-primary">
+                      <Mail className="w-3.5 h-3.5 text-content-muted shrink-0" />
+                      <span className="truncate">{user.email || "—"}</span>
                     </div>
+                  </div>
 
-                    <div>
-                      <label className="block text-xs font-medium text-content-secondary mb-1">
-                        Телефон
-                      </label>
-                      <div className="relative">
-                        <Phone className="w-4 h-4 text-content-muted absolute left-3 top-2.5" />
-                        <input
-                          type="tel"
-                          value={draftProfile.phone}
-                          onChange={(e) =>
-                            setDraftProfile((p) => ({ ...p, phone: e.target.value }))
-                          }
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                        />
-                      </div>
+                  <div className="p-3 rounded-lg bg-surface border border-surface-border">
+                    <span className="text-content-muted block text-[11px] mb-1">Телефон</span>
+                    <div className="flex items-center gap-2 font-medium text-content-primary">
+                      <Phone className="w-3.5 h-3.5 text-content-muted shrink-0" />
+                      <span>{user.phone || "Не указан"}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-lg bg-surface border border-surface-border">
+                    <span className="text-content-muted block text-[11px] mb-1">ID пользователя</span>
+                    <div className="flex items-center gap-2 font-mono text-[11px] text-content-secondary">
+                      <span className="truncate">{user.id}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Travel Documents */}
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-3">
-                  <FileText className="w-4 h-4 text-primary" />
-                  <span>Документы для бронирования</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2">
-                  <div>
-                    <label className="block text-xs font-medium text-content-secondary mb-1">
-                      Паспорт РФ (поездки по России)
-                    </label>
-                    <input
-                      type="text"
-                      value={draftProfile.domesticPassport}
-                      onChange={(e) =>
-                        setDraftProfile((p) => ({ ...p, domesticPassport: e.target.value }))
-                      }
-                      placeholder="Серия и номер"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-content-secondary mb-1">
-                      Загранпаспорт (международные туры)
-                    </label>
-                    <input
-                      type="text"
-                      value={draftProfile.intlPassport}
-                      onChange={(e) =>
-                        setDraftProfile((p) => ({ ...p, intlPassport: e.target.value }))
-                      }
-                      placeholder="Серия и номер"
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-surface-border focus:border-primary focus:outline-none bg-surface-muted/60 text-content-primary"
-                    />
-                  </div>
-                </div>
-
-                <span className="text-[11px] text-content-muted block leading-tight">
-                  🔒 Данные хранятся локально и автоматически подставляются при быстром бронировании
-                  в Ostrovok Travel Gateway.
-                </span>
-              </div>
-
-              {/* Telegram & Notifications */}
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold text-content-primary uppercase tracking-wider mb-2.5">
-                  <Send className="w-4 h-4 text-primary" />
-                  <span>Уведомления и интеграции</span>
-                </div>
-
-                <label className="flex items-center justify-between p-3 rounded-xl border border-surface-border hover:bg-surface-muted/60 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2.5">
-                    <Send className="w-4 h-4 text-sky-500 shrink-0" />
-                    <div>
-                      <span className="text-xs font-semibold text-content-primary block">
-                        Telegram-бот (@odin_travel_bot)
-                      </span>
-                      <span className="text-[11px] text-content-muted">
-                        Уведомления об изменении статуса рейсов и падении цен
-                      </span>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={draftProfile.telegramNotifications}
-                    onChange={(e) =>
-                      setDraftProfile((p) => ({
-                        ...p,
-                        telegramNotifications: e.target.checked,
-                      }))
-                    }
-                    className="w-4 h-4 accent-primary rounded cursor-pointer"
-                  />
-                </label>
               </div>
 
               {/* Logout button */}
-              <div className="pt-2 border-t border-surface-border flex justify-end">
+              <div className="pt-2 flex justify-end">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Выйти из аккаунта</span>
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -860,22 +751,24 @@ export const SettingsModal: React.FC = () => {
               onClick={closeSettingsModal}
               className="px-3.5 py-2 text-xs font-semibold text-content-secondary hover:bg-surface-subtle rounded-xl transition-colors"
             >
-              Отмена
+              {activeTab === "search" ? "Отмена" : "Закрыть"}
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-hover active:bg-primary-active rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-            >
-              {isSaved ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>Сохранено!</span>
-                </>
-              ) : (
-                <span>Сохранить</span>
-              )}
-            </button>
+            {activeTab === "search" && (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-hover active:bg-primary-active rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+              >
+                {isSaved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    <span>Сохранено!</span>
+                  </>
+                ) : (
+                  <span>Сохранить</span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

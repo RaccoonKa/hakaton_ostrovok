@@ -29,10 +29,13 @@ export interface SidebarDrawerProps {
   onNewChat: () => void;
   activeAccount?: {
     name: string;
+    email?: string;
     avatarInitials: string;
-    tier: string;
+    tier?: string;
   };
-  onOpenProfileOrAuth: () => void;
+  onOpenProfile?: () => void;
+  onOpenAuth?: () => void;
+  onOpenProfileOrAuth?: () => void;
   isDark?: boolean;
 }
 
@@ -45,6 +48,8 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   onDeleteSession,
   onNewChat,
   activeAccount,
+  onOpenProfile,
+  onOpenAuth,
   onOpenProfileOrAuth,
   isDark = false,
 }) => {
@@ -119,7 +124,20 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
   };
 
   const handleProfilePress = () => {
-    onOpenProfileOrAuth();
+    if (onOpenProfile) {
+      onOpenProfile();
+    } else if (onOpenProfileOrAuth) {
+      onOpenProfileOrAuth();
+    }
+    handleClose();
+  };
+
+  const handleAuthPress = () => {
+    if (onOpenAuth) {
+      onOpenAuth();
+    } else if (onOpenProfileOrAuth) {
+      onOpenProfileOrAuth();
+    }
     handleClose();
   };
 
@@ -425,7 +443,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                       style={[styles.profileTier, { color: colors.textMuted }]}
                       numberOfLines={1}
                     >
-                      {activeAccount.tier || "Путешественник"}
+                      {activeAccount.email || "Подтверждённый аккаунт"}
                     </Text>
                   </View>
                 </View>
@@ -435,42 +453,64 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 </View>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={[
-                  styles.loginButton,
-                  {
-                    backgroundColor: isDark
-                      ? "rgba(88, 28, 135, 0.25)"
-                      : "rgba(88, 28, 135, 0.08)",
-                    borderColor: isDark
-                      ? "rgba(192, 132, 252, 0.25)"
-                      : "rgba(88, 28, 135, 0.18)",
-                  },
-                ]}
-                onPress={handleProfilePress}
-                activeOpacity={0.8}
-              >
-                <View style={styles.loginLeft}>
-                  <View style={styles.loginIconBox}>
-                    <Icon name="log-in" size={14} color="#FFFFFF" />
+              <View style={styles.guestFooterRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.loginButton,
+                    {
+                      flex: 1,
+                      backgroundColor: isDark
+                        ? "rgba(88, 28, 135, 0.25)"
+                        : "rgba(88, 28, 135, 0.08)",
+                      borderColor: isDark
+                        ? "rgba(192, 132, 252, 0.25)"
+                        : "rgba(88, 28, 135, 0.18)",
+                    },
+                  ]}
+                  onPress={handleAuthPress}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.loginLeft}>
+                    <View style={styles.loginIconBox}>
+                      <Icon name="log-in" size={14} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.loginTextCol}>
+                      <Text
+                        style={[
+                          styles.loginTitle,
+                          { color: isDark ? "#C084FC" : "#581C87" },
+                        ]}
+                      >
+                        Вход в аккаунт
+                      </Text>
+                      <Text
+                        style={[styles.loginSubtitle, { color: colors.textMuted }]}
+                      >
+                        Сохранение диалогов
+                      </Text>
+                    </View>
                   </View>
-                  <View style={styles.loginTextCol}>
-                    <Text
-                      style={[
-                        styles.loginTitle,
-                        { color: isDark ? "#C084FC" : "#581C87" },
-                      ]}
-                    >
-                      Вход в аккаунт
-                    </Text>
-                    <Text
-                      style={[styles.loginSubtitle, { color: colors.textMuted }]}
-                    >
-                      Сохранение маршрутов
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.settingsBtnGuest,
+                    {
+                      backgroundColor: isDark
+                        ? "rgba(255, 255, 255, 0.06)"
+                        : "rgba(0, 0, 0, 0.04)",
+                      borderColor: isDark
+                        ? "rgba(255, 255, 255, 0.10)"
+                        : "rgba(0, 0, 0, 0.08)",
+                    },
+                  ]}
+                  onPress={handleProfilePress}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Настройки приложения"
+                >
+                  <Icon name="settings" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </Animated.View>
@@ -760,5 +800,18 @@ const styles = StyleSheet.create({
   loginSubtitle: {
     fontSize: 9,
     lineHeight: 12,
+  },
+  guestFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  settingsBtnGuest: {
+    width: 44,
+    height: 44,
+    borderRadius: 11,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

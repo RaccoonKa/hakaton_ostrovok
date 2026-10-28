@@ -127,6 +127,7 @@ function MainApp() {
   const headerAccount = (authSession?.user && !authSession.user.isGuest)
     ? {
         name: authSession.user.fullName,
+        email: authSession.user.email,
         avatarInitials: authSession.user.fullName
           ? authSession.user.fullName
               .split(" ")
@@ -135,7 +136,6 @@ function MainApp() {
               .slice(0, 2)
               .toUpperCase()
           : "ПУ",
-        tier: authSession.user.tier || "Стандарт",
       }
     : undefined;
 
@@ -248,6 +248,7 @@ function MainApp() {
         onNewChatPress={resetChat}
         isDark={isDark}
         onToggleTheme={toggleTheme}
+        onProfilePress={() => setProfileVisible(true)}
       />
 
       <KeyboardAvoidingView
@@ -446,6 +447,8 @@ function MainApp() {
         onDeleteSession={(id) => deleteSession(id)}
         onNewChat={resetChat}
         activeAccount={headerAccount}
+        onOpenProfile={() => setProfileVisible(true)}
+        onOpenAuth={() => setAuthModalVisible(true)}
         onOpenProfileOrAuth={handleOpenProfileOrAuth}
         isDark={isDark}
       />

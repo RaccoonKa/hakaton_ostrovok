@@ -72,9 +72,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [selectedCity, setSelectedCity] = useState("MOW");
   const [selectedCurrency, setSelectedCurrency] = useState("RUB");
 
-  const [editPassport, setEditPassport] = useState(currentUser?.passportNumber || "");
-  const [editIntlPassport, setEditIntlPassport] = useState(currentUser?.intlPassport || "");
-
   const [serverUrl, setServerUrl] = useState(backendUrl || "https://strong-colts-own.loca.lt");
   const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
   const [statusMessage, setStatusMessage] = useState("");
@@ -190,7 +187,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             showsVerticalScrollIndicator={false}
           >
             {/* Account Card */}
-            {currentUser ? (
+            {currentUser && !currentUser.isGuest ? (
               <View style={styles.profileCard}>
                 <View style={styles.profileHeader}>
                   <View style={styles.avatarCircle}>
@@ -208,41 +205,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   <View style={styles.profileInfoCol}>
                     <View style={styles.profileNameRow}>
                       <Text style={styles.profileName}>{currentUser.fullName}</Text>
-                      <View style={styles.tierBadge}>
-                        <Text style={styles.tierBadgeText}>{currentUser.tier}</Text>
+                      <View style={styles.statusBadge}>
+                        <Text style={styles.statusBadgeText}>Активен</Text>
                       </View>
                     </View>
                     <Text style={styles.profileEmail}>{currentUser.email}</Text>
                     {currentUser.phone ? (
                       <Text style={styles.profilePhone}>{currentUser.phone}</Text>
                     ) : null}
-                  </View>
-                </View>
-
-                {/* Passport details for fast checkout */}
-                <View style={styles.passportSection}>
-                  <Text style={styles.passportSectionTitle}>Документы для бронирования</Text>
-                  <View style={styles.passportInputsRow}>
-                    <View style={styles.passportInputCol}>
-                      <Text style={styles.passportInputLabel}>Паспорт РФ</Text>
-                      <TextInput
-                        style={styles.passportInput}
-                        value={editPassport}
-                        onChangeText={setEditPassport}
-                        placeholder="Серия и номер"
-                        placeholderTextColor={theme.colors.textMuted}
-                      />
-                    </View>
-                    <View style={styles.passportInputCol}>
-                      <Text style={styles.passportInputLabel}>Загранпаспорт</Text>
-                      <TextInput
-                        style={styles.passportInput}
-                        value={editIntlPassport}
-                        onChangeText={setEditIntlPassport}
-                        placeholder="Серия и номер"
-                        placeholderTextColor={theme.colors.textMuted}
-                      />
-                    </View>
                   </View>
                 </View>
 
@@ -267,7 +237,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </View>
                 <Text style={styles.unauthTitle}>Личный кабинет путешественника</Text>
                 <Text style={styles.unauthSubtitle}>
-                  Авторизуйтесь, чтобы сохранять историю диалогов и быстрее бронировать найденные туры.
+                  Авторизуйтесь, чтобы сохранять историю диалогов на сервере и синхронизировать поездки.
                 </Text>
                 <TouchableOpacity
                   style={styles.loginActionBtn}
@@ -535,16 +505,19 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
-  tierBadge: {
-    backgroundColor: theme.colors.primaryLight,
+  statusBadge: {
+    backgroundColor: "rgba(16, 185, 129, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
   },
-  tierBadgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: theme.colors.primary,
+  statusBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#059669",
+    textTransform: "uppercase",
   },
   profileEmail: {
     fontSize: 12,
@@ -555,39 +528,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textSecondary,
     marginTop: 1,
-  },
-  passportSection: {
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderSubtle,
-    paddingTop: 12,
-    gap: 8,
-  },
-  passportSectionTitle: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: theme.colors.textSecondary,
-  },
-  passportInputsRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  passportInputCol: {
-    flex: 1,
-    gap: 4,
-  },
-  passportInputLabel: {
-    fontSize: 11,
-    color: theme.colors.textMuted,
-  },
-  passportInput: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 12,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surfaceContainerLow,
   },
   logoutButton: {
     flexDirection: "row",

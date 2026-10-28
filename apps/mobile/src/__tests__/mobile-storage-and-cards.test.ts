@@ -62,8 +62,6 @@ test("ClientAuthManager supports custom storage adapter fallback", () => {
       fullName: "Тестовый Путешественник",
       phone: "+7 999 123-45-67",
       isGuest: false,
-      tier: "gold" as const,
-      bonusMiles: 1000,
       createdAt: "2026-10-27",
     },
   };

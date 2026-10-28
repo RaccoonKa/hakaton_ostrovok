@@ -39,8 +39,6 @@ export function mapRawAuthUser(raw: any): AuthUser {
       fullName: "Гость",
       phone: null,
       isGuest: true,
-      tier: "Базовый",
-      bonusMiles: 0,
       createdAt: new Date().toISOString(),
     };
   }
@@ -54,10 +52,6 @@ export function mapRawAuthUser(raw: any): AuthUser {
       (isGuest ? "Гость" : (raw.email?.split("@")[0] || "Путешественник")),
     phone: raw.phone ?? null,
     isGuest,
-    tier: raw.tier || (isGuest ? "Базовый" : "Стандарт"),
-    bonusMiles: raw.bonusMiles ?? (isGuest ? 0 : 1000),
-    passportNumber: raw.passportNumber,
-    intlPassport: raw.intlPassport,
     createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
   };
 }

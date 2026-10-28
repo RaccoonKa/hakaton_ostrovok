@@ -4,10 +4,6 @@ export interface AuthUser {
   fullName: string;
   phone?: string | null;
   isGuest: boolean;
-  tier?: "Базовый" | "Стандарт" | "Премиум" | "Бизнес";
-  bonusMiles?: number;
-  passportNumber?: string;
-  intlPassport?: string;
   createdAt: string;
 }
 
