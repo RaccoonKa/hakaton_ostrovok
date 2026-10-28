@@ -184,7 +184,7 @@ async def claim_or_touch_thread(
                         VALUES (%s, %s, %s, NOW())
                         ON CONFLICT (thread_id) DO UPDATE SET
                             updated_at = NOW(),
-                            title = COALESCE(EXCLUDED.title, user_threads.title),
+                            title = COALESCE(user_threads.title, EXCLUDED.title),
                             user_id = CASE
                                 WHEN user_threads.user_id LIKE 'guest_%' AND EXCLUDED.user_id NOT LIKE 'guest_%'
                                 THEN EXCLUDED.user_id
@@ -208,7 +208,7 @@ async def claim_or_touch_thread(
             if existing["user_id"].startswith("guest_") and not user_id.startswith("guest_"):
                 existing["user_id"] = user_id
             existing["updated_at"] = now
-            if title is not None:
+            if not existing.get("title") and title is not None:
                 existing["title"] = title
             return str(existing["user_id"])
         else:

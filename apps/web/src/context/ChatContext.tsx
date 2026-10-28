@@ -119,7 +119,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [currentUserId]);
 
-  // Synchronize server threads for the authenticated user
+  // Synchronize server threads for the authenticated user & live background polling
   useEffect(() => {
     let isMounted = true;
     const fetchServerThreads = async () => {
@@ -139,14 +139,54 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   tripOptions: [],
                   selectedOption: null,
                 });
-              } else if (!merged[existingIdx].title && t.title) {
-                merged[existingIdx].title = t.title;
+              } else {
+                if (!merged[existingIdx].title && t.title) {
+                  merged[existingIdx].title = t.title;
+                }
+                if (t.updated_at) {
+                  merged[existingIdx].timestamp = t.updated_at;
+                }
               }
             }
             merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             saveSessionsToStorage(merged);
             return merged;
           });
+
+          // If active thread is open, sync any new messages from server (e.g. sent from mobile)
+          const activeId = threadIdRef.current;
+          if (activeId && !isLoading) {
+            try {
+              const hist = await clientRef.current.getHistory(activeId);
+              if (hist?.messages && Array.isArray(hist.messages) && isMounted) {
+                setMessages((current) => {
+                  if (hist.messages.length > current.length) {
+                    let extractedOptions: TripOption[] = tripOptions;
+                    const mapped = hist.messages.map((m: any, idx: number) => {
+                      const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+                      if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+                        extractedOptions = normalizeTripOptions(rawOpts);
+                      }
+                      return {
+                        id: m.run_id || `srv_${activeId}_${idx}`,
+                        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+                        type: m.type === "human" ? "human" : "ai",
+                        role: m.type === "human" ? "user" : "assistant",
+                        timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+                        trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+                        tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+                      };
+                    });
+                    setTripOptions(extractedOptions);
+                    return mapped;
+                  }
+                  return current;
+                });
+              }
+            } catch {
+              // offline safe
+            }
+          }
         }
       } catch {
         // Fallback safely if unauthenticated or server offline
@@ -156,11 +196,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchServerThreads();
     const handleStorageChange = () => fetchServerThreads();
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("focus", fetchServerThreads);
+    const pollTimer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        fetchServerThreads();
+      }
+    }, 3500);
+
     return () => {
       isMounted = false;
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("focus", fetchServerThreads);
+      clearInterval(pollTimer);
     };
-  }, [authToken, currentUserId, saveSessionsToStorage]);
+  }, [authToken, currentUserId, saveSessionsToStorage, isLoading, tripOptions]);
 
   // Persist current chat state into sessions list
   const persistCurrentState = useCallback(
@@ -229,50 +278,48 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setOptimizationDiff(null);
       setIsBookingModalOpen(false);
 
-      const hasBothUserAndAI = target.messages && target.messages.length > 1;
-      if (hasBothUserAndAI) {
+      // Display cached messages immediately
+      if (target.messages && target.messages.length > 0) {
         setMessages(target.messages);
         setTripOptions(target.tripOptions || []);
         setSelectedOption(target.selectedOption || null);
-      } else {
-        // Fetch thread messages from backend (for cross-platform sync or missing AI messages)
-        try {
-          const history = await clientRef.current.getHistory(target.id);
-          if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
-            let extractedOptions: TripOption[] = target.tripOptions || [];
-            const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => {
-              const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
-              if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
-                extractedOptions = normalizeTripOptions(rawOpts);
-              }
-              return {
-                id: m.run_id || `srv_${target.id}_${idx}`,
-                content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-                type: m.type === "human" ? "human" : "ai",
-                role: m.type === "human" ? "user" : "assistant",
-                timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
-                trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
-                tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
-              };
-            });
-            setMessages(mapped);
-            setTripOptions(extractedOptions);
-            setSelectedOption(target.selectedOption || null);
-            setSessions((prev) => {
-              const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
-              saveSessionsToStorage(updated);
-              return updated;
-            });
-          } else if (target.messages && target.messages.length > 0) {
-            setMessages(target.messages);
-            setTripOptions(target.tripOptions || []);
-            setSelectedOption(target.selectedOption || null);
-          } else {
-            setMessages([]);
-          }
-        } catch (e) {
-          console.warn("Failed to load server thread messages:", e);
-          setMessages(target.messages || []);
+      }
+
+      // Always fetch latest server history to pick up any new turns sent from mobile
+      try {
+        const history = await clientRef.current.getHistory(target.id);
+        if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
+          let extractedOptions: TripOption[] = target.tripOptions || [];
+          const mapped: UnifiedChatMessage[] = history.messages.map((m: any, idx: number) => {
+            const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+            if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+              extractedOptions = normalizeTripOptions(rawOpts);
+            }
+            return {
+              id: m.run_id || `srv_${target.id}_${idx}`,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              type: m.type === "human" ? "human" : "ai",
+              role: m.type === "human" ? "user" : "assistant",
+              timestamp: formatDisplayTime(m.created_at || m.timestamp) || new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+              trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+              tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+            };
+          });
+          setMessages(mapped);
+          setTripOptions(extractedOptions);
+          setSelectedOption(target.selectedOption || null);
+          setSessions((prev) => {
+            const updated = prev.map((s) => (s.id === target.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
+            saveSessionsToStorage(updated);
+            return updated;
+          });
+        } else if (!target.messages || target.messages.length === 0) {
+          setMessages([]);
+        }
+      } catch (e) {
+        console.warn("Failed to load server thread messages:", e);
+        if (!target.messages || target.messages.length === 0) {
+          setMessages([]);
         }
       }
     },

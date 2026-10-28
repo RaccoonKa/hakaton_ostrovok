@@ -155,6 +155,60 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setConfirmedBookingId(null);
   }, [cancelRequest]);
 
+  const selectSession = useCallback(
+    async (session: SavedMobileSession) => {
+      cancelRequest();
+      threadIdRef.current = session.id;
+      setActiveSessionId(session.id);
+      setIsThinking(false);
+      setIsStreaming(false);
+
+      // Display cached messages immediately
+      if (session.messages && session.messages.length > 0) {
+        setMessages(session.messages);
+        setTripOptions(session.tripOptions || []);
+        setSelectedOption(session.selectedOption || null);
+      }
+
+      // Always fetch fresh server history to pick up any turns sent from web
+      try {
+        const history = await clientRef.current.getHistory(session.id);
+        if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
+          let extractedOptions: TripOption[] = session.tripOptions || [];
+          const mapped: MobileChatMessage[] = history.messages.map((m: any, idx: number) => {
+            const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+            if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+              extractedOptions = normalizeTripOptions(rawOpts);
+            }
+            return {
+              id: m.run_id || `srv_${session.id}_${idx}`,
+              content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+              role: m.type === "human" ? "user" : "assistant",
+              timestamp: formatDisplayTime(m.created_at || m.timestamp) || formatCurrentTime(),
+              trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+              tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+            };
+          });
+          setMessages(mapped);
+          setTripOptions(extractedOptions);
+          setSelectedOption(session.selectedOption || null);
+          setSavedSessions((prev) => {
+            const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
+            safeStorageSet(getMobileSessionsKey(currentUserId), JSON.stringify(updated));
+            return updated;
+          });
+        } else if (!session.messages || session.messages.length === 0) {
+          setMessages([]);
+        }
+      } catch {
+        if (!session.messages || session.messages.length === 0) {
+          setMessages([]);
+        }
+      }
+    },
+    [cancelRequest]
+  );
+
   const currentUserId = options.authSession?.user?.id;
   const prevUserIdRef = useRef<string | undefined>(currentUserId);
 
@@ -167,10 +221,10 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     }
   }, [currentUserId, resetChat]);
 
-  // Load saved sessions from persistent storage and sync with server
+  // Load saved sessions from persistent storage and sync with server & live polling
   useEffect(() => {
     let isMounted = true;
-    (async () => {
+    const syncServerThreads = async () => {
       try {
         const storageKey = getMobileSessionsKey(currentUserId);
         const stored = await safeStorageGet(storageKey);
@@ -203,22 +257,67 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                 tripOptions: [],
                 selectedOption: null,
               });
-            } else if (!merged[existingIdx].title && t.title) {
-              merged[existingIdx].title = t.title;
+            } else {
+              if (t.title) merged[existingIdx].title = t.title;
+              if (t.updated_at) merged[existingIdx].timestamp = t.updated_at;
             }
           }
           merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setSavedSessions(merged);
           await safeStorageSet(storageKey, JSON.stringify(merged));
+
+          // Auto-activate most recent thread if nothing is currently active
+          if (!threadIdRef.current && merged.length > 0) {
+            selectSession(merged[0]);
+          } else if (threadIdRef.current && !isThinking && !isStreaming) {
+            // Live background sync: check if active thread received new turns from web
+            const activeId = threadIdRef.current;
+            try {
+              const hist = await clientRef.current.getHistory(activeId);
+              if (hist?.messages && Array.isArray(hist.messages) && isMounted) {
+                setMessages((current) => {
+                  if (hist.messages.length > current.length) {
+                    let extractedOptions: TripOption[] = tripOptions;
+                    const mapped = hist.messages.map((m: any, idx: number) => {
+                      const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
+                      if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
+                        extractedOptions = normalizeTripOptions(rawOpts);
+                      }
+                      return {
+                        id: m.run_id || `srv_${activeId}_${idx}`,
+                        content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
+                        role: m.type === "human" ? "user" : "assistant",
+                        timestamp: formatDisplayTime(m.created_at || m.timestamp) || formatCurrentTime(),
+                        trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
+                        tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
+                      };
+                    });
+                    setTripOptions(extractedOptions);
+                    return mapped;
+                  }
+                  return current;
+                });
+              }
+            } catch {
+              // offline safe
+            }
+          }
         }
       } catch {
         // Fallback safely handled
       }
-    })();
+    };
+
+    syncServerThreads();
+    const pollInterval = setInterval(() => {
+      syncServerThreads();
+    }, 3500);
+
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
     };
-  }, [backendUrl, options.authSession?.token, currentUserId]);
+  }, [backendUrl, options.authSession?.token, currentUserId, isThinking, isStreaming, tripOptions, selectSession]);
 
   const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
     try {
@@ -561,61 +660,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     setMessages((prev) => [...prev, successMsg]);
   }, []);
 
-  const selectSession = useCallback(
-    async (session: SavedMobileSession) => {
-      cancelRequest();
-      threadIdRef.current = session.id;
-      setActiveSessionId(session.id);
-      setIsThinking(false);
-      setIsStreaming(false);
 
-      const hasBothUserAndAI = session.messages && session.messages.length > 1;
-      if (hasBothUserAndAI) {
-        setMessages(session.messages);
-        setTripOptions(session.tripOptions || []);
-        setSelectedOption(session.selectedOption || null);
-      } else {
-        // Fetch server history (for cross-client sync or missing AI responses)
-        try {
-          const history = await clientRef.current.getHistory(session.id);
-          if (history?.messages && Array.isArray(history.messages) && history.messages.length > 0) {
-            let extractedOptions: TripOption[] = session.tripOptions || [];
-            const mapped: MobileChatMessage[] = history.messages.map((m: any, idx: number) => {
-              const rawOpts = m.custom_data?.trip_options || m.additional_kwargs?.trip_options;
-              if (rawOpts && Array.isArray(rawOpts) && rawOpts.length > 0) {
-                extractedOptions = normalizeTripOptions(rawOpts);
-              }
-              return {
-                id: m.run_id || `srv_${session.id}_${idx}`,
-                content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
-                role: m.type === "human" ? "user" : "assistant",
-                timestamp: formatDisplayTime(m.created_at || m.timestamp) || formatCurrentTime(),
-                trip_options: extractedOptions.length > 0 ? extractedOptions : undefined,
-                tripOptions: extractedOptions.length > 0 ? extractedOptions : undefined,
-              };
-            });
-            setMessages(mapped);
-            setTripOptions(extractedOptions);
-            setSelectedOption(session.selectedOption || null);
-            setSavedSessions((prev) => {
-              const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
-              safeStorageSet(getMobileSessionsKey(currentUserId), JSON.stringify(updated));
-              return updated;
-            });
-          } else if (session.messages && session.messages.length > 0) {
-            setMessages(session.messages);
-            setTripOptions(session.tripOptions || []);
-            setSelectedOption(session.selectedOption || null);
-          } else {
-            setMessages([]);
-          }
-        } catch {
-          setMessages(session.messages || []);
-        }
-      }
-    },
-    [cancelRequest]
-  );
 
 
 
