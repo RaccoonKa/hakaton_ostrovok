@@ -67,6 +67,8 @@ export interface Flight {
   currency?: Currency | null;
   refundable?: boolean | null;
   changeable?: boolean | null;
+  transit_point?: string | null;
+  layover_duration?: string | null;
 }
 
 export interface Hotel {
@@ -117,6 +119,9 @@ export interface Transport {
   price?: number | null;
   currency?: Currency | null;
   conditions?: string | null;
+  stops?: number;
+  transit_point?: string | null;
+  layover_duration?: string | null;
 }
 
 export interface Itinerary {
