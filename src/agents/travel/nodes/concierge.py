@@ -3,16 +3,18 @@
 
 Генерирует индивидуальный маршрут по запросу и отвечает на любые вопросы
 пользователя по забронированному туру с помощью модели GigaChat.
-Учитывает как собак, так и кошек (и поездки без питомцев).
+Учитывает питомцев (собак и кошек), правила въезда и погоду из destinations.json.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import date
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from agents.travel.nodes.ask import _city_name
 from agents.travel.state import TravelState
+from agents.travel.tools import mock_dataset as ds
 from core.llm import get_model
 from core.settings import settings
 from schema.models import GigaChatModelName
@@ -21,7 +23,6 @@ logger = logging.getLogger(__name__)
 
 
 def _get_chat_model():
-    """Получение модели GigaChat через штатную фабрику core.llm."""
     if hasattr(settings, "DEFAULT_MODEL") and settings.DEFAULT_MODEL in GigaChatModelName:
         try:
             return get_model(settings.DEFAULT_MODEL)
@@ -38,7 +39,6 @@ def _get_chat_model():
 
 
 def _detect_pet_info(messages: list, request) -> dict:
-    """Определяет наличие и точный вид питомца из переписки и запроса."""
     text_corpus = ""
     for m in messages:
         if isinstance(m, HumanMessage):
@@ -70,16 +70,16 @@ ITINERARY_SYSTEM_PROMPT = """Ты — профессиональный трев�
    - Если туристы с СОБАКОЙ: советуй парки, набережные, эко-тропы и видовые террасы ресторанов. Не выдумывай купание животных в фонтанах или бассейнах.
    - Если туристы с КОТОМ/КОШКОЙ: кот остаётся в номере отеля. Не нужно писать «прогулка с кошкой по горам/паркам» — программа строится для отдыха хозяев (СПА, пляж, рестораны, достопримечательности), а для кота упоминается уютный номер отеля.
    - Если без животных: классическая сбалансированная программа.
-3. Формат строго:
+3. Учитывай погоду: если сезон купания — добавляй пляжи и море, если прохладно — музеи, спа, прогулки и уютные заведения.
+4. Формат строго:
 **День N: Краткое название**
 2-3 связных, информативных предложения с конкретными локациями.
-4. СТРОЖАЙШИЙ ЗАПРЕТ:
+5. СТРОЖАЙШИЙ ЗАПРЕТ:
 - Никаких вступительных слов («Конечно, вот ваш план»). Начинай сразу с «**День 1: ...**».
-- Никаких итоговых выводов и шаблонных заключений в конце («Каждый день продуман...»). Текст должен оканчиваться описанием последнего дня."""
+- Никаких итоговых выводов и шаблонных заключений в конце. Текст должен оканчиваться описанием последнего дня."""
 
 
-def generate_itinerary(city: str, nights: int, hotel_name: str, pet_info: dict) -> str:
-    """Генерация гибкого маршрута через GigaChat."""
+def generate_itinerary(city: str, nights: int, hotel_name: str, pet_info: dict, month: int | None = None) -> str:
     days = max(1, nights)
     if pet_info["has_pet"]:
         if pet_info["type"] == "cat":
@@ -89,10 +89,17 @@ def generate_itinerary(city: str, nights: int, hotel_name: str, pet_info: dict) 
     else:
         pet_context = "Поездка без домашних животных."
 
+    weather_note = ""
+    if month:
+        w = ds.get_weather_info(city, month)
+        if w and "air_temp" in w:
+            weather_note = f"Погода в этот месяц: воздух ~{w['air_temp']}°C, вода ~{w['water_temp']}°C ({w.get('season_desc', '')})."
+
     prompt = (
         f"Город: {city}\n"
         f"Отель проживания: {hotel_name}\n"
         f"Дней: {days}\n"
+        f"Климат: {weather_note}\n"
         f"Особенности: {pet_context}\n\n"
         f"Составь программу на {days} дней. Без вступлений и заключений."
     )
@@ -117,6 +124,7 @@ CONCIERGE_SYSTEM_PROMPT = """Ты — заботливый консьерж ту
 Клиент уже забронировал тур и общается с тобой в чате.
 
 Твоя задача — отвечать дружелюбно, ёмко, по существу и профессионально.
+- Погода и гардероб: строго опирайся на данные о погоде в контексте тура. Подсказывай, комфортно ли купаться, какую одежду взять (ветровку, купальник, солнцезащитные очки).
 - Документы для Турции (Стамбул, Анталья): загранпаспорт РФ со сроком действия от 120 дней (без визы).
 - Документы для Калининграда: на самолёте — паспорт РФ; на поезде (через Литву) — обязателен загранпаспорт РФ и УПД-ЖД.
 - Документы по остальной России (Сочи, СПб): достаточно внутреннего паспорта РФ.
@@ -130,7 +138,6 @@ CONCIERGE_SYSTEM_PROMPT = """Ты — заботливый консьерж ту
 
 
 def call_concierge(state: TravelState | dict) -> dict:
-    """Обработка обращений к консьержу: выдача маршрута по запросу или консультация."""
     messages = state.get("messages", []) if isinstance(state, dict) else getattr(state, "messages", [])
     selected = state.get("selected_option") if isinstance(state, dict) else getattr(state, "selected_option", None)
     request = state.get("user_request") if isinstance(state, dict) else getattr(state, "user_request", None)
@@ -143,7 +150,6 @@ def call_concierge(state: TravelState | dict) -> dict:
 
     lowered = last_text.lower()
 
-    # 1. Запрос на отмену / смену тура
     reset_words = ["другой вариант", "другой тур", "поменяй тур", "выбрать другой", "начать заново", "сброс", "назад"]
     if any(w in lowered for w in reset_words):
         return {
@@ -162,19 +168,28 @@ def call_concierge(state: TravelState | dict) -> dict:
 
     pet_info = _detect_pet_info(messages, request)
 
-    # 2. Если пользователь просит составить маршрут / план
+    # Определяем месяц вылета для прогноза погоды
+    dep_date_str = selected.get("departure_date")
+    dep_month = None
+    if dep_date_str:
+        try:
+            dep_month = date.fromisoformat(dep_date_str).month
+        except Exception:
+            pass
+
+    # 1. Запрос на составление маршрута
     itinerary_triggers = ["план", "маршрут", "программ", "составь", "расписан", "куда сходить", "давай маршрут", "да, составь", "составить"]
     if any(w in lowered for w in itinerary_triggers) or lowered in {"да", "давай", "хочу", "согласен", "хочу план"}:
-        itinerary = generate_itinerary(dest, nights, hotel_name, pet_info)
+        itinerary = generate_itinerary(dest, nights, hotel_name, pet_info, dep_month)
         reply = (
             f"🗺️ **Ваша индивидуальная программа на {nights} дней в {dest}:**\n\n"
             f"{itinerary}\n\n"
             f"───────────────────────────────\n"
-            f"Маршрут гибкий — любой день можно изменить по вашему желанию! Также я могу ответить на любые вопросы по багажу, питомцу или трансферу."
+            f"Маршрут гибкий — любой день можно изменить по вашему желанию! Также я могу ответить на любые вопросы по погоде, вещам, багажу или трансферу."
         )
         return {"messages": [AIMessage(content=reply)]}
 
-    # 3. Все остальные вопросы отправляем в GigaChat с контекстом тура
+    # 2. Ответы на вопросы консьержа
     hotel_info = selected.get("hotel", {})
     transport_info = selected.get("transport", {})
     transfer_info = selected.get("transfer", {})
@@ -191,9 +206,17 @@ def call_concierge(state: TravelState | dict) -> dict:
     else:
         doc_rule = "Внутренний паспорт РФ"
 
+    # Климатические факты по забронированным датам
+    weather_desc = "сезонная погода"
+    if dep_month:
+        w = ds.get_weather_info(dest, dep_month)
+        if w and "air_temp" in w:
+            weather_desc = f"воздух около +{w['air_temp']}°C, вода в море +{w['water_temp']}°C ({w.get('season_desc', '')})"
+
     context = (
         f"Город: {dest}\n"
         f"Даты: с {selected.get('departure_date')} по {selected.get('return_date')} ({nights} ноч.)\n"
+        f"Погода в период тура: {weather_desc}\n"
         f"Отель: {hotel_info.get('name')} ({hotel_info.get('stars')}★)\n"
         f"Перелёт: {transport_info.get('type')} {transport_info.get('carrier')} (рейс {transport_info.get('id')})\n"
         f"Трансфер: {transfer_info.get('vehicle', 'Комфорт')}\n"

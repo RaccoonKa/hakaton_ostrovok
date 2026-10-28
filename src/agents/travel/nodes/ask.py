@@ -1,25 +1,30 @@
 """
-Узел Human-in-the-loop.
+Узел Human-in-the-loop (ask).
 
-Формирует **одно** сообщение со всеми необходимыми уточнениями и вызывает
-LangGraph ``interrupt``. Interrupt используется не для каждого поля
-отдельно, а для всего сгруппированного набора вопросов / вариантов выбора.
-
-Отдельно обрабатываются два особых сообщения:
-
-* первый этап — вопрос о предпочтениях (вайб);
-* итоговая сверка полного запроса перед поиском.
+Формирует единое сообщение со всеми уточнениями, выводит климатические ответы
+на врезные вопросы туриста, соблюдает принцип «один шаг — одно действие»
+и вызывает LangGraph interrupt.
 """
 
 from __future__ import annotations
 
-from langchain_core.messages import HumanMessage
+import json
+import logging
+import re
+from pathlib import Path
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import interrupt
 
 from agents.travel.logic.decision import PREFERENCE_QUESTION
 from agents.travel.state import TravelState
 from agents.travel.tools import mock_dataset as ds
+from core.llm import get_model
+from core.settings import settings
 from domain.planning import DateRange, DestinationCandidate
+from schema.models import GigaChatModelName
+
+logger = logging.getLogger(__name__)
 
 _CITY_DISPLAY = {
     "Rome": "Рим",
@@ -38,7 +43,7 @@ _CITY_DISPLAY = {
     "Paphos": "Пафос",
     "Crete": "Крит",
     "Moscow": "Москва",
-    "Saint Petersburg": "Санкт-Петербург"
+    "Saint Petersburg": "Санкт-Петербург",
 }
 
 _VIBE_DISPLAY = {
@@ -60,7 +65,7 @@ _VIBE_DISPLAY = {
     "city": "город",
     "canals": "каналы",
     "all_inclusive": "всё включено",
-    "northern_lights": "северное сияние"
+    "northern_lights": "северное сияние",
 }
 
 _CONSTRAINT_DISPLAY = {
@@ -71,7 +76,7 @@ _CONSTRAINT_DISPLAY = {
     "no_stops": "без пересадок",
     "vegetarian": "вегетарианское питание",
     "with_baggage": "перелёт с багажом",
-    "refundable_ticket": "возвратные билеты"
+    "refundable_ticket": "возвратные билеты",
 }
 
 _HOTEL_REQ_DISPLAY = {
@@ -82,18 +87,25 @@ _HOTEL_REQ_DISPLAY = {
     "spa": "спа",
     "all_inclusive": "всё включено",
     "quality": "хороший отель",
+    "stars_3": "отель 3★",
+    "stars_4": "отель 4★",
+    "stars_5": "отель 5★",
     "pet_friendly": "можно с питомцами",
-    "free_cancellation": "отель с бесплатной отменой"
+    "free_cancellation": "отель с бесплатной отменой",
 }
 
-_NUM_WORD = {
-    1: "один",
-    2: "двоих",
-    3: "троих",
-    4: "четверых",
-    5: "пятерых",
-    6: "шестерых",
+_COUNTRY_FLAGS = {
+    "Россия": "🇷🇺",
+    "Турция": "🇹🇷",
+    "Италия": "🇮🇹",
+    "Франция": "🇫🇷",
+    "ОАЭ": "🇦🇪",
 }
+
+_JOKE_BUDGET_MARKERS = [
+    "сухарик", "доширак", "почк", "фантик", "борзыми щенками",
+    "за спасибо", "красивые глаза", "картошк"
+]
 
 
 def _get(state, key, default=None):
@@ -108,66 +120,141 @@ def _city_name(city: str | None) -> str:
     return _CITY_DISPLAY.get(city, city)
 
 
-_COUNTRY_FLAGS = {
-    "Россия": "🇷🇺",
-    "Турция": "🇹🇷",
-    "Италия": "🇮🇹",
-    "Франция": "🇫🇷",
-    "ОАЭ": "🇦🇪",
-}
+def _last_human_message(state: TravelState | dict) -> str:
+    messages = _get(state, "messages", []) or []
+    for msg in reversed(messages):
+        if isinstance(msg, HumanMessage):
+            return str(msg.content)
+    return ""
 
 
-def _format_destination_prompt(candidates: list[DestinationCandidate]) -> str:
-    lines = ["**Подобрал отличные направления под ваш запрос:**\n"]
-    for i, cand in enumerate(candidates, start=1):
-        flag = _COUNTRY_FLAGS.get(cand.country, "✈️")
-        reason = f" — {cand.reason}" if cand.reason else ""
-        lines.append(f"{i}. {flag} **{_city_name(cand.city)} ({cand.country})**{reason}")
-
-    lines.append("\n*Напишите номер или название выбранного города.*")
-    return "\n".join(lines)
+def _all_human_messages_text(state: TravelState | dict) -> str:
+    messages = _get(state, "messages", []) or []
+    texts = []
+    for msg in messages:
+        if isinstance(msg, HumanMessage):
+            texts.append(str(msg.content))
+    return " ".join(texts)
 
 
-def _format_date_prompt(date_options: list[DateRange]) -> str:
-    lines = ["Уточните, пожалуйста, период поездки — вот подходящие варианты:"]
-    for i, rng in enumerate(date_options, start=1):
-        lines.append(
-            f"{i}. {rng.start_date.isoformat()} — {rng.end_date.isoformat()} ({rng.nights} ноч.)"
+def _load_destinations_raw() -> list[dict]:
+    p = Path(__file__).resolve().parent.parent.parent.parent.parent / "data" / "destinations.json"
+    if p.exists():
+        with open(p, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def _get_destination_info(city: str, month: int | None) -> dict | None:
+    target = city.strip().lower()
+    for item in _load_destinations_raw():
+        c_name = item.get("city", "").lower()
+        if c_name == target or item.get("id", "").lower() == target or target in ds.CITY_ALIASES.get(c_name, []):
+            weather = item.get("weather", {})
+            monthly = weather.get("monthly", {})
+            res = {
+                "city": item.get("city"),
+                "description": item.get("description", ""),
+                "tagline": item.get("tagline", ""),
+                "districts": item.get("popular_districts", []),
+                "seasonality": item.get("seasonality", ""),
+            }
+            if month and str(month) in monthly:
+                res["air"] = monthly[str(month)].get("air")
+                res["water"] = monthly[str(month)].get("water")
+            return res
+    return None
+
+
+def _is_side_question(text: str) -> bool:
+    if not text:
+        return False
+    lowered = text.strip().lower()
+    confirm_words = [
+        "да", "нет", "ок", "окей", "верно", "начинай", "поиск", "погнали",
+        "1", "2", "3", "первый", "второй", "третий", "вернемся", "вернёмся"
+    ]
+    if any(lowered.startswith(w) for w in confirm_words):
+        return False
+    return "?" in lowered or any(k in lowered for k in [
+        "погода", "тепло", "холодно", "градус", "дожд", "море", "купат", "ветер", "сезон", "виз", "паспорт", "одежд",
+        "посетить", "посмотреть", "достопримечательност", "куда сходить", "интересные места"
+    ])
+
+
+def _answer_side_question(question: str, request) -> str | None:
+    dest = getattr(request, "destination", None) or "Сочи"
+    month = None
+
+    if request and request.date_preferences.exact_dates:
+        month = request.date_preferences.exact_dates[0].month
+    elif request and request.date_preferences.month:
+        month = getattr(request.date_preferences.month[0], "value", None)
+
+    month_stems = {
+        1: ["январ"], 2: ["феврал"], 3: ["март"], 4: ["апрел"],
+        5: ["май", "мая"], 6: ["июн"], 7: ["июл"], 8: ["август"],
+        9: ["сентябр"], 10: ["октябр"], 11: ["ноябр"], 12: ["декабр"],
+    }
+    for m_num, stems in month_stems.items():
+        if any(s in question.lower() for s in stems):
+            month = m_num
+            break
+
+    info = _get_destination_info(dest, month)
+    facts = []
+    if info:
+        facts.append(f"Город: {info['city']}")
+        if "air" in info:
+            facts.append(f"месяц {month}: воздух +{info['air']}°C, вода в море +{info['water']}°C")
+        if info.get("seasonality"):
+            facts.append(f"Сезонность: {info['seasonality']}")
+        if info.get("description"):
+            facts.append(f"Особенности: {info['description']}")
+        if info.get("districts"):
+            facts.append(f"Популярные места: {', '.join(info['districts'])}")
+    facts_str = "; ".join(facts) if facts else f"Город: {dest}"
+
+    fallback_text = (
+        f"В {dest} в этот период воздух прогревается в среднем до +{info.get('air', 28)}°C, "
+        f"а вода в море около +{info.get('water', 26)}°C — отличное время для отдыха!"
+        if info and "air" in info else f"В {dest} отличная атмосфера для отдыха и прогулок!"
+    )
+
+    try:
+        if hasattr(settings, "DEFAULT_MODEL") and settings.DEFAULT_MODEL in GigaChatModelName:
+            model = get_model(settings.DEFAULT_MODEL)
+        else:
+            model = get_model(next(iter(GigaChatModelName)))
+
+        prompt = (
+            f"Ты — дружелюбный тревел-консультант. Турист задал вопрос: \"{question}\"\n"
+            f"Факты из базы данных:\n{facts_str}\n\n"
+            f"Ответь на вопрос туриста в 1-2 предложениях на русском языке строго по этим фактам. Без вступительных приветствий."
         )
-    lines.append("\nНапишите номер или свои даты.")
-    return "\n".join(lines)
-
-
-def _format_questions_prompt(questions: list[str]) -> str:
-    if len(questions) == 1:
-        return f"**Подскажите, пожалуйста:**\n\n- {questions[0]}"
-
-    # Формируем стандартный Markdown-список с гарантированным переносом строк
-    items = "\n".join(f"- {q}" for q in questions)
-    return f"**Подскажите ещё пару деталей:**\n\n{items}"
-
-
-def _format_money(amount: float, currency: str | None) -> str:
-    return f"{amount:,.0f} {currency or 'RUB'}".replace(",", " ")
+        resp = model.invoke([
+            SystemMessage(content="Отвечай строго по предоставленным фактам, кратко и доброжелательно."),
+            HumanMessage(content=prompt),
+        ])
+        return str(resp.content).strip()
+    except Exception as e:
+        logger.warning("Ошибка при генерации ответа на врезной вопрос: %s", e)
+        return fallback_text
 
 
 def format_request_summary(request) -> str:
-    """Сформировать аккуратную и читаемую сверку полного запроса."""
     items: list[str] = []
 
-    # 1. Маршрут
     origin = _city_name(getattr(request, "origin", None)) or "Москва"
     dest = _city_name(getattr(request, "destination", None))
     items.append(f"- **Маршрут:** {origin} → {dest}")
 
-    # 2. Транспорт (если явно указан)
     transport = getattr(request, "preferred_transport", None)
     if transport:
         t_val = getattr(transport, "value", str(transport))
         t_map = {"plane": "самолёт", "train": "поезд", "bus": "автобус", "car": "автомобиль"}
         items.append(f"- **Транспорт:** {t_map.get(t_val, t_val)}")
 
-    # 3. Даты
     exact = list(getattr(request.date_preferences, "exact_dates", None) or [])
     if len(exact) >= 2:
         nights = (exact[1] - exact[0]).days
@@ -177,7 +264,6 @@ def format_request_summary(request) -> str:
         month_txt = month[0].value if month else "месяц"
         items.append(f"- **Период:** {month_txt}, {request.duration} дн.")
 
-    # 4. Состав гостей
     adults = getattr(request, "adults", None)
     children = getattr(request, "children", None)
     if adults or children:
@@ -185,13 +271,17 @@ def format_request_summary(request) -> str:
         if adults:
             parts.append(f"{adults} взр.")
         if children:
-            parts.append(f"{children} детей")
+            if children == 1:
+                parts.append("1 ребёнок")
+            elif 2 <= children <= 4:
+                parts.append(f"{children} ребёнка")
+            else:
+                parts.append(f"{children} детей")
         items.append(f"- **Гости:** {', '.join(parts)}")
     else:
         travelers = getattr(request, "travelers", 1)
         items.append(f"- **Гости:** {travelers} чел.")
 
-    # 5. Бюджет
     mode = getattr(request, "budget_mode", "unknown")
     if mode == "no_limit":
         items.append("- **Бюджет:** без ограничений")
@@ -199,22 +289,19 @@ def format_request_summary(request) -> str:
         items.append("- **Бюджет:** подберём варианты разных ценовых категорий")
     elif getattr(request, "budget_range", None):
         lo, hi = request.budget_range
-        items.append(f"- **Бюджет:** от {_format_money(lo, getattr(request.currency, 'value', None))} до {_format_money(hi, getattr(request.currency, 'value', None))}")
+        items.append(f"- **Бюджет:** от {lo:,.0f} до {hi:,.0f} {getattr(request.currency, 'value', 'RUB')}".replace(",", " "))
     elif getattr(request, "budget", None) is not None:
-        items.append(f"- **Бюджет:** {_format_money(request.budget, getattr(request.currency, 'value', None))}")
+        items.append(f"- **Бюджет:** {request.budget:,.0f} {getattr(request.currency, 'value', 'RUB')}".replace(",", " "))
 
-    # 6. Предпочтения
     prefs = [_VIBE_DISPLAY.get(p.name, p.name) for p in getattr(request, "preferences", [])]
     if prefs:
         items.append(f"- **Вайб:** {', '.join(prefs)}")
 
-    # 7. Пожелания и фильтры
     extras = [_CONSTRAINT_DISPLAY.get(c.name, c.name) for c in getattr(request, "constraints", [])]
     extras += [_HOTEL_REQ_DISPLAY.get(r, r) for r in getattr(request, "hotel_requirements", [])]
     if extras:
         items.append(f"- **Пожелания:** {', '.join(dict.fromkeys(extras))}")
 
-    # 8. Документы для зарубежных поездок и транзитных поездов
     dest_raw = getattr(request, "destination", "") or ""
     dest_obj = ds.get_destination_by_city(dest_raw) if dest_raw else None
     country = dest_obj.country if dest_obj else getattr(request, "destination_country", None)
@@ -227,6 +314,8 @@ def format_request_summary(request) -> str:
             items.append("- **Документы:** для поезда в Калининград обязателен загранпаспорт РФ и УПД-ЖД (транзит через Литву)")
         elif transport_val == "plane":
             items.append("- **Документы:** для авиаперелёта в Калининград достаточно внутреннего паспорта РФ")
+        else:
+            items.append("- **Документы:** для самолёта достаточно паспорта РФ; для поезда потребуется загранпаспорт РФ и УПД-ЖД (транзит через Литву)")
 
     body = "\n".join(items)
     return (
@@ -235,20 +324,55 @@ def format_request_summary(request) -> str:
         "Начинаем поиск или нужно ещё что-то уточнить?"
     )
 
-def _filter_questions(
-        questions: list[str],
-        *,
-        has_candidates: bool,
-        has_dates: bool,
-) -> list[str]:
+
+def _format_destination_prompt(candidates: list[DestinationCandidate]) -> str:
+    lines = ["**Подобрал отличные направления под ваш запрос:**\n"]
+    for i, cand in enumerate(candidates, start=1):
+        flag = _COUNTRY_FLAGS.get(cand.country, "✈️")
+        reason = f" — {cand.reason}" if cand.reason else ""
+        lines.append(f"{i}. {flag} **{_city_name(cand.city)} ({cand.country})**{reason}")
+    lines.append("\n*Напишите номер или название выбранного города.*")
+    return "\n".join(lines)
+
+
+def _format_date_prompt(date_options: list[DateRange]) -> str:
+    lines = ["Уточните, пожалуйста, подходящий период поездки:\n"]
+    for i, rng in enumerate(date_options, start=1):
+        lines.append(
+            f"{i}. {rng.start_date.strftime('%d.%m.%Y')} – {rng.end_date.strftime('%d.%m.%Y')} ({rng.nights} ноч.)"
+        )
+    lines.append("\nНапишите номер подходящего варианта (1, 2, 3) или свои даты.")
+    return "\n".join(lines)
+
+
+def _format_questions_prompt(questions: list[str], history_text: str = "") -> str:
+    if not questions:
+        return "Уточните, пожалуйста, детали поездки."
+
+    lowered_hist = history_text.lower()
+    has_joke_budget = any(m in lowered_hist for m in _JOKE_BUDGET_MARKERS)
+
+    formatted_q = []
+    for q in questions:
+        if "бюджет" in q.lower() and has_joke_budget:
+            formatted_q.append(
+                "Сухарики — отличный перекус в дорогу, но билеты и отели принимают только рубли 🙂 "
+                "Какой у вас реальный ориентировочный бюджет на поездку (или подберём варианты без ограничений)?"
+            )
+        else:
+            formatted_q.append(q)
+
+    if len(formatted_q) == 1:
+        return f"**Подскажите, пожалуйста:**\n\n- {formatted_q[0]}"
+
+    items = "\n".join(f"- {q}" for q in formatted_q)
+    return f"**Подскажите ещё пару деталей:**\n\n{items}"
+
+
+def _filter_questions(questions: list[str], *, has_candidates: bool, has_dates: bool) -> list[str]:
     result = list(questions)
     if has_candidates:
-        # Убираем любые дублирующие вопросы про выбор города
-        markers = [
-            "предложенных городов",
-            "В какой город или страну",
-            "Этого города нет среди доступных",
-        ]
+        markers = ["предложенных городов", "В какой город или страну", "Этого города нет среди доступных"]
         result = [q for q in result if not any(m in q for m in markers)]
     if has_dates:
         markers = ["предложенных периодов", "На какие даты"]
@@ -266,30 +390,47 @@ def call_ask(state: TravelState | dict) -> dict:
         validation.get("stage") if isinstance(validation, dict) else None
     ) or _get(state, "planning_status", "collecting")
 
+    # 1. Проверяем врезной вопрос туриста
+    side_answer = _get(state, "side_answer")
+    if not side_answer:
+        last_user_text = _last_human_message(state)
+        if _is_side_question(last_user_text):
+            side_answer = _answer_side_question(last_user_text, request)
+
+    # 2. Если пользователь на этапе сверки (все данные собраны) и задал вопрос — отвечаем и даем мостик
+    if side_answer and stage == "confirmation":
+        dest = _city_name(getattr(request, "destination", None)) if request else ""
+        city_phrase = f" о {dest}" if dest and dest != "не выбран" else ""
+        prompt = (
+            f"☀️ **Ответ на ваш вопрос:**\n"
+            f"{side_answer}\n\n"
+            f"Подсказать ещё что-то{city_phrase} (погода, достопримечательности, правила) "
+            f"или перейдём к подтверждению и поиску тура?"
+        )
+        response = interrupt(prompt)
+        return {"messages": [HumanMessage(content=str(response))]}
+
+    # 3. Основной диалоговый шаг (Один шаг — одно действие! Без каши из дат и бюджета в одном сообщении)
     if stage == "confirmation" and request is not None:
-        prompt = format_request_summary(request)
+        main_prompt = format_request_summary(request)
     elif stage in {"preferences", "awaiting_preferences"}:
-        prompt = PREFERENCE_QUESTION
+        main_prompt = PREFERENCE_QUESTION
+    elif candidates:
+        main_prompt = _format_destination_prompt(candidates)
+    elif date_options:
+        main_prompt = _format_date_prompt(date_options)
     else:
-        sections: list[str] = []
-        if candidates:
-            sections.append(_format_destination_prompt(candidates))
-        if date_options:
-            sections.append(_format_date_prompt(date_options))
-        extra = _filter_questions(
-            questions,
-            has_candidates=bool(candidates),
-            has_dates=bool(date_options),
-        )
-        if extra:
-            sections.append(_format_questions_prompt(extra))
-        prompt = "\n\n".join(sections) if sections else (
-            "Уточните, пожалуйста, детали поездки."
-        )
+        extra = _filter_questions(questions, has_candidates=False, has_dates=False)
+        history_text = _all_human_messages_text(state)
+        main_prompt = _format_questions_prompt(extra, history_text)
 
-    # Единственный interrupt на весь сгруппированный набор.
+    # 4. Если был врезной вопрос при одновременном выборе направления/дат — ответ органично ставится сверху
+    if side_answer:
+        prompt = f"☀️ **Ответ на ваш вопрос:**\n{side_answer}\n\n───────────────────────────────\n\n{main_prompt}"
+    else:
+        prompt = main_prompt
+
     response = interrupt(prompt)
-
     return {"messages": [HumanMessage(content=str(response))]}
 
 

@@ -80,7 +80,7 @@ _ORIGIN_BY_CITY: dict[str, Destination] = {o.city.lower(): o for o in ORIGINS}
 # --- 3. Алиасы для распознавания русского текста (NLP) ---
 CITY_ALIASES: dict[str, list[str]] = {
     "сочи": ["сочи", "адлер", "сириус", "красная поляна", "роза хутор"],
-    "калининград": ["калининград", "зеленоградск", "светлогорск", "янтарный"],
+    "калининград": ["калининград", "клгд", "клд", "зеленоградск", "светлогорск", "янтарный"],
     "санкт-петербург": ["санкт-петербург", "питер", "спб", "петербург"],
     "стамбул": ["стамбул", "истанбул"],
     "анталья": ["анталья", "анталия"],
@@ -167,6 +167,41 @@ def cities_in_country(country: str) -> list[Destination]:
     target = country.strip().lower()
     return [d for d in DESTINATIONS if d.country.lower() == target]
 
+def get_weather_info(city: str, month: int | None = None) -> dict | None:
+    """Получить климатическую справку по городу и месяцу из destinations.json."""
+    dest = get_destination_by_city(city)
+    target_city = dest.city.lower() if dest else city.lower()
+
+    for item in load_destinations():
+        if item.get("city", "").lower() == target_city:
+            weather = item.get("weather", {})
+            seasonality = item.get("seasonality", "")
+            best_months = item.get("best_months", [])
+            monthly = weather.get("monthly", {})
+
+            res = {
+                "city": item.get("city"),
+                "seasonality": seasonality,
+                "best_months": best_months,
+            }
+            if month is not None:
+                m_str = str(month)
+                if m_str in monthly:
+                    res["month"] = month
+                    res["air_temp"] = monthly[m_str].get("air")
+                    res["water_temp"] = monthly[m_str].get("water")
+
+                if month in (12, 1, 2):
+                    res["season_desc"] = weather.get("winter", {}).get("description")
+                elif month in (3, 4, 5):
+                    res["season_desc"] = weather.get("spring", {}).get("description")
+                elif month in (6, 7, 8):
+                    res["season_desc"] = weather.get("summer", {}).get("description")
+                else:
+                    res["season_desc"] = weather.get("autumn", {}).get("description")
+            return res
+    return None
+
 __all__ = [
     "CITY_ALIASES",
     "COUNTRY_ALIASES",
@@ -177,6 +212,7 @@ __all__ = [
     "ORIGINS",
     "all_destinations",
     "cities_in_country",
+    "get_weather_info",
     "get_destination_by_city",
     "get_destination_by_iata",
     "get_origin_by_city",
