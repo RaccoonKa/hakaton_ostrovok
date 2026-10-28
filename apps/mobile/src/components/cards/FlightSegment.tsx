@@ -19,7 +19,13 @@ const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({
   const colors = currentTheme.colors;
 
   const durationText = flight.duration ? formatDuration(flight.duration) : "";
-  const stopsText = flight.stops === 0 ? "Прямой рейс" : `${flight.stops} пересадка`;
+  const stopsCount = flight.stops ?? 0;
+  const stopsText =
+    stopsCount === 0
+      ? "Прямой рейс"
+      : `${stopsCount} пересадк${stopsCount === 1 ? "а" : stopsCount < 5 ? "и" : "ек"}${
+          flight.transit_point ? ` • ${flight.transit_point}` : ""
+        }`;
 
   return (
     <View
@@ -34,7 +40,10 @@ const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({
       <View style={styles.topRow}>
         <View style={styles.routeCol}>
           <Icon name="plane" size={14} color={colors.primary} />
-          <Text style={[styles.routeText, { color: colors.textPrimary }]}>
+          <Text
+            style={[styles.routeText, { color: colors.textPrimary }]}
+            numberOfLines={1}
+          >
             {flight.origin} → {flight.destination}
           </Text>
         </View>
@@ -57,6 +66,11 @@ const FlightSegmentComponent: React.FC<FlightSegmentProps> = ({
         ) : null}
         {durationText ? (
           <Text style={[styles.detailText, { color: colors.textSecondary }]}> • {durationText}</Text>
+        ) : null}
+        {flight.layover_duration ? (
+          <Text style={[styles.detailText, { color: colors.textSecondary }]}>
+            {` • Пересадка ${formatDuration(flight.layover_duration)}`}
+          </Text>
         ) : null}
         {flight.baggage ? (
           <Text style={[styles.detailText, { color: colors.textSecondary }]}> • {flight.baggage}</Text>

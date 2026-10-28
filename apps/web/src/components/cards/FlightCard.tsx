@@ -25,6 +25,9 @@ export const FlightCard: React.FC<FlightCardProps> = ({
     }
   };
 
+  const stopsCount = flight.stops ?? 0;
+  const stopsSuffix = stopsCount === 1 ? "а" : stopsCount < 5 ? "и" : "ек";
+
   return (
     <div className="p-4 bg-surface-container-low rounded-xl flex flex-col gap-3 border border-surface-container-highest/60 shadow-sm transition-all">
       {/* Flight header */}
@@ -43,7 +46,17 @@ export const FlightCard: React.FC<FlightCardProps> = ({
               )}
             </div>
             <span className="block text-xs text-content-muted mt-0.5">
-              {flight.stops === 0 ? "Прямой дневной перелёт" : `${flight.stops} пересадка`} •{" "}
+              {stopsCount === 0 ? (
+                "Прямой дневной перелёт"
+              ) : (
+                <>
+                  {stopsCount} пересадк{stopsSuffix}
+                  {flight.transit_point && ` (${flight.transit_point}`}
+                  {flight.layover_duration && `, ${formatDuration(flight.layover_duration)}`}
+                  {flight.transit_point && ")"}
+                </>
+              )}
+              {" • "}
               {flight.baggage || "Багаж 20 кг включён"}
             </span>
           </div>

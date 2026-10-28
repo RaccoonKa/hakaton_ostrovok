@@ -7,6 +7,8 @@ import {
   TransportType,
 } from "./constants";
 
+export { Currency, MealPlan, Month, Priority, Season, TransportType };
+
 export interface Preference {
   name: string;
   priority?: Priority;
@@ -109,6 +111,7 @@ export interface Transfer {
 }
 
 export interface Transport {
+  id?: string | null;
   origin: string;
   destination: string;
   departure_at: string;
@@ -116,6 +119,8 @@ export interface Transport {
   duration?: string | null;
   transport_type?: TransportType | null;
   carrier?: string | null;
+  flight_number?: string | null;
+  baggage?: string | null;
   price?: number | null;
   currency?: Currency | null;
   conditions?: string | null;
@@ -129,6 +134,7 @@ export interface Itinerary {
   flights?: Flight[];
   hotels?: Hotel[];
   transport?: Transport[];
+  transports?: Transport[];
   transfers?: Transfer[];
 }
 
@@ -150,6 +156,7 @@ export interface TripOption {
   flights?: Flight[];
   hotels?: Hotel[];
   transport?: Transport[];
+  transports?: Transport[];
   transfers?: Transfer[];
   stops?: RouteStop[];
   itinerary?: Itinerary | null;

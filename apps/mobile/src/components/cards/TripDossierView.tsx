@@ -4,7 +4,6 @@ import {
   Text,
   View,
   TouchableOpacity,
-  ScrollView,
 } from "react-native";
 import {
   TripOption,
@@ -36,6 +35,9 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
 
   const primaryFlight = option.flights?.[0];
   const returnFlight = option.flights?.[1];
+  const primaryTransport = option.transports?.[0] || option.transport?.[0];
+  const hasFlights = !!(primaryFlight || returnFlight);
+  const isTrain = !hasFlights && !!primaryTransport;
   const primaryHotel = option.hotels?.[0];
 
   const dateRangeStr =
@@ -83,24 +85,93 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
         ) : null}
       </View>
 
-      {/* Flight Section */}
-      <View
-        style={[
-          styles.sectionCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.border,
-          },
-        ]}
-      >
-        <View style={styles.sectionTitleRow}>
-          <Icon name="plane" size={16} color={colors.primary} />
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Перелёт (туда и обратно)</Text>
-        </View>
+      {/* Flight or Train Section */}
+      {hasFlights ? (
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.sectionTitleRow}>
+            <Icon name="plane" size={16} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Перелёт (туда и обратно)</Text>
+          </View>
 
-        {primaryFlight && <FlightSegment flight={primaryFlight} isDark={isDark} />}
-        {returnFlight && <FlightSegment flight={returnFlight} isDark={isDark} />}
-      </View>
+          {primaryFlight && <FlightSegment flight={primaryFlight} isDark={isDark} />}
+          {returnFlight && <FlightSegment flight={returnFlight} isDark={isDark} />}
+        </View>
+      ) : primaryTransport ? (
+        <View
+          style={[
+            styles.sectionCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <View style={styles.sectionTitleRow}>
+            <Icon name="train" size={16} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
+              Поезд ({primaryTransport.carrier || "РЖД"})
+            </Text>
+          </View>
+
+          <View
+            style={[
+              styles.trainContainer,
+              {
+                backgroundColor: isDark ? colors.surfaceContainer : colors.canvasMuted,
+              },
+            ]}
+          >
+            <View style={styles.trainTopRow}>
+              <View style={styles.trainRouteCol}>
+                <Icon name="train" size={14} color={colors.primary} />
+                <Text
+                  style={[styles.trainRouteText, { color: colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {primaryTransport.origin || "Москва"} → {primaryTransport.destination || option.destination}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.trainBadge,
+                  { backgroundColor: isDark ? colors.surfaceContainerHigh : colors.surfaceContainer },
+                ]}
+              >
+                <Text style={[styles.trainBadgeText, { color: colors.primary }]}>
+                  {primaryTransport.transit_point
+                    ? `Стыковка: ${primaryTransport.transit_point}`
+                    : "Прямой поезд"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.trainDetailsRow}>
+              <Text style={[styles.trainDetailText, { color: colors.textSecondary }]}>
+                {primaryTransport.carrier || "РЖД"}
+                {primaryTransport.flight_number ? ` • №${primaryTransport.flight_number}` : ""}
+              </Text>
+              {primaryTransport.duration ? (
+                <Text style={[styles.trainDetailText, { color: colors.textSecondary }]}>
+                  {` • В пути ${formatDuration(primaryTransport.duration)}`}
+                </Text>
+              ) : null}
+              {primaryTransport.layover_duration ? (
+                <Text style={[styles.trainDetailText, { color: colors.textSecondary }]}>
+                  {` • Пересадка ${formatDuration(primaryTransport.layover_duration)}`}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      ) : null}
 
       {/* Hotel Section */}
       {primaryHotel && (
@@ -141,19 +212,43 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
               <View style={[styles.dotPrimary, { backgroundColor: colors.primary }]}>
-                <Icon name="plane" size={10} color="#FFFFFF" />
+                <Icon name={isTrain ? "train" : "plane"} size={10} color="#FFFFFF" />
               </View>
               <View style={[styles.spineLine, { backgroundColor: colors.borderSubtle }]} />
             </View>
             <View style={styles.timelineBody}>
-              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 1 • Отправление</Text>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>
+                {isTrain ? "Этап 1 • Отправление на поезде" : "Этап 1 • Отправление"}
+              </Text>
               <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>
-                {primaryFlight?.origin || "Москва"} → {primaryFlight?.destination || option.destination}
+                {isTrain
+                  ? `${primaryTransport?.origin || "Москва"} → ${primaryTransport?.destination || option.destination}`
+                  : `${primaryFlight?.origin || "Москва"} → ${primaryFlight?.destination || option.destination}`}
               </Text>
               <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
-                {primaryFlight?.carrier || "Регулярный рейс"}
-                {primaryFlight?.duration ? ` • В пути ${formatDuration(primaryFlight.duration)}` : ""}
-                {primaryFlight?.baggage ? ` • ${primaryFlight.baggage}` : ""}
+                {isTrain ? (
+                  `${primaryTransport?.carrier || "Поезд РЖД"}${
+                    primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""
+                  }${
+                    primaryTransport?.transit_point ? ` • Стыковка: ${primaryTransport.transit_point}` : ""
+                  }${primaryTransport?.duration ? ` • В пути ${formatDuration(primaryTransport.duration)}` : ""}${
+                    primaryTransport?.layover_duration
+                      ? ` • Пересадка ${formatDuration(primaryTransport.layover_duration)}`
+                      : ""
+                  }`
+                ) : (
+                  `${primaryFlight?.carrier || "Регулярный рейс"}${
+                    primaryFlight?.stops && primaryFlight.stops > 0
+                      ? ` • ${primaryFlight.stops} пересадк${
+                          primaryFlight.stops === 1 ? "а" : primaryFlight.stops < 5 ? "и" : "ек"
+                        }${primaryFlight.transit_point ? ` (${primaryFlight.transit_point})` : ""}`
+                      : " • Прямой рейс"
+                  }${primaryFlight?.duration ? ` • В пути ${formatDuration(primaryFlight.duration)}` : ""}${
+                    primaryFlight?.layover_duration
+                      ? ` • Стыковка ${formatDuration(primaryFlight.layover_duration)}`
+                      : ""
+                  }${primaryFlight?.baggage ? ` • ${primaryFlight.baggage}` : ""}`
+                )}
               </Text>
             </View>
           </View>
@@ -178,7 +273,9 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
               <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 2 • Встреча</Text>
               <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>Трансфер в отель</Text>
               <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
-                Встреча в зале прилёта, комфортабельный трансфер прямо ко входу в отель
+                {isTrain
+                  ? "Комфортабельный трансфер от вокзала прямо ко входу в отель"
+                  : "Встреча в зале прилёта, комфортабельный трансфер прямо ко входу в отель"}
               </Text>
             </View>
           </View>
@@ -215,17 +312,26 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
           <View style={styles.timelineRow}>
             <View style={styles.timelineSpine}>
               <View style={[styles.dotPrimary, { backgroundColor: colors.primary }]}>
-                <Icon name="plane" size={10} color="#FFFFFF" />
+                <Icon name={isTrain ? "train" : "plane"} size={10} color="#FFFFFF" />
               </View>
             </View>
             <View style={styles.timelineBody}>
-              <Text style={[styles.stageTime, { color: colors.primary }]}>Этап 4 • Возвращение</Text>
+              <Text style={[styles.stageTime, { color: colors.primary }]}>
+                {isTrain ? "Этап 4 • Возвращение на поезде" : "Этап 4 • Возвращение"}
+              </Text>
               <Text style={[styles.stageTitle, { color: colors.textPrimary }]}>
-                {returnFlight?.origin || primaryFlight?.destination || option.destination} →{" "}
-                {returnFlight?.destination || primaryFlight?.origin || "Москва"}
+                {isTrain
+                  ? `${primaryTransport?.destination || option.destination} → ${
+                      primaryTransport?.origin || "Москва"
+                    }`
+                  : `${returnFlight?.origin || primaryFlight?.destination || option.destination} → ${
+                      returnFlight?.destination || primaryFlight?.origin || "Москва"
+                    }`}
               </Text>
               <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
-                Трансфер в аэропорт и дневной перелёт домой
+                {isTrain
+                  ? `Трансфер на вокзал и поездка домой на поезде ${primaryTransport?.carrier || "РЖД"}`
+                  : "Трансфер в аэропорт и дневной перелёт домой"}
               </Text>
             </View>
           </View>
@@ -248,7 +354,9 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
         </View>
 
         <View style={styles.priceItem}>
-          <Text style={[styles.priceItemLabel, { color: colors.textSecondary }]}>Авиабилеты (туда и обратно):</Text>
+          <Text style={[styles.priceItemLabel, { color: colors.textSecondary }]}>
+            {isTrain ? "Билеты на поезд (туда и обратно):" : "Авиабилеты (туда и обратно):"}
+          </Text>
           <Text style={[styles.priceItemValue, { color: colors.textPrimary }]}>
             {formatPrice(flightsTotal, option.currency)}
           </Text>
@@ -376,6 +484,48 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: theme.colors.textPrimary,
   },
+  trainContainer: {
+    backgroundColor: theme.colors.canvasMuted,
+    borderRadius: theme.borderRadius.md,
+    padding: 10,
+    gap: 4,
+  },
+  trainTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  trainRouteCol: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  trainRouteText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.colors.textPrimary,
+  },
+  trainBadge: {
+    backgroundColor: theme.colors.surfaceContainer,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: theme.borderRadius.xs,
+  },
+  trainBadgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: theme.colors.primary,
+  },
+  trainDetailsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  trainDetailText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+  },
   timelineList: {
     gap: 8,
     paddingTop: 4,
@@ -470,7 +620,7 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
   bookButton: {
-    backgroundColor: theme.colors.secondary, // Ostrovok warm Orange
+    backgroundColor: theme.colors.secondary,
     paddingVertical: 14,
     borderRadius: theme.borderRadius.lg,
     alignItems: "center",
