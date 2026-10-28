@@ -35,6 +35,8 @@ export interface UseMobileAgentOptions {
 declare const process: any;
 
 const STORAGE_SESSIONS_KEY = "odin_mobile_sessions_v1";
+const getMobileSessionsKey = (userId?: string) =>
+  userId ? `odin_mobile_sessions_${userId}` : "odin_mobile_sessions_guest";
 
 const memoryStorage = new Map<string, string>();
 
@@ -118,19 +120,71 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     });
   }, []);
 
+
+
+  const clearTimers = useCallback(() => {
+    if (timer1Ref.current) {
+      clearTimeout(timer1Ref.current);
+      timer1Ref.current = null;
+    }
+    if (timer2Ref.current) {
+      clearTimeout(timer2Ref.current);
+      timer2Ref.current = null;
+    }
+  }, []);
+
+  const cancelRequest = useCallback(() => {
+    clearTimers();
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsThinking(false);
+    setIsStreaming(false);
+  }, [clearTimers]);
+
+  const resetChat = useCallback(() => {
+    cancelRequest();
+    threadIdRef.current = null;
+    setActiveSessionId(null);
+    setMessages([]);
+    setTripOptions([]);
+    setSelectedOption(null);
+    setIsThinking(false);
+    setIsStreaming(false);
+    setConfirmedBookingId(null);
+  }, [cancelRequest]);
+
+  const currentUserId = options.authSession?.user?.id;
+  const prevUserIdRef = useRef<string | undefined>(currentUserId);
+
+  // When user logs in, logs out, or switches accounts: immediately wipe state & load that user's threads
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      resetChat();
+      setSavedSessions([]);
+    }
+  }, [currentUserId, resetChat]);
+
   // Load saved sessions from persistent storage and sync with server
   useEffect(() => {
     let isMounted = true;
     (async () => {
       try {
-        const stored = await safeStorageGet(STORAGE_SESSIONS_KEY);
+        const storageKey = getMobileSessionsKey(currentUserId);
+        const stored = await safeStorageGet(storageKey);
         let currentList: SavedMobileSession[] = [];
         if (stored && isMounted) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
             currentList = parsed;
             setSavedSessions(parsed);
+          } else {
+            setSavedSessions([]);
           }
+        } else if (isMounted) {
+          setSavedSessions([]);
         }
 
         // Fetch server threads for authenticated user
@@ -155,7 +209,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
           }
           merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
           setSavedSessions(merged);
-          await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(merged));
+          await safeStorageSet(storageKey, JSON.stringify(merged));
         }
       } catch {
         // Fallback safely handled
@@ -164,26 +218,18 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     return () => {
       isMounted = false;
     };
-  }, [backendUrl, options.authSession?.token]);
+  }, [backendUrl, options.authSession?.token, currentUserId]);
 
   const saveSessionsToStorage = async (list: SavedMobileSession[]) => {
     try {
-      await safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(list));
+      const storageKey = getMobileSessionsKey(currentUserId);
+      await safeStorageSet(storageKey, JSON.stringify(list));
     } catch {
       // Fallback safely handled
     }
   };
 
-  const clearTimers = useCallback(() => {
-    if (timer1Ref.current) {
-      clearTimeout(timer1Ref.current);
-      timer1Ref.current = null;
-    }
-    if (timer2Ref.current) {
-      clearTimeout(timer2Ref.current);
-      timer2Ref.current = null;
-    }
-  }, []);
+
 
   const formatCurrentTime = () => {
     const d = new Date();
@@ -227,15 +273,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     []
   );
 
-  const cancelRequest = useCallback(() => {
-    clearTimers();
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsThinking(false);
-    setIsStreaming(false);
-  }, [clearTimers]);
+
 
   useEffect(() => {
     return () => {
@@ -444,6 +482,11 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
               console.warn("Client message error:", err);
               setIsThinking(false);
               setIsStreaming(false);
+              const errMsg = typeof err === "string" ? err : (err as any)?.message || "";
+              if (errMsg.includes("404")) {
+                threadIdRef.current = null;
+                setActiveSessionId(null);
+              }
               setMessages((prev) => [
                 ...prev,
                 {
@@ -453,7 +496,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
                   content:
                     typeof err === "string"
                       ? err
-                      : err?.message ||
+                      : (err as any)?.message ||
                         "Сервис временно недоступен. Пожалуйста, проверьте соединение с сервером.",
                   timestamp: timeStr,
                 },
@@ -556,7 +599,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
             setSelectedOption(session.selectedOption || null);
             setSavedSessions((prev) => {
               const updated = prev.map((s) => (s.id === session.id ? { ...s, messages: mapped, tripOptions: extractedOptions } : s));
-              safeStorageSet(STORAGE_SESSIONS_KEY, JSON.stringify(updated));
+              safeStorageSet(getMobileSessionsKey(currentUserId), JSON.stringify(updated));
               return updated;
             });
           } else if (session.messages && session.messages.length > 0) {
@@ -574,17 +617,7 @@ export function useMobileAgent(options: UseMobileAgentOptions = {}) {
     [cancelRequest]
   );
 
-  const resetChat = useCallback(() => {
-    cancelRequest();
-    threadIdRef.current = null;
-    setActiveSessionId(null);
-    setMessages([]);
-    setTripOptions([]);
-    setSelectedOption(null);
-    setIsThinking(false);
-    setIsStreaming(false);
-    setConfirmedBookingId(null);
-  }, [cancelRequest]);
+
 
   const deleteSession = useCallback(
     (sessionId: string) => {

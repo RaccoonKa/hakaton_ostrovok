@@ -127,6 +127,20 @@ export class FastApiStreamClient {
         return this.streamAgent(agentId, message, options, callbacks, signal, true);
       }
 
+      if (response.status === 404 && !isRetry) {
+        // Тред устарел, удален или принадлежал другому пользователю (например, до логаута).
+        // Автоматически создаем новый чистый threadId и повторяем запрос без ошибки в UI.
+        const freshThreadId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        return this.streamAgent(
+          agentId,
+          message,
+          { ...options, threadId: freshThreadId },
+          callbacks,
+          signal,
+          true
+        );
+      }
+
       if (!response.ok) {
         throw new Error(`Stream request failed with status: ${response.status}`);
       }

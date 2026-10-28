@@ -14,6 +14,8 @@ export interface SavedChatSession {
 }
 
 const STORAGE_SESSIONS_KEY = "odin_travel_sessions_v1";
+const getWebSessionsKey = (userId?: string) =>
+  userId ? `odin_travel_sessions_${userId}` : "odin_travel_sessions_guest";
 
 interface ChatContextType {
   messages: UnifiedChatMessage[];
@@ -73,15 +75,49 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const authCtx = useContext(AuthContext);
   const authToken = authCtx?.token;
+  const currentUserId = authCtx?.user?.id;
 
-  // Sync sessions to localStorage
-  const saveSessionsToStorage = (updatedSessions: SavedChatSession[]) => {
-    try {
-      localStorage.setItem(STORAGE_SESSIONS_KEY, JSON.stringify(updatedSessions));
-    } catch {
-      // Storage error
+  // Sync sessions to user-scoped localStorage
+  const saveSessionsToStorage = useCallback(
+    (updatedSessions: SavedChatSession[]) => {
+      try {
+        const key = getWebSessionsKey(currentUserId);
+        localStorage.setItem(key, JSON.stringify(updatedSessions));
+      } catch {
+        // Storage error
+      }
+    },
+    [currentUserId]
+  );
+
+  // When user logs in, logs out, or switches accounts: immediately wipe state & load that user's threads
+  const prevUserIdRef = useRef<string | undefined>(currentUserId);
+  useEffect(() => {
+    if (prevUserIdRef.current !== currentUserId) {
+      prevUserIdRef.current = currentUserId;
+      setMessages([]);
+      setTripOptions([]);
+      setSelectedOption(null);
+      setOptimizationDiff(null);
+      setIsBookingModalOpen(false);
+      setIsLoading(false);
+      threadIdRef.current = null;
+      setActiveSessionId(null);
+
+      try {
+        const key = getWebSessionsKey(currentUserId);
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setSessions(Array.isArray(parsed) ? parsed : []);
+        } else {
+          setSessions([]);
+        }
+      } catch {
+        setSessions([]);
+      }
     }
-  };
+  }, [currentUserId]);
 
   // Synchronize server threads for the authenticated user
   useEffect(() => {
@@ -124,7 +160,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       window.removeEventListener("storage", handleStorageChange);
     };
-  }, [authToken]);
+  }, [authToken, currentUserId, saveSessionsToStorage]);
 
   // Persist current chat state into sessions list
   const persistCurrentState = useCallback(

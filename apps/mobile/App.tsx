@@ -446,6 +446,8 @@ function MainApp() {
           onLogout={() => {
             ClientAuthManager.logout(backendUrl);
             setAuthSession(ClientAuthManager.getCurrentSession());
+            resetChat();
+            setHistoryVisible(false);
           }}
           preferences={mobilePrefs}
           onSavePreferences={handleSaveMobilePreferences}
@@ -460,6 +462,8 @@ function MainApp() {
           onClose={() => setAuthModalVisible(false)}
           onAuthSuccess={(session) => {
             setAuthSession(session);
+            resetChat();
+            setHistoryVisible(false);
           }}
           isDark={isDark}
           baseUrl={backendUrl}

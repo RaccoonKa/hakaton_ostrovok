@@ -90,6 +90,9 @@ export class TravelApiClient {
       headers,
       body: JSON.stringify({ thread_id: threadId }),
     });
+    if (res.status === 404) {
+      return { messages: [] };
+    }
     if (!res.ok) throw new Error(`Get history failed: ${res.status}`);
     return res.json();
   }
