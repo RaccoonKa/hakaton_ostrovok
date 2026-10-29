@@ -33,7 +33,7 @@ def load_json_data(filename: str) -> list[dict]:
     file_path = _get_data_dir() / filename
     if not file_path.exists():
         return []
-    with open(file_path, "r", encoding="utf-8") as f:
+    with open(file_path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -47,6 +47,8 @@ def assert_aggregator_ready(
         raise AggregatorNotReadyError("origin is required before aggregation")
     if not destination:
         raise AggregatorNotReadyError("destination is required before aggregation")
+    if ds.get_destination_by_city(destination) is None:
+        raise AggregatorNotReadyError(f"destination '{destination}' is unknown in mock dataset")
     if not departure_date:
         raise AggregatorNotReadyError("departure_date is required before aggregation")
     if passengers is None or passengers < 1:
@@ -89,6 +91,7 @@ def search_and_package_trip(
         pet_friendly: bool = False,
         no_stops: bool = False,
         hotel_requirements: list[str] | None = None,
+        budget_mode: str | None = None,
 ) -> list[dict]:
     """
     Ищет транспорт, отели и трансферы в data/*.json, применяет фильтры
@@ -147,16 +150,16 @@ def search_and_package_trip(
     # Первичная фильтрация по городам
     outbound_transports = [
         t for t in transports
-        if t.get("origin_city", "").lower() == origin.lower()
-           and t.get("destination_city", "").lower() == city_name.lower()
+        if str(t.get("origin_city") or "").lower() == origin.lower()
+           and str(t.get("destination_city") or "").lower() == city_name.lower()
     ]
 
     inbound_transports = []
     if return_date:
         inbound_transports = [
             t for t in transports
-            if t.get("origin_city", "").lower() == city_name.lower()
-               and t.get("destination_city", "").lower() == origin.lower()
+            if str(t.get("origin_city") or "").lower() == city_name.lower()
+               and str(t.get("destination_city") or "").lower() == origin.lower()
         ]
 
     # --- ФИЛЬТРАЦИЯ ПЕРЕСАДОК (с мягким ослаблением) ---
@@ -171,21 +174,20 @@ def search_and_package_trip(
 
     # --- ФИЛЬТРАЦИЯ ПО ВОЗВРАТНОСТИ ---
     if require_refundable:
-        outbound_transports = [t for t in outbound_transports if t["refundable"]]
+        outbound_transports = [t for t in outbound_transports if t.get("refundable")]
         if inbound_transports:
-            inbound_transports = [t for t in inbound_transports if t["refundable"]]
+            inbound_transports = [t for t in inbound_transports if t.get("refundable")]
 
     # --- ФИЛЬТРАЦИЯ ПО БАГАЖУ ---
     if require_baggage:
         outbound_transports = [
             t for t in outbound_transports
-            if "место" in t["baggage"].lower() or "включен" in t["baggage"].lower() or "23 кг" in t["baggage"].lower()
+            if any(w in str(t.get("baggage") or "").lower() for w in ["место", "включен", "23 кг"])
         ]
         if inbound_transports:
             inbound_transports = [
                 t for t in inbound_transports
-                if
-                "место" in t["baggage"].lower() or "включен" in t["baggage"].lower() or "23 кг" in t["baggage"].lower()
+                if any(w in str(t.get("baggage") or "").lower() for w in ["место", "включен", "23 кг"])
             ]
 
     # --- ФИЛЬТРАЦИЯ ОТЕЛЕЙ ---
@@ -272,7 +274,7 @@ def search_and_package_trip(
     mid_in = inbound_transports[len(inbound_transports) // 2] if inbound_transports else None
     best_in = inbound_transports[-1] if inbound_transports else None
 
-    if budget_rub is None:
+    if budget_rub is None and budget_mode == "no_limit":
         if target_stars is None:
             high_tier_hotels = [h for h in hotels if h.get("stars", 0) >= 4]
             if high_tier_hotels:
@@ -304,24 +306,24 @@ def search_and_package_trip(
 
     packages: list[dict] = []
     for pkg_type, t_out, t_in, hotel, desc, tier_idx in combos:
-        transport_price_per_person = t_out["price"]
+        transport_price_per_person: float = float(t_out.get("price") or 0.0)
         if t_in:
-            transport_price_per_person += t_in["price"]
+            transport_price_per_person += float(t_in.get("price") or 0.0)
         elif return_date:
-            transport_price_per_person *= 2
+            transport_price_per_person *= 2.0
 
-        transport_total = transport_price_per_person * passengers
-        outbound_offset = t_out.get("day_offset", 0)
+        transport_total: float = transport_price_per_person * passengers
+        outbound_offset = int(t_out.get("day_offset") or 0)
         hotel_nights = max(1, nights - outbound_offset)
         rooms_needed = max(1, (passengers + 1) // 2) if passengers > 3 else 1
 
         pet_fee = hotel.get("pet_fee_per_night", 0) * hotel_nights if pet_friendly else 0
-        hotel_total = (hotel["price_per_night"] * hotel_nights * rooms_needed) + pet_fee
+        hotel_total: float = float((hotel["price_per_night"] * hotel_nights * rooms_needed) + pet_fee)
 
         hotel_name = hotel.get("hotel", hotel.get("name", "Отель"))
         hotel_transfers = [tr for tr in all_transfers if hotel_name in tr.get("destination_hotels", [])]
 
-        transfer_total = 0
+        transfer_total: float = 0.0
         transfer_info = None
 
         if hotel_transfers:
@@ -336,7 +338,7 @@ def search_and_package_trip(
             capacity = selected_tr.get("capacity_passengers", 3)
             vehicles_needed = (passengers + capacity - 1) // capacity
             transfer_multiplier = 2 if return_date else 1
-            transfer_total = selected_tr.get("price", 0) * vehicles_needed * transfer_multiplier
+            transfer_total = float(selected_tr.get("price", 0) * vehicles_needed * transfer_multiplier)
 
             transfer_info = {
                 "type": selected_tr.get("transport_type", "taxi"),
@@ -345,7 +347,7 @@ def search_and_package_trip(
                 "vehicles": vehicles_needed
             }
 
-        grand_total = transport_total + hotel_total + transfer_total
+        grand_total: float = transport_total + hotel_total + transfer_total
 
         # --- АНАЛИТИКА: Почему подходит, Компромиссы, Риски ---
 
@@ -368,7 +370,7 @@ def search_and_package_trip(
 
         # 2. Компромиссы
         compromises_list = []
-        out_stops = t_out.get("stops", 0)
+        out_stops = int(t_out.get("stops") or 0)
         if out_stops > 0:
             compromises_list.append(f"пересадка ({t_out.get('transit_point', 'смена рейса')})")
         if stars <= 3:
@@ -390,7 +392,7 @@ def search_and_package_trip(
         if not t_out.get("refundable", True):
             risks_list.append("невозвратный тариф билетов")
 
-        tags = t_out.get("tags", [])
+        tags: list[str] = list(t_out.get("tags") or [])
         if "short_layover_risk" in tags:
             risks_list.append("короткая стыковка (повышенный риск задержки)")
         if "night_flight" in tags:

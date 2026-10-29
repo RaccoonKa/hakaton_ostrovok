@@ -443,6 +443,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       abortControllerRef.current = abortController;
 
       setIsLoading(true);
+      setSelectedOption(null);
       setCurrentStep("analyzing_flights");
 
       const userMessage: ChatMessage = {
@@ -615,11 +616,43 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 return updated;
               });
             },
-            onComplete: () => {
+            onComplete: async () => {
               clearTimeout(stepTimer1);
               clearTimeout(stepTimer2);
               setIsLoading(false);
               setCurrentStep("ready");
+
+              try {
+                const hist = await clientRef.current.getHistory(currentThreadId);
+                if (hist?.messages && Array.isArray(hist.messages)) {
+                  let extracted: TripOption[] | undefined;
+                  for (let i = hist.messages.length - 1; i >= 0; i--) {
+                    const raw =
+                      (hist.messages[i] as any).custom_data?.trip_options ||
+                      (hist.messages[i] as any).additional_kwargs?.trip_options;
+                    if (raw && Array.isArray(raw) && raw.length > 0) {
+                      extracted = normalizeTripOptions(raw);
+                      break;
+                    }
+                  }
+                  if (extracted && extracted.length > 0) {
+                    setTripOptions(extracted);
+                    setMessages((latest) => {
+                      const updated = latest.map((m) =>
+                        m.id === assistantMsgId && (!m.trip_options || m.trip_options.length === 0)
+                          ? { ...m, trip_options: extracted, tripOptions: extracted }
+                          : m
+                      );
+                      persistCurrentState(updated, extracted, selectedOption, currentThreadId);
+                      return updated;
+                    });
+                    return;
+                  }
+                }
+              } catch {
+                // Ignore history fetch errors
+              }
+
               setMessages((latest) => {
                 persistCurrentState(latest, tripOptions, selectedOption, currentThreadId);
                 return latest;
