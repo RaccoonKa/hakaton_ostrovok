@@ -26,7 +26,7 @@ class ServiceSmokeClient:
         message: str,
         thread_id: str,
         user_id: str | None = None,
-        model: str = "fake",
+        model: str = "GigaChat-2",
     ) -> dict:
         payload = {"message": message, "thread_id": thread_id, "model": model}
         if user_id:

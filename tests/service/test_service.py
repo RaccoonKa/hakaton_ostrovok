@@ -7,7 +7,7 @@ from langgraph.types import Interrupt, StateSnapshot
 
 from agents.agents import Agent
 from schema import ChatHistory, ChatMessage, ServiceMetadata
-from schema.models import AnthropicModelName, OpenAIModelName
+from schema.models import GigaChatModelName
 
 
 def test_invoke(test_client, mock_agent) -> None:
@@ -69,7 +69,7 @@ def test_invoke_model_param(test_client, mock_agent) -> None:
     """Test that the model parameter is correctly passed to the agent if specified."""
     QUESTION = "What is the weather in Tokyo?"
     ANSWER = "The weather in Tokyo is sunny."
-    CUSTOM_MODEL = OpenAIModelName.GPT_5_MINI
+    CUSTOM_MODEL = GigaChatModelName.GIGACHAT_2_PRO
     mock_agent.ainvoke.return_value = [("values", {"messages": [AIMessage(content=ANSWER)]})]
 
     response = test_client.post("/invoke", json={"message": QUESTION, "model": CUSTOM_MODEL})
@@ -86,10 +86,11 @@ def test_invoke_model_param(test_client, mock_agent) -> None:
     assert output.content == ANSWER
 
     # Verify a valid enum outside the configured allowlist returns a 400.
-    unavailable_model = AnthropicModelName.SONNET_45
-    response = test_client.post("/invoke", json={"message": QUESTION, "model": unavailable_model})
-    assert response.status_code == 400
-    assert "not available" in response.json()["detail"]
+    unavailable_model = GigaChatModelName.GIGACHAT_3_ULTRA
+    with patch("service.service.settings.AVAILABLE_MODELS", {CUSTOM_MODEL}):
+        response = test_client.post("/invoke", json={"message": QUESTION, "model": unavailable_model})
+        assert response.status_code == 400
+        assert "not available" in response.json()["detail"]
 
     # Verify a malformed model string still fails request validation.
     INVALID_MODEL = "gpt-7-notreal"
@@ -404,8 +405,8 @@ def test_info(test_client, mock_settings) -> None:
 
     base_agent = Agent(description="A base agent.", graph_like=None)
     mock_settings.AUTH_SECRET = None
-    mock_settings.DEFAULT_MODEL = OpenAIModelName.GPT_5_NANO
-    mock_settings.AVAILABLE_MODELS = {OpenAIModelName.GPT_5_NANO, OpenAIModelName.GPT_5_MINI}
+    mock_settings.DEFAULT_MODEL = GigaChatModelName.GIGACHAT_2
+    mock_settings.AVAILABLE_MODELS = {GigaChatModelName.GIGACHAT_2, GigaChatModelName.GIGACHAT_2_PRO}
     with patch.dict("agents.agents.agents", {"base-agent": base_agent}, clear=True):
         response = test_client.get("/info")
         assert response.status_code == 200
@@ -416,5 +417,5 @@ def test_info(test_client, mock_settings) -> None:
     assert output.agents[0].key == "base-agent"
     assert output.agents[0].description == "A base agent."
 
-    assert output.default_model == OpenAIModelName.GPT_5_NANO
-    assert output.models == [OpenAIModelName.GPT_5_MINI, OpenAIModelName.GPT_5_NANO]
+    assert output.default_model == GigaChatModelName.GIGACHAT_2
+    assert output.models == [GigaChatModelName.GIGACHAT_2, GigaChatModelName.GIGACHAT_2_PRO]

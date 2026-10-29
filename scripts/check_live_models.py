@@ -50,33 +50,14 @@ from core.llm import get_model  # noqa: E402
 from core.settings import settings  # noqa: E402
 from schema.models import (  # noqa: E402
     AllModelEnum,
-    AnthropicModelName,
-    AWSModelName,
-    AzureOpenAIModelName,
-    DeepseekModelName,
-    GoogleModelName,
-    GroqModelName,
-    OpenAIModelName,
-    OpenRouterModelName,
+    GigaChatModelName,
     Provider,
-    VertexAIModelName,
 )
 
 PROMPT = "Reply with exactly one word: OK"
 
-# Providers that only need an API key/flag to smoke test. Ollama, the OpenAI-compatible
-# slot, and the fake model are excluded: they need local infra or bespoke config rather
-# than a simple "is a key set" check, so they aren't a fit for this generic sweep.
 PROVIDER_MODELS: dict[Provider, tuple[type[AllModelEnum], Callable[[], bool]]] = {
-    Provider.OPENAI: (OpenAIModelName, lambda: bool(settings.OPENAI_API_KEY)),
-    Provider.ANTHROPIC: (AnthropicModelName, lambda: bool(settings.ANTHROPIC_API_KEY)),
-    Provider.GOOGLE: (GoogleModelName, lambda: bool(settings.GOOGLE_API_KEY)),
-    Provider.GROQ: (GroqModelName, lambda: bool(settings.GROQ_API_KEY)),
-    Provider.DEEPSEEK: (DeepseekModelName, lambda: bool(settings.DEEPSEEK_API_KEY)),
-    Provider.OPENROUTER: (OpenRouterModelName, lambda: bool(settings.OPENROUTER_API_KEY)),
-    Provider.AWS: (AWSModelName, lambda: settings.USE_AWS_BEDROCK),
-    Provider.AZURE_OPENAI: (AzureOpenAIModelName, lambda: bool(settings.AZURE_OPENAI_API_KEY)),
-    Provider.VERTEXAI: (VertexAIModelName, lambda: bool(settings.GOOGLE_APPLICATION_CREDENTIALS)),
+    Provider.GIGACHAT: (GigaChatModelName, lambda: bool(settings.GIGACHAT_CREDENTIALS)),
 }
 
 
