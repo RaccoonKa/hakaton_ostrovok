@@ -4,6 +4,7 @@
 Собирает перелёт/поезд + отель + трансфер из реальных JSON файлов
 (flights.json, trains.json, hotels.json, transfers.json)
 и применяет строгие фильтры по багажу, отмене, животным, звёздности и пересадкам.
+Также генерирует обоснование выбора, компромиссы и риски для каждого пакета.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ def load_json_data(filename: str) -> list[dict]:
     file_path = _get_data_dir() / filename
     if not file_path.exists():
         return []
-    with open(file_path, encoding="utf-8") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -46,8 +47,6 @@ def assert_aggregator_ready(
         raise AggregatorNotReadyError("origin is required before aggregation")
     if not destination:
         raise AggregatorNotReadyError("destination is required before aggregation")
-    if ds.get_destination_by_city(destination) is None:
-        raise AggregatorNotReadyError(f"destination '{destination}' is unknown in mock dataset")
     if not departure_date:
         raise AggregatorNotReadyError("departure_date is required before aggregation")
     if passengers is None or passengers < 1:
@@ -90,11 +89,10 @@ def search_and_package_trip(
         pet_friendly: bool = False,
         no_stops: bool = False,
         hotel_requirements: list[str] | None = None,
-        budget_mode: str | None = None,
 ) -> list[dict]:
     """
     Ищет транспорт, отели и трансферы в data/*.json, применяет фильтры
-    и возвращает 3 варианта поездки: 'Эконом', 'Оптимальный' и 'Комфорт' (или премиум-линейку).
+    и возвращает 3 варианта поездки с детальным анализом компромиссов и рисков.
     """
     assert_aggregator_ready(origin, destination, departure_date, passengers)
 
@@ -149,48 +147,45 @@ def search_and_package_trip(
     # Первичная фильтрация по городам
     outbound_transports = [
         t for t in transports
-        if (t.get("origin_city") or "").lower() == origin.lower()
-           and (t.get("destination_city") or "").lower() == city_name.lower()
+        if t.get("origin_city", "").lower() == origin.lower()
+           and t.get("destination_city", "").lower() == city_name.lower()
     ]
 
     inbound_transports = []
     if return_date:
         inbound_transports = [
             t for t in transports
-            if (t.get("origin_city") or "").lower() == city_name.lower()
-               and (t.get("destination_city") or "").lower() == origin.lower()
+            if t.get("origin_city", "").lower() == city_name.lower()
+               and t.get("destination_city", "").lower() == origin.lower()
         ]
 
-    # --- ФИЛЬТРАЦИЯ ПЕРЕСАДОК (no_stops) ---
+    # --- ФИЛЬТРАЦИЯ ПЕРЕСАДОК (с мягким ослаблением) ---
     if no_stops:
-        direct_out = [t for t in outbound_transports if (t.get("stops") or 0) == 0]
+        direct_out = [t for t in outbound_transports if t.get("stops", 0) == 0]
         if direct_out:
             outbound_transports = direct_out
         if inbound_transports:
-            direct_in = [t for t in inbound_transports if (t.get("stops") or 0) == 0]
+            direct_in = [t for t in inbound_transports if t.get("stops", 0) == 0]
             if direct_in:
                 inbound_transports = direct_in
 
     # --- ФИЛЬТРАЦИЯ ПО ВОЗВРАТНОСТИ ---
     if require_refundable:
-        outbound_transports = [t for t in outbound_transports if t.get("refundable")]
+        outbound_transports = [t for t in outbound_transports if t["refundable"]]
         if inbound_transports:
-            inbound_transports = [t for t in inbound_transports if t.get("refundable")]
+            inbound_transports = [t for t in inbound_transports if t["refundable"]]
 
     # --- ФИЛЬТРАЦИЯ ПО БАГАЖУ ---
     if require_baggage:
         outbound_transports = [
             t for t in outbound_transports
-            if "место" in (t.get("baggage") or "").lower()
-               or "включен" in (t.get("baggage") or "").lower()
-               or "23 кг" in (t.get("baggage") or "").lower()
+            if "место" in t["baggage"].lower() or "включен" in t["baggage"].lower() or "23 кг" in t["baggage"].lower()
         ]
         if inbound_transports:
             inbound_transports = [
                 t for t in inbound_transports
-                if "место" in (t.get("baggage") or "").lower()
-                   or "включен" in (t.get("baggage") or "").lower()
-                   or "23 кг" in (t.get("baggage") or "").lower()
+                if
+                "место" in t["baggage"].lower() or "включен" in t["baggage"].lower() or "23 кг" in t["baggage"].lower()
             ]
 
     # --- ФИЛЬТРАЦИЯ ОТЕЛЕЙ ---
@@ -212,7 +207,6 @@ def search_and_package_trip(
         if pf_hotels:
             hotels = pf_hotels
 
-    # 1. Фильтрация по требуемой звёздности
     target_stars = None
     if "stars_5" in all_reqs:
         target_stars = 5
@@ -226,36 +220,32 @@ def search_and_package_trip(
         if matched_stars:
             hotels = matched_stars
 
-    # 2. Фильтрация по расположению (центр)
     if "center" in all_reqs:
         center_hotels = [
             h for h in hotels
-            if any(w in (h.get("district") or "").lower() for w in ["центр", "султанахмет", "невский", "исторический"])
+            if any(w in h.get("district", "").lower() for w in ["центр", "султанахмет", "невский", "исторический"])
         ]
         if center_hotels:
             hotels = center_hotels
 
-    # 3. Фильтрация по виду на море / первой линии (sea_view)
     if "sea_view" in all_reqs:
         sea_hotels = [
             h for h in hotels
-            if any(w in " ".join(h.get("amenities") or []).lower() for w in ["море", "пляж", "морск"])
-            or "море" in (h.get("room_type") or "").lower()
-            or "морск" in (h.get("room_type") or "").lower()
+            if any(w in " ".join(h.get("amenities", [])).lower() for w in ["море", "пляж", "морск"])
+               or "море" in h.get("room_type", "").lower()
+               or "морск" in h.get("room_type", "").lower()
         ]
         if sea_hotels:
             hotels = sea_hotels
 
-    # 4. Фильтрация по бассейну (pool)
     if "pool" in all_reqs:
         pool_hotels = [
             h for h in hotels
-            if any("бассейн" in (a or "").lower() or "pool" in (a or "").lower() for a in (h.get("amenities") or []))
+            if any("бассейн" in a.lower() or "pool" in a.lower() for a in h.get("amenities", []))
         ]
         if pool_hotels:
             hotels = pool_hotels
 
-    # 5. Фильтрация по типу питания (all_inclusive, breakfast)
     if "all_inclusive" in all_reqs:
         ai_hotels = [h for h in hotels if h.get("meal_plan") == "all_inclusive"]
         if ai_hotels:
@@ -265,36 +255,30 @@ def search_and_package_trip(
         if bf_hotels:
             hotels = bf_hotels
 
-    nights = int(_nights(departure_date, return_date))
+    nights = _nights(departure_date, return_date)
     budget_rub = _budget_to_rub(budget_limit, currency)
 
-    # Сортируем транспорт (при равной цене предпочитаем прямые рейсы)
-    outbound_transports.sort(key=lambda t: (int(t.get("stops") or 0), float(t.get("price") or 0)))
-    inbound_transports.sort(key=lambda t: (int(t.get("stops") or 0), float(t.get("price") or 0)))
+    outbound_transports.sort(key=lambda t: (t.get("stops", 0), t["price"]))
+    inbound_transports.sort(key=lambda t: (t.get("stops", 0), t["price"]))
 
     if not outbound_transports or not hotels:
         return []
 
-    # Выборка транспорта (туда)
     cheap_out = outbound_transports[0]
     mid_out = outbound_transports[len(outbound_transports) // 2]
     best_out = outbound_transports[-1]
 
-    # Выборка транспорта (обратно, если есть)
     cheap_in = inbound_transports[0] if inbound_transports else None
     mid_in = inbound_transports[len(inbound_transports) // 2] if inbound_transports else None
     best_in = inbound_transports[-1] if inbound_transports else None
 
-    # ОПРЕДЕЛЯЕМ КОМБИНАЦИИ ДО ЦИКЛА
-    if budget_rub is None and budget_mode == "no_limit":
-        # Если конкретная звёздность не запрашивалась, выбираем отели от 4★ и выше
+    if budget_rub is None:
         if target_stars is None:
-            high_tier_hotels = [h for h in hotels if int(h.get("stars") or 0) >= 4]
+            high_tier_hotels = [h for h in hotels if h.get("stars", 0) >= 4]
             if high_tier_hotels:
                 hotels = high_tier_hotels
 
-        hotels.sort(key=lambda h: (int(h.get("stars") or 0), float(h.get("rating") or 0), float(h.get("price_per_night") or 0)))
-
+        hotels.sort(key=lambda h: (h["stars"], h.get("rating", 0), h["price_per_night"]))
         hotel_comfort = hotels[0]
         hotel_premium = hotels[len(hotels) // 2]
         hotel_deluxe = hotels[-1]
@@ -303,10 +287,10 @@ def search_and_package_trip(
             ("Комфорт", mid_out, mid_in, hotel_comfort, "Отличный комфорт в проверенном отеле.", 1),
             ("Премиум", best_out, best_in, hotel_premium, "Высокий уровень сервиса и комфортный маршрут.", 2),
             ("Люкс", best_out, best_in, hotel_deluxe,
-             f"Максимальный класс обслуживания: отель {hotel_deluxe.get('stars', 5)}★ и индивидуальный трансфер.", 2),
+             f"Максимальный класс обслуживания: отель {hotel_deluxe['stars']}★.", 2),
         ]
     else:
-        hotels.sort(key=lambda h: float(h.get("price_per_night") or 0))
+        hotels.sort(key=lambda h: h["price_per_night"])
         hotel_budget = hotels[0]
         hotel_comfort = hotels[len(hotels) // 2]
         hotel_premium = hotels[-1]
@@ -315,40 +299,33 @@ def search_and_package_trip(
             ("Эконом", cheap_out, cheap_in, hotel_budget, "Бюджетная поездка и доступный отель.", 0),
             ("Оптимальный", mid_out, mid_in, hotel_comfort, "Идеальное соотношение цены и комфорта.", 1),
             ("Комфорт", best_out, best_in, hotel_premium,
-             f"Премиальный отдых с лучшими билетами и отелем {hotel_premium.get('stars', 4)}★.", 2),
+             f"Премиальный отдых с лучшими билетами и отелем {hotel_premium['stars']}★.", 2),
         ]
 
     packages: list[dict] = []
     for pkg_type, t_out, t_in, hotel, desc, tier_idx in combos:
-        transport_price_per_person: float = float(t_out.get("price") or 0)
+        transport_price_per_person = t_out["price"]
         if t_in:
-            transport_price_per_person += float(t_in.get("price") or 0)
+            transport_price_per_person += t_in["price"]
         elif return_date:
-            transport_price_per_person *= 2.0
+            transport_price_per_person *= 2
 
-        transport_total: float = float(transport_price_per_person * passengers)
+        transport_total = transport_price_per_person * passengers
+        outbound_offset = t_out.get("day_offset", 0)
+        hotel_nights = max(1, nights - outbound_offset)
+        rooms_needed = max(1, (passengers + 1) // 2) if passengers > 3 else 1
 
-        # Учитываем день прибытия: дни в пути на поезде не оплачиваются в отеле
-        outbound_offset: int = int(t_out.get("day_offset") or 0)
-        hotel_nights: int = max(1, int(nights) - outbound_offset)
+        pet_fee = hotel.get("pet_fee_per_night", 0) * hotel_nights if pet_friendly else 0
+        hotel_total = (hotel["price_per_night"] * hotel_nights * rooms_needed) + pet_fee
 
-        # Учитываем количество номеров: стандартный номер вмещает до 2-3 человек
-        # Если едет 4 человека и более — требуется минимум 2 номера
-        rooms_needed: int = max(1, (passengers + 1) // 2) if passengers > 3 else 1
+        hotel_name = hotel.get("hotel", hotel.get("name", "Отель"))
+        hotel_transfers = [tr for tr in all_transfers if hotel_name in tr.get("destination_hotels", [])]
 
-        pet_fee: float = float(hotel.get("pet_fee_per_night") or 0) * hotel_nights if pet_friendly else 0.0
-        hotel_total: float = (float(hotel.get("price_per_night") or 0) * hotel_nights * rooms_needed) + pet_fee
-
-        # --- ИНТЕГРАЦИЯ ТРАНСФЕРОВ ---
-        hotel_name: str = str(hotel.get("hotel") or hotel.get("name") or "Отель")
-        hotel_transfers = [tr for tr in all_transfers if hotel_name in (tr.get("destination_hotels") or [])]
-
-        transfer_total: float = 0.0
+        transfer_total = 0
         transfer_info = None
 
         if hotel_transfers:
-            hotel_transfers.sort(key=lambda tr: float(tr.get("price") or 0))
-
+            hotel_transfers.sort(key=lambda tr: tr.get("price", 0))
             if tier_idx == 0:
                 selected_tr = hotel_transfers[0]
             elif tier_idx == 1:
@@ -356,77 +333,103 @@ def search_and_package_trip(
             else:
                 selected_tr = hotel_transfers[-1]
 
-            capacity: int = int(selected_tr.get("capacity_passengers") or 3)
-            vehicles_needed: int = (passengers + capacity - 1) // capacity
-            transfer_multiplier: int = 2 if return_date else 1
-            transfer_total = float(selected_tr.get("price") or 0) * vehicles_needed * transfer_multiplier
+            capacity = selected_tr.get("capacity_passengers", 3)
+            vehicles_needed = (passengers + capacity - 1) // capacity
+            transfer_multiplier = 2 if return_date else 1
+            transfer_total = selected_tr.get("price", 0) * vehicles_needed * transfer_multiplier
 
             transfer_info = {
-                "type": (selected_tr.get("transport_type") or "taxi"),
-                "vehicle": f"{selected_tr.get('vehicle_class') or ''} ({selected_tr.get('vehicle_model') or ''})".strip(),
-                "price_total": round(float(transfer_total), 2),
+                "type": selected_tr.get("transport_type", "taxi"),
+                "vehicle": f"{selected_tr.get('vehicle_class', '')} ({selected_tr.get('vehicle_model', '')})".strip(),
+                "price_total": round(transfer_total, 2),
                 "vehicles": vehicles_needed
             }
 
-        grand_total: float = float(transport_total + hotel_total + transfer_total)
+        grand_total = transport_total + hotel_total + transfer_total
 
-        # --- ФОРМИРОВАНИЕ ОПИСАНИЯ РЕЙСА И ПРЕДУПРЕЖДЕНИЙ ---
-        stops_count: int = int(t_out.get("stops") or 0)
-        if stops_count > 0 and t_out.get("transit_point"):
-            transit_desc = f" (стыковка в {t_out['transit_point']})"
-        elif t_out.get("type") == "Рейс":
-            transit_desc = " (прямой)"
-        else:
-            transit_desc = ""
+        # --- АНАЛИТИКА: Почему подходит, Компромиссы, Риски ---
 
-        # Проверяем кейсы-ловушки валидатора
-        warnings = []
-        t_tags = t_out.get("tags") or []
-        if "short_layover_risk" in t_tags:
-            warnings.append("⚠️ Короткая стыковка (50 мин) в SVO")
-        if "night_flight" in t_tags:
-            warnings.append("⚠️ Ранний прилёт в 05:15")
+        # 1. Почему подходит
+        why_fits_list = []
+        rating = hotel.get("rating", 0)
+        if rating >= 8.0:
+            why_fits_list.append(f"высокий рейтинг отеля ({rating}/10)")
+        stars = hotel.get("stars", 0)
+        if stars >= 4:
+            why_fits_list.append(f"комфортная категория {stars}★")
+        if t_out.get("stops", 0) == 0 and (not t_in or t_in.get("stops", 0) == 0):
+            why_fits_list.append("прямой маршрут без пересадок")
+        if transfer_info:
+            why_fits_list.append(f"включён трансфер ({transfer_info['type']})")
+        if budget_rub is not None and grand_total <= budget_rub:
+            why_fits_list.append("полностью укладывается в бюджет")
 
-        warning_str = f" {' '.join(warnings)}" if warnings else ""
-        transfer_desc = f" Включен трансфер ({transfer_info['vehicle']})." if transfer_info else ""
-        pet_desc = " Включена доплата за питомца." if pet_friendly and pet_fee > 0 else ""
-        stars_badge = "" if (hotel_name and "★" in hotel_name) else f" ({hotel.get('stars', '')}★)"
-        rooms_desc = f" ({rooms_needed} ном.)" if rooms_needed > 1 else ""
+        why_fits = ", ".join(why_fits_list).capitalize() if why_fits_list else "Подходит под базовые параметры запроса"
 
-        full_desc = (
-            f"{desc} Отель {hotel_name}{stars_badge}{rooms_desc}. "
-            f"{t_out.get('type', '')} {t_out.get('carrier', '')} {t_out.get('id', '')}{transit_desc}.{warning_str}"
-            f"{transfer_desc}{pet_desc}"
-        )
+        # 2. Компромиссы
+        compromises_list = []
+        out_stops = t_out.get("stops", 0)
+        if out_stops > 0:
+            compromises_list.append(f"пересадка ({t_out.get('transit_point', 'смена рейса')})")
+        if stars <= 3:
+            compromises_list.append(f"базовая категория отеля ({stars}★)")
 
+        district = hotel.get("district", "").lower()
+        if district and not any(w in district for w in ["центр", "султанахмет", "исторический", "невский"]):
+            compromises_list.append(f"удалённость от центра (район {hotel.get('district')})")
+
+        if budget_rub is not None and grand_total > budget_rub:
+            over = grand_total - budget_rub
+            compromises_list.append(f"превышение бюджета на {over:,.0f} ₽".replace(",", " "))
+
+        compromises = "; ".join(
+            compromises_list).capitalize() if compromises_list else "Существенных компромиссов нет, сбалансированный вариант"
+
+        # 3. Риски
+        risks_list = []
+        if not t_out.get("refundable", True):
+            risks_list.append("невозвратный тариф билетов")
+
+        tags = t_out.get("tags", [])
+        if "short_layover_risk" in tags:
+            risks_list.append("короткая стыковка (повышенный риск задержки)")
+        if "night_flight" in tags:
+            risks_list.append("ночной перелёт / ранний прилёт до времени заселения")
+
+        risks = "; ".join(risks_list).capitalize() if risks_list else "Минимальные риски, стандартные условия отмены"
+
+        # --- СБОРКА ПАКЕТА ---
         entry = {
             "package_type": pkg_type,
             "destination": city_name,
-            "description": full_desc,
+            "description": desc,
+            "why_fits": why_fits,
+            "compromises": compromises,
+            "risks": risks,
             "departure_date": departure_date,
             "return_date": return_date,
             "passengers": passengers,
             "nights": nights,
             "transport": {
-                "id": t_out.get("id"),
-                "carrier": t_out.get("carrier"),
-                "price_per_person": round(float(transport_price_per_person), 2),
-                "price_total": round(float(transport_total), 2),
-                "type": t_out.get("type"),
-                "stops": stops_count,
+                "id": t_out["id"],
+                "carrier": t_out["carrier"],
+                "price_per_person": transport_price_per_person,
+                "price_total": round(transport_total, 2),
+                "type": t_out["type"],
+                "stops": t_out.get("stops", 0),
                 "transit_point": t_out.get("transit_point"),
                 "layover_duration": t_out.get("layover_duration"),
-                "warnings": warnings,
+                "warnings": [w for w in ["short_layover_risk", "night_flight"] if w in tags],
             },
             "hotel": {
                 "name": hotel_name,
-                "stars": hotel.get("stars", 0),
-                "rating": hotel.get("rating", 0),
-                "price_total": round(float(hotel_total), 2),
+                "stars": stars,
+                "rating": rating,
+                "price_total": round(hotel_total, 2),
                 "nights": hotel_nights,
                 "rooms": rooms_needed,
             },
-            "grand_total": round(float(grand_total), 2),
+            "grand_total": round(grand_total, 2),
             "currency": Currency.RUB.value,
         }
 
@@ -436,7 +439,7 @@ def search_and_package_trip(
         if budget_rub is not None:
             entry["is_within_budget"] = grand_total <= budget_rub
             if grand_total > budget_rub:
-                entry["over_budget_amount"] = round(float(grand_total - budget_rub), 2)
+                entry["over_budget_amount"] = round(grand_total - budget_rub, 2)
         else:
             entry["is_within_budget"] = True
 

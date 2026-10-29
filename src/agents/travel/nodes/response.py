@@ -1,11 +1,9 @@
 """
-Узел формирования итогового ответа с расширенной реакцией на бюджет
-и прозрачной детализацией стоимости (билеты + отель + трансфер).
+Узел формирования итогового ответа с расширенной реакцией на бюджет,
+детализацией стоимости и аналитикой компромиссов (why_fits, compromises, risks).
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 from langchain_core.messages import AIMessage
 
@@ -36,12 +34,12 @@ def _format_package(pkg: dict) -> str:
     breakdown_lines = []
     if t_price:
         carrier_str = f" ({t_carrier})" if t_carrier else ""
-        breakdown_lines.append(f"  • {t_type}{carrier_str}: **{t_price:,.0f} ₽**")
+        breakdown_lines.append(f"  • {t_type}{carrier_str}: **{t_price:,.0f} ₽**".replace(",", " "))
     if h_price:
-        breakdown_lines.append(f"  • 🏨 Проживание ({h_name}, {h_nights} ноч.): **{h_price:,.0f} ₽**")
+        breakdown_lines.append(f"  • 🏨 Проживание ({h_name}, {h_nights} ноч.): **{h_price:,.0f} ₽**".replace(",", " "))
     if tr_price:
         tr_veh = transfer.get("vehicle", "Комфорт")
-        breakdown_lines.append(f"  • 🚖 Трансфер ({tr_veh}): **{tr_price:,.0f} ₽**")
+        breakdown_lines.append(f"  • 🚖 Трансфер ({tr_veh}): **{tr_price:,.0f} ₽**".replace(",", " "))
 
     status_badge = ""
     if mode != "no_limit":
@@ -49,15 +47,34 @@ def _format_package(pkg: dict) -> str:
 
     breakdown_block = "\n".join(breakdown_lines)
 
+    # --- Аналитика: Почему подходит, Компромиссы, Риски ---
+    why_fits = pkg.get("why_fits")
+    compromises = pkg.get("compromises")
+    risks = pkg.get("risks")
+
+    analytics_lines = []
+    if why_fits:
+        analytics_lines.append(f"💡 **Почему подходит:** {why_fits}")
+    if compromises:
+        analytics_lines.append(f"⚖️ **Компромиссы:** {compromises}")
+    if risks:
+        analytics_lines.append(f"⚠️ **Риски:** {risks}")
+
     lines = [
         f"🌟 **{pkg_type}**{status_badge}",
         f"{desc}",
-        f"📋 **В стоимость входит:**\n{breakdown_block}",
-        f"💳 **Итого к оплате:** **{total:,.0f} ₽**".replace(",", " "),
+        f"📋 **В стоимость входит:**\n{breakdown_block}"
     ]
+
+    if analytics_lines:
+        lines.append("\n".join(analytics_lines))
+
+    lines.append(f"💳 **Итого к оплате:** **{total:,.0f} ₽**".replace(",", " "))
+
     if not within and pkg.get("over_budget_amount"):
         over = pkg["over_budget_amount"]
         lines.append(f"⚠️ Превышение бюджета: **+{over:,.0f} ₽**".replace(",", " "))
+
     return "\n\n".join(lines)
 
 
@@ -113,8 +130,10 @@ def generate_response(state: TravelState | dict) -> dict:
         budget_limit = request.budget_range[1]
 
     budget_mode = getattr(request, "budget_mode", "specified")
-    all_over = all(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
-    any_over = any(not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
+    all_over = all(
+        not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
+    any_over = any(
+        not pkg.get("is_within_budget", True) for pkg in trip_options) if budget_mode != "no_limit" else False
 
     is_absurd_budget = budget_limit is not None and budget_limit < 5000 and budget_mode != "no_limit"
 
@@ -168,19 +187,7 @@ def generate_response(state: TravelState | dict) -> dict:
         lines.append("Какой из вариантов вам больше подходит?")
 
     final_text = "\n\n".join(lines)
-    additional_kwargs: dict[str, Any] = {}
-    if trip_options:
-        additional_kwargs["trip_options"] = trip_options
-    if selected:
-        additional_kwargs["selected_option"] = selected
-    return {
-        "messages": [
-            AIMessage(
-                content=final_text,
-                additional_kwargs=additional_kwargs if additional_kwargs else {},
-            )
-        ]
-    }
+    return {"messages": [AIMessage(content=final_text)]}
 
 
 __all__ = ["generate_response"]
