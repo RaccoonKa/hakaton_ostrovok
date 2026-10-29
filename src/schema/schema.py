@@ -4,7 +4,7 @@ from typing import Any, Literal, NotRequired
 from pydantic import BaseModel, Field, SerializeAsAny
 from typing_extensions import TypedDict
 
-from schema.models import AllModelEnum, AnthropicModelName, OpenAIModelName
+from schema.models import AllModelEnum, GigaChatModelName
 
 
 class AgentInfo(BaseModel):
@@ -49,7 +49,7 @@ class UserInput(BaseModel):
         title="Model",
         description="LLM Model to use for the agent. Defaults to the default model set in the settings of the service.",
         default=None,
-        examples=[OpenAIModelName.GPT_5_NANO, AnthropicModelName.HAIKU_45],
+        examples=[GigaChatModelName.GIGACHAT_2, GigaChatModelName.GIGACHAT_2_PRO],
     )
     thread_id: str | None = Field(
         description="Thread ID to persist and continue a multi-turn conversation.",
