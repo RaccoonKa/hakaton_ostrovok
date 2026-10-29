@@ -166,9 +166,6 @@ export interface TripOption {
   total_price?: number | null;
   currency?: Currency | null;
   score?: number | null;
-  why_fits?: string | null;
-  compromises?: string | null;
-  risks?: string | null;
   isDemo?: boolean;
 }
 

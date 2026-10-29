@@ -47,23 +47,12 @@ def _format_package(pkg: dict) -> str:
 
     breakdown_block = "\n".join(breakdown_lines)
 
-    why_fits = pkg.get("why_fits")
-    compromises = pkg.get("compromises")
-    risks = pkg.get("risks")
-
     lines = [
         f"🌟 **{pkg_type}**{status_badge}",
         f"{desc}",
         f"📋 **В стоимость входит:**\n{breakdown_block}",
+        f"💳 **Итого к оплате:** **{total:,.0f} ₽**".replace(",", " "),
     ]
-    if why_fits:
-        lines.append(f"💡 **Почему подходит:** {why_fits}")
-    if compromises:
-        lines.append(f"⚖️ **Компромиссы:** {compromises}")
-    if risks:
-        lines.append(f"⚠️ **Риски:** {risks}")
-
-    lines.append(f"💳 **Итого к оплате:** **{total:,.0f} ₽**".replace(",", " "))
     if not within and pkg.get("over_budget_amount"):
         over = pkg["over_budget_amount"]
         lines.append(f"⚠️ Превышение бюджета: **+{over:,.0f} ₽**".replace(",", " "))

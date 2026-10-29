@@ -119,18 +119,6 @@ class TripOption(BaseModel):
         default=None,
         description="Балл соответствия предпочтениям (0-100).",
     )
-    why_fits: str | None = Field(
-        default=None,
-        description="Почему подходит данный вариант поездки.",
-    )
-    compromises: str | None = Field(
-        default=None,
-        description="Компромиссы варианта (удалённость, пересадки и т.д.).",
-    )
-    risks: str | None = Field(
-        default=None,
-        description="Риски варианта (невозвратность, короткие стыковки).",
-    )
     isDemo: bool = Field(
         default=True,
         description="Флаг синтетического/демонстрационного тарифа.",

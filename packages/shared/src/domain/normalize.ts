@@ -22,9 +22,6 @@ export function normalizeTripOption(raw: any, index: number = 0): TripOption {
   const currency = raw.currency || Currency.RUB;
   const destination = raw.destination || "";
   const description = raw.description || "";
-  const why_fits = raw.why_fits ?? null;
-  const compromises = raw.compromises ?? null;
-  const risks = raw.risks ?? null;
 
   // Normalize flights
   let flights: Flight[] = [];
@@ -138,9 +135,6 @@ export function normalizeTripOption(raw: any, index: number = 0): TripOption {
     title,
     description,
     destination,
-    why_fits,
-    compromises,
-    risks,
     total_price,
     currency,
     flights,

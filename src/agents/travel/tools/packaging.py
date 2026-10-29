@@ -440,49 +440,6 @@ def search_and_package_trip(
         else:
             entry["is_within_budget"] = True
 
-        # Формируем обязательные блоки объяснения компромиссов и рисков (AGENTS.md Rule 3)
-        why_parts = []
-        if hotel.get("rating"):
-            why_parts.append(f"отель с проверенным рейтингом {hotel['rating']}/10")
-        if hotel.get("stars"):
-            why_parts.append(f"{hotel['stars']}★")
-        if stops_count == 0:
-            why_parts.append("прямой маршрут без пересадок")
-        if transfer_info:
-            why_parts.append(f"включен трансфер ({transfer_info['vehicle']})")
-        if budget_rub and grand_total <= budget_rub:
-            why_parts.append("полностью укладывается в бюджет")
-        why_fits_str = ", ".join(why_parts) if why_parts else desc
-        why_fits_str = why_fits_str[0].upper() + why_fits_str[1:]
-
-        comp_parts = []
-        if stops_count > 0:
-            tr_pt = f" в {t_out.get('transit_point')}" if t_out.get("transit_point") else ""
-            comp_parts.append(f"пересадка{tr_pt}")
-        if hotel.get("stars", 0) <= 3 and tier_idx == 0:
-            comp_parts.append("базовая категория отеля (3★)")
-        if hotel.get("district") and "центр" not in str(hotel.get("district", "")).lower():
-            comp_parts.append(f"удалённость от центра (район {hotel['district']})")
-        if budget_rub and grand_total > budget_rub:
-            diff = round(float(grand_total - budget_rub), 2)
-            comp_parts.append(f"доплата к бюджету +{diff:,.0f} ₽".replace(",", " "))
-        compromises_str = "; ".join(comp_parts) if comp_parts else "Существенных компромиссов нет, сбалансированный вариант"
-        compromises_str = compromises_str[0].upper() + compromises_str[1:]
-
-        risk_parts = []
-        if not t_out.get("refundable", False):
-            risk_parts.append("невозвратный тариф билетов")
-        if "short_layover_risk" in t_tags:
-            risk_parts.append("короткая стыковка (50 мин) в SVO — риск задержки")
-        if "night_flight" in t_tags:
-            risk_parts.append("ранний прилёт в 05:15 до стандартного времени заселения")
-        risks_str = "; ".join(risk_parts) if risk_parts else "Минимальные риски, стандартные условия бронирования"
-        risks_str = risks_str[0].upper() + risks_str[1:]
-
-        entry["why_fits"] = why_fits_str
-        entry["compromises"] = compromises_str
-        entry["risks"] = risks_str
-
         packages.append(entry)
 
     return packages

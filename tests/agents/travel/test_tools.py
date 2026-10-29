@@ -171,31 +171,3 @@ def test_dedupe_removes_identical_packages():
     deduped = dedupe_trip_options(doubled)
     assert len(deduped) == 3
     assert len({trip_option_key(p) for p in deduped}) == 3
-
-
-def test_aggregator_generates_compromises_and_risks_blocks():
-    """Проверка требований AGENTS.md (Rule 3): Почему подходит / Компромиссы / Риски."""
-    packages = _search(budget_limit=200000)
-    assert len(packages) == 3
-    for pkg in packages:
-        assert "why_fits" in pkg and pkg["why_fits"]
-        assert "compromises" in pkg and pkg["compromises"]
-        assert "risks" in pkg and pkg["risks"]
-
-
-def test_response_node_formats_compromises_and_risks():
-    """Проверка формирования трех блоков в текстовом ответе пользователю."""
-    from agents.travel.nodes.response import generate_response
-
-    packages = _search(budget_limit=200000)
-    state = {
-        "trip_options": packages,
-        "user_request": UserRequest(destination="Сочи", budget=200000),
-    }
-    res = generate_response(state)
-    msg = res["messages"][0].content
-
-    assert "Почему подходит:" in msg
-    assert "Компромиссы:" in msg
-    assert "Риски:" in msg
-
