@@ -5,13 +5,37 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 from langgraph.types import StateSnapshot
 
+from core.auth_crypto import create_access_token, login_rate_limiter
+from memory import user_storage
 from service import app
 
 
+@pytest.fixture(autouse=True)
+def reset_storage_and_limiter():
+    """Clear memory stores and rate limits before each test."""
+    user_storage.clear_in_memory_storage()
+    login_rate_limiter.reset()
+    yield
+    user_storage.clear_in_memory_storage()
+    login_rate_limiter.reset()
+
+
 @pytest.fixture
-def test_client():
-    """Fixture to create a FastAPI test client."""
-    return TestClient(app)
+def auth_token() -> str:
+    """Fixture to create a valid JWT access token for testing."""
+    return create_access_token(user_id="user-123", email="user123@example.com")
+
+
+@pytest.fixture
+def auth_headers(auth_token: str) -> dict[str, str]:
+    """Fixture to provide authorization headers."""
+    return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest.fixture
+def test_client(auth_headers: dict[str, str]):
+    """Fixture to create a FastAPI test client with default auth headers."""
+    return TestClient(app, headers=auth_headers)
 
 
 @pytest.fixture
@@ -48,10 +72,10 @@ def mock_settings(mock_env):
 
 
 @pytest.fixture
-def mock_httpx():
+def mock_httpx(auth_headers: dict[str, str]):
     """Patch httpx.stream and httpx.get to use our test client."""
 
-    with TestClient(app) as client:
+    with TestClient(app, headers=auth_headers) as client:
 
         def mock_stream(method: str, url: str, **kwargs):
             # Strip the base URL since TestClient expects just the path

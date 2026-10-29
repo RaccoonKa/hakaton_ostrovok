@@ -16,6 +16,7 @@ from __future__ import annotations
 import re
 from datetime import date, timedelta
 from difflib import get_close_matches
+from typing import Literal
 
 from agents.travel.tools import mock_dataset as ds
 from domain.common import Currency, Month, Season, TransportType
@@ -417,12 +418,18 @@ def _extract_budget(
         r"пачк\w*|штук\w*|шт\b|бутыл\w*|короб\w*|бан\w*|мешк\w*|доширак\w*)"
     )
 
+    def _is_date_range(end_pos: int) -> bool:
+        tail = lowered[end_pos:end_pos + 25]
+        return any(tok in tail for toks in _MONTH_TOKENS.values() for tok in toks)
+
     if has_budget_context:
         for rng in re.finditer(
                 r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
                 r"(тысяч\w*|тыс\w*|[кk]\b|евро|доллар\w*|рубл\w*|€|\$|₽)?",
                 lowered,
         ):
+            if _is_date_range(rng.end()):
+                continue
             tail = lowered[rng.end():rng.end() + 15]
             if re.match(non_budget_units, tail):
                 continue
@@ -455,40 +462,6 @@ def _extract_budget(
 
     return None, None, currency
 
-    def _is_date_range(raw: str) -> bool:
-        tail = lowered.split(raw, 1)[-1][:20]
-        return any(tok in tail for toks in _MONTH_TOKENS.values() for tok in toks)
-
-    if has_budget_context:
-        for rng in re.finditer(
-                r"(\d[\d\s]*)\s*(?:[-–—]|и|до)\s*(\d[\d\s]*)\s*"
-                r"(тысяч|тыс|к\b|евро|доллар|рубл|€|\$|₽)?",
-                lowered,
-        ):
-            lo_raw, hi_raw, unit = rng.group(1), rng.group(2), rng.group(3) or ""
-            if _is_date_range(rng.group(0)):
-                continue
-            lo = normalize(lo_raw, unit or lowered)
-            hi = normalize(hi_raw, unit or lowered)
-            if 0 < lo < hi:
-                return None, (lo, hi), currency
-
-    money_unit = r"(тысяч|тыс|к\b|евро|доллар|рубл|€|\$|₽)"
-    single = re.search(rf"(\d[\d\s]*)\s*{money_unit}", lowered)
-    if single:
-        num = normalize(single.group(1), single.group(2) or lowered)
-        if num > 0:
-            return num, None, currency
-    marker = re.search(
-        r"(?:бюджет|лимит|потрат\w*|потрач\w*|до|около|примерно|максимум)\D{0,12}?(\d[\d\s]*)",
-        lowered,
-    )
-    if marker:
-        num = normalize(marker.group(1), lowered)
-        if num > 0:
-            return num, None, currency
-    return None, None, currency
-
 
 # Исправление бага 3: "не знаю" не затирает заданный бюджет
 def _extract_budget_mode(
@@ -496,7 +469,7 @@ def _extract_budget_mode(
         budget: float | None,
         budget_range: tuple[float, float] | None,
         has_existing_budget: bool = False,
-) -> str | None:
+) -> Literal["unknown", "specified", "no_limit", "flexible_scenarios"] | None:
     if budget is not None or budget_range is not None:
         return "specified"
 
@@ -721,7 +694,7 @@ def _near_budget(lowered: str, marker: str) -> bool:
 def _extract_preference_status(
         text: str,
         preferences: list[Preference] | None,
-) -> str | None:
+) -> Literal["unknown", "specified", "no_preference"] | None:
     if preferences:
         return "specified"
 

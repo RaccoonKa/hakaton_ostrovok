@@ -20,10 +20,10 @@ def _ex(text: str):
 
 def test_extract_all_in_one_message():
     patch = _ex(
-        "Хотим в Барселону в сентябре на 10 дней, нас четверо, "
+        "Хотим в Сочи в сентябре на 10 дней, нас четверо, "
         "бюджет 3000 евро, хочется море и хороший отель."
     )
-    assert patch.destination == "Barcelona"
+    assert patch.destination == "Сочи"
     assert patch.month == [Month.SEPTEMBER]
     assert patch.duration == 10
     assert patch.travelers == 4
@@ -35,7 +35,7 @@ def test_extract_all_in_one_message():
 
 
 def test_extract_exact_dates_range():
-    patch = _ex("Хочу в Рим на 10-17 августа, нас двое.")
+    patch = _ex("Хочу в Сочи на 10-17 августа, нас двое.")
     assert patch.exact_dates == [date(2026, 8, 10), date(2026, 8, 17)]
     assert patch.travelers == 2
 
@@ -55,7 +55,7 @@ def test_extract_month_and_duration():
 
 
 def test_extract_week_duration():
-    patch = _ex("Хочу в Рим на неделю.")
+    patch = _ex("Хочу в Сочи на неделю.")
     assert patch.duration == 7
 
 
@@ -65,7 +65,7 @@ def test_extract_travelers_range():
 
 
 def test_extract_no_travelers():
-    patch = _ex("Я хочу съездить в Рим на неделю.")
+    patch = _ex("Я хочу съездить в Сочи на неделю.")
     assert patch.travelers is None
     assert patch.traveler_range is None
 
@@ -140,9 +140,9 @@ def test_extract_preference_replacement_and_removal():
 
 
 def test_extract_country_only():
-    patch = _ex("Хочу в Италию.")
+    patch = _ex("Хочу в Турцию.")
     assert patch.destination is None
-    assert patch.destination_country == "Italy"
+    assert patch.destination_country == "Турция"
 
 
 def test_extract_unknown_city_is_marked_not_invented():
@@ -152,14 +152,14 @@ def test_extract_unknown_city_is_marked_not_invented():
 
 def test_extract_multiple_cities_is_ambiguous():
     """Несколько городов без выбора — направление не выбрано."""
-    patch = _ex("Хочу в Рим или Париж")
+    patch = _ex("Хочу в Сочи или Стамбул")
     assert patch.destination is None
     assert patch.destination_ambiguous is True
 
 
 def test_extract_origin():
     patch = _ex("Вылетаю из Москвы.")
-    assert patch.origin == "Moscow"
+    assert patch.origin == "Москва"
 
 
 def test_extract_constraints_and_transport():
@@ -171,7 +171,7 @@ def test_extract_constraints_and_transport():
 
 
 def test_extract_ignores_past_explicit_year():
-    patch = _ex("Хочу в Рим на 2024-08-10 .. 2024-08-17")
+    patch = _ex("Хочу в Сочи на 2024-08-10 .. 2024-08-17")
     assert patch.exact_dates is None
 
 

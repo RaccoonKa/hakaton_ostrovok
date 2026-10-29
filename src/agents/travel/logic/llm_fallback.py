@@ -14,7 +14,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from agents.travel.tools import mock_dataset as ds
 from core.llm import get_model
 from core.settings import settings
-from domain.common import Currency, Month, Season, TransportType
+from domain.common import Currency, Month, TransportType
 from domain.constraint import Constraint
 from domain.planning import UserRequestPatch
 from domain.preference import Preference, Priority

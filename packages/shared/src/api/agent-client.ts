@@ -196,4 +196,3 @@ export class TravelApiClient {
   }
 }
 
-export { TravelApiClient as TravelAgentClient };

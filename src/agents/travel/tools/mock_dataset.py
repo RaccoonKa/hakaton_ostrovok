@@ -43,10 +43,11 @@ DESTINATIONS: list[Destination] = []
 for raw in _raw_destinations:
     # Простая эвристика для уровня цен на основе данных JSON
     eco_price = raw.get("estimated_budget_per_person", {}).get("economy", 50000)
+    comfort_price = raw.get("estimated_budget_per_person", {}).get("comfort", 100000)
     pl = PriceLevel.MEDIUM
-    if eco_price < 40000:
+    if eco_price <= 30000:
         pl = PriceLevel.BUDGET
-    elif eco_price > 80000:
+    elif comfort_price >= 150000:
         pl = PriceLevel.PREMIUM
 
     DESTINATIONS.append(Destination(
@@ -93,9 +94,45 @@ CITY_ALIASES: dict[str, list[str]] = {
 }
 
 COUNTRY_ALIASES: dict[str, list[str]] = {
-    "россия": ["россия", "россии", "рф"],
-    "турция": ["турция", "турции"],
+    "россия": ["россия", "россии", "россию", "росси", "рф"],
+    "турция": ["турция", "турции", "турцию", "турци"],
 }
+
+def load_hotels() -> list[dict]:
+    file_path = _get_data_dir() / "hotels.json"
+    if not file_path.exists():
+        return []
+    with open(file_path, encoding="utf-8") as f:
+        return json.load(f)
+
+def load_flights() -> list[dict]:
+    file_path = _get_data_dir() / "flights.json"
+    if not file_path.exists():
+        return []
+    with open(file_path, encoding="utf-8") as f:
+        return json.load(f)
+
+_raw_hotels: list[dict] = load_hotels()
+_raw_flights: list[dict] = load_flights()
+
+def get_hotels_by_city(city: str) -> list[dict]:
+    """Получить отели города из hotels.json."""
+    if not city:
+        return []
+    needle = city.strip().lower()
+    return [h for h in _raw_hotels if h.get("city", "").strip().lower() == needle]
+
+def get_flights_by_route(origin: str, destination: str) -> list[dict]:
+    """Получить авиарейсы по маршруту из flights.json."""
+    if not origin or not destination:
+        return []
+    orig = origin.strip().lower()
+    dest = destination.strip().lower()
+    return [
+        f for f in _raw_flights
+        if f.get("origin_city", "").strip().lower() == orig
+        and f.get("destination_city", "").strip().lower() == dest
+    ]
 
 # (Оставляем пустыми, т.к. агрегатор теперь читает JSON напрямую)
 FLIGHTS: dict = {}
@@ -213,6 +250,8 @@ __all__ = [
     "ORIGINS",
     "all_destinations",
     "cities_in_country",
+    "get_flights_by_route",
+    "get_hotels_by_city",
     "get_weather_info",
     "get_destination_by_city",
     "get_destination_by_iata",

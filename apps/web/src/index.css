@@ -83,15 +83,6 @@ body {
   }
 }
 
-@keyframes spinSlow {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @keyframes slideDownToast {
   0% {
     opacity: 0;
@@ -105,10 +96,6 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.25s ease-out forwards;
-}
-
-.animate-spin-slow {
-  animation: spinSlow 3s linear infinite;
 }
 
 .animate-toast {

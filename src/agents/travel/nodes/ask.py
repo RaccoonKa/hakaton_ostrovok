@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -136,7 +135,7 @@ def _all_human_messages_text(state: TravelState | dict) -> str:
 def _load_destinations_raw() -> list[dict]:
     p = Path(__file__).resolve().parent.parent.parent.parent.parent / "data" / "destinations.json"
     if p.exists():
-        with open(p, "r", encoding="utf-8") as f:
+        with open(p, encoding="utf-8") as f:
             return json.load(f)
     return []
 
@@ -439,6 +438,8 @@ def call_ask(state: TravelState | dict) -> dict:
                 f"**Но я подобрал отличные альтернативы под ваши пожелания:**\n"
             )
         main_prompt = _format_destination_prompt(candidates, custom_header)
+        if date_options:
+            main_prompt = f"{main_prompt}\n\n{_format_date_prompt(date_options)}"
     elif date_options:
         main_prompt = _format_date_prompt(date_options)
     else:

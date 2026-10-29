@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, cast
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
@@ -23,7 +23,7 @@ class TravelState(BaseModel):
     )
     planning_status: TravelPlanningStatus = Field(
         description="Текущее состояние процесса планирования.",
-        default="collecting",
+        default=cast(TravelPlanningStatus, "collecting"),
     )
     candidate_destinations: list[DestinationCandidate] = Field(
         description="Предложенные агентом направления (ещё не выбранные).",

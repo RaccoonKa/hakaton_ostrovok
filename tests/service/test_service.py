@@ -1,7 +1,6 @@
 import json
 from unittest.mock import AsyncMock, patch
 
-import langsmith
 import pytest
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from langgraph.types import Interrupt, StateSnapshot
@@ -169,25 +168,6 @@ def test_invoke_interrupt(test_client, mock_agent) -> None:
     output = ChatMessage.model_validate(response.json())
     assert output.type == "ai"
     assert output.content == INTERRUPT
-
-
-@patch("service.service.LangsmithClient")
-def test_feedback(mock_client: langsmith.Client, test_client) -> None:
-    ls_instance = mock_client.return_value
-    ls_instance.create_feedback.return_value = None
-    body = {
-        "run_id": "847c6285-8fc9-4560-a83f-4e6285809254",
-        "key": "human-feedback-stars",
-        "score": 0.8,
-    }
-    response = test_client.post("/feedback", json=body)
-    assert response.status_code == 200
-    assert response.json() == {"status": "success"}
-    ls_instance.create_feedback.assert_called_once_with(
-        run_id="847c6285-8fc9-4560-a83f-4e6285809254",
-        key="human-feedback-stars",
-        score=0.8,
-    )
 
 
 def test_history(test_client, mock_agent) -> None:
@@ -431,7 +411,7 @@ def test_info(test_client, mock_settings) -> None:
         assert response.status_code == 200
         output = ServiceMetadata.model_validate(response.json())
 
-    assert output.default_agent == "research-assistant"
+    assert output.default_agent == "travel_agent"
     assert len(output.agents) == 1
     assert output.agents[0].key == "base-agent"
     assert output.agents[0].description == "A base agent."

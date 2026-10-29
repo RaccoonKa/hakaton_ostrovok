@@ -10,13 +10,19 @@
 
 import json
 import sys
+import uuid
 import httpx
 
-
-import uuid
+__test__ = False
 
 
 def test_fullstack_dialogue(base_url: str = "http://127.0.0.1:8000"):
+    # Получение гостевой сессии для авторизации
+    guest_resp = httpx.post(f"{base_url}/auth/guest", timeout=15)
+    assert guest_resp.status_code == 200, f"Auth failed: {guest_resp.status_code} {guest_resp.text}"
+    token = guest_resp.json().get("token")
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+
     stream_url = f"{base_url}/travel_agent/stream"
     thread_id = f"test-e2e-dialogue-{uuid.uuid4().hex[:8]}"
 
@@ -36,7 +42,7 @@ def test_fullstack_dialogue(base_url: str = "http://127.0.0.1:8000"):
         suggestions = []
 
         with httpx.Client(timeout=45) as client:
-            with client.stream("POST", stream_url, json=payload) as response:
+            with client.stream("POST", stream_url, json=payload, headers=headers) as response:
                 assert response.status_code == 200, f"HTTP Error {response.status_code}: {response.text}"
                 for line in response.iter_lines():
                     if line.startswith("data: "):

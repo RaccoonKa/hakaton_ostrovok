@@ -23,7 +23,6 @@ from langfuse import Langfuse
 from langfuse.langchain import CallbackHandler
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command, Interrupt
-from langsmith import Client as LangsmithClient
 from langsmith import uuid7
 
 from agents import DEFAULT_AGENT, get_agent, get_all_agent_info, load_agent
@@ -33,8 +32,6 @@ from schema import (
     ChatHistory,
     ChatHistoryInput,
     ChatMessage,
-    Feedback,
-    FeedbackResponse,
     ServiceMetadata,
     StreamInput,
     ThreadSummary,
@@ -101,7 +98,6 @@ router.include_router(agui_router)
 
 
 @app.get("/info", tags=["info"])
-@router.get("/info")
 async def info() -> ServiceMetadata:
     models = list(settings.AVAILABLE_MODELS)
     models.sort()
@@ -320,7 +316,7 @@ def _sse_response_example() -> dict[int | str, Any]:
         status.HTTP_200_OK: {
             "description": "Server Sent Event Response",
             "content": {
-                "text.txt/event-stream": {
+                "text/event-stream": {
                     "example": "data: {'type': 'token', 'content': 'Hello'}\n\ndata: {'type': 'token', 'content': ' World'}\n\ndata: [DONE]\n\n",
                     "schema": {"type": "string"},
                 }
@@ -350,21 +346,8 @@ async def stream(
             current_user=current_user,
             prepared_kwargs=(kwargs, run_id),
         ),
-        media_type="text.txt/event-stream",
+        media_type="text/event-stream",
     )
-
-
-@router.post("/feedback")
-async def feedback(feedback: Feedback) -> FeedbackResponse:
-    client = LangsmithClient()
-    kwargs = feedback.kwargs or {}
-    client.create_feedback(
-        run_id=feedback.run_id,
-        key=feedback.key,
-        score=feedback.score,
-        **kwargs,
-    )
-    return FeedbackResponse()
 
 
 @router.post("/{agent_id}/history", operation_id="history_with_agent_id")

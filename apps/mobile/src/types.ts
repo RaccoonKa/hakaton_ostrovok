@@ -14,11 +14,6 @@ import {
   TravelState,
 } from "@corvax/shared";
 
-// Domain type aliases for flexible imports
-export type FlightOption = Flight;
-export type HotelOption = Hotel;
-export type TravelStep = RouteStop;
-
 export type {
   TripOption,
   Flight,
@@ -35,8 +30,5 @@ export type {
 
 // Re-export runtime enum
 export { Currency };
-
-export const DEMO_DISCLAIMER_TEXT =
-  "Все параметры смоделированы ИИ «О!дин запрос». Реальное списание средств не производится.";
 
 export type MobileChatMessage = UnifiedChatMessage;

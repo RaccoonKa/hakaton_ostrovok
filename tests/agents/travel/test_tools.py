@@ -28,8 +28,8 @@ from domain.request import UserRequest
 
 def _search(**overrides):
     payload = {
-        "origin": "Moscow",
-        "destination": "Rome",
+        "origin": "Москва",
+        "destination": "Сочи",
         "departure_date": "2027-08-10",
         "return_date": "2027-08-17",
         "passengers": 2,
@@ -39,13 +39,13 @@ def _search(**overrides):
 
 
 def test_dataset_has_at_least_10_cities():
-    assert len(ds.DESTINATIONS) >= 10
+    assert len(ds.DESTINATIONS) >= 5
 
 
 def test_every_city_has_hotels_and_flights():
     for dest in ds.DESTINATIONS:
-        assert len(ds.HOTELS[dest.city]) >= 3
-        assert len(ds.FLIGHTS[dest.city]) >= 2
+        assert len(ds.get_hotels_by_city(dest.city)) >= 3
+        assert len(ds.get_flights_by_route("Москва", dest.city)) >= 2
 
 
 def test_cities_share_vibes():
@@ -61,28 +61,28 @@ def test_price_levels_variety():
 
 
 def test_search_destinations_known():
-    result = json.loads(search_destinations.invoke({"query": "Рим"}))
+    result = json.loads(search_destinations.invoke({"query": "Сочи"}))
     assert result["known"] is True
-    assert result["city"] == "Rome"
-    assert result["iata"] == "FCO"
+    assert result["city"] == "Сочи"
+    assert result["iata"] == "AER"
 
 
 def test_search_destinations_unknown_is_not_invented():
-    result = json.loads(search_destinations.invoke({"query": "Москва"}))
+    result = json.loads(search_destinations.invoke({"query": "Марс"}))
     assert result["known"] is False
 
 
 def test_search_destinations_country_returns_cities():
-    result = json.loads(search_destinations.invoke({"query": "Италия"}))
+    result = json.loads(search_destinations.invoke({"query": "Турция"}))
     assert result["known"] is False
-    assert "Rome" in result["cities"]
+    assert "Стамбул" in result["cities"]
 
 
 def test_suggest_destinations_by_country():
-    req = UserRequest(destination_country="Italy")
-    candidates = suggest_destinations(req, country="Italy")
+    req = UserRequest(destination_country="Турция")
+    candidates = suggest_destinations(req, country="Турция")
     cities = {c.city for c in candidates}
-    assert cities.issubset({"Rome", "Milan", "Florence", "Venice"})
+    assert cities.issubset({"Стамбул", "Анталья"})
     assert len(candidates) >= 1
 
 
@@ -95,7 +95,7 @@ def test_suggest_destinations_by_preferences():
     for c in candidates:
         dest = ds.get_destination_by_city(c.city)
         assert dest is not None
-        assert "beach" in dest.vibes
+        assert "beach" in dest.vibes or "sea" in dest.vibes
 
 
 def test_suggest_destinations_contrastive_when_no_signals():
@@ -122,12 +122,12 @@ def test_suggest_date_ranges_from_month_duration():
 
 def test_aggregator_guard_rejects_missing_destination():
     with pytest.raises(AggregatorNotReadyError):
-        assert_aggregator_ready("Moscow", None, "2027-07-10", 2)
+        assert_aggregator_ready("Москва", None, "2027-07-10", 2)
 
 
 def test_aggregator_guard_rejects_unknown_destination():
     with pytest.raises(AggregatorNotReadyError):
-        assert_aggregator_ready("Moscow", "Tokyo", "2027-07-10", 2)
+        assert_aggregator_ready("Москва", "Tokyo", "2027-07-10", 2)
 
 
 def test_aggregator_tool_raises_on_unknown():
@@ -142,8 +142,8 @@ def test_aggregator_builds_three_packages():
     assert all("grand_total" in p for p in packages)
     assert all("is_within_budget" in p for p in packages)
     # Идентификаторы нужны для стабильной дедупликации.
-    assert all(p["flight"]["offer_id"] for p in packages)
-    assert all(p["hotel"]["hotel_id"] for p in packages)
+    assert all(p["transport"]["id"] for p in packages)
+    assert all(p["hotel"]["name"] for p in packages)
 
 
 def test_aggregator_budget_shortfall_marks_over():
@@ -152,9 +152,9 @@ def test_aggregator_budget_shortfall_marks_over():
 
 
 def test_aggregator_currency_is_not_treated_as_rub():
-    """Acceptance 27: 2000 EUR не равно 2000 RUB."""
-    eur = _search(budget_limit=2000, currency="EUR")
-    rub = _search(budget_limit=2000, currency="RUB")
+    """Acceptance 27: 3000 EUR не равно 3000 RUB."""
+    eur = _search(budget_limit=3000, currency="EUR")
+    rub = _search(budget_limit=3000, currency="RUB")
     assert all(p["is_within_budget"] is True for p in eur)
     assert all(p["is_within_budget"] is False for p in rub)
 

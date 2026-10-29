@@ -20,8 +20,8 @@ from domain.request import UserRequest
 
 def _complete(**overrides) -> UserRequest:
     data = dict(
-        origin="Moscow",
-        destination="Rome",
+        origin="Москва",
+        destination="Сочи",
         travelers=2,
         travelers_provided=True,
         budget=200000,

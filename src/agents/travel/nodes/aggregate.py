@@ -146,7 +146,8 @@ def call_aggregate(state: TravelState | dict) -> dict:
                 "free_cancellation": "free_cancellation" in request.hotel_requirements,
                 "pet_friendly": "pet_friendly" in request.hotel_requirements,
                 "hotel_requirements": list(request.hotel_requirements),
-                "no_stops": any(c.name == "no_stops" for c in request.constraints)
+                "no_stops": any(c.name == "no_stops" for c in request.constraints),
+                "budget_mode": budget_mode,
             }
         )
         calls += 1

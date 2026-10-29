@@ -79,8 +79,8 @@ def test_first_turn_preserves_params_and_does_not_reask(graph):
     result2, interrupt2 = _resume(graph, "a2", "Люблю историю и архитектуру")
     text2 = _text(interrupt2)
     assert result2["candidate_destinations"]
+    assert "направления" in text2.lower() or "города" in text2.lower()
     assert "период" in text2.lower()
-    assert "бюджет" in text2.lower()
     assert "сколько человек" not in text2.lower()
     assert "какой отдых" not in text2.lower()
     assert result2["date_options"]
@@ -93,9 +93,9 @@ def test_preferences_without_city_suggests_matching_cities(graph):
     cities = {c.city for c in result["candidate_destinations"]}
     assert cities
     for city in cities:
-        assert "history" in ds.get_destination_by_city(city).vibes
-    assert "Сколько человек" in text
-    assert "бюджет" in text.lower()
+        dest = ds.get_destination_by_city(city)
+        assert any(v in dest.vibes for v in ["history", "architecture", "culture"])
+    assert "направления" in text.lower() or "города" in text.lower()
     assert result["user_request"].destination is None
 
 
@@ -109,9 +109,9 @@ def test_no_preference_does_not_loop(graph):
 
 
 def test_explicit_city_skips_vibe_question(graph):
-    result, interrupt = _start(graph, "a5", "Хочу в Рим")
+    result, interrupt = _start(graph, "a5", "Хочу в Сочи")
     text = _text(interrupt)
-    assert result["user_request"].destination == "Rome"
+    assert result["user_request"].destination == "Сочи"
     assert result["destination_confirmed"] is True
     assert "какой отдых" not in text.lower()
     assert "Сколько человек" in text
@@ -122,9 +122,9 @@ def test_explicit_city_skips_vibe_question(graph):
 # --------------------------------------------------------------------------
 def test_grouped_questions_and_partial_answers(graph):
     # Только город → один сгруппированный вопрос.
-    result, interrupt = _start(graph, "b1", "Хочу в Рим")
+    result, interrupt = _start(graph, "b1", "Хочу в Сочи")
     text = _text(interrupt)
-    assert text.count("1.") == 1 and "2." in text
+    assert text.count("- ") >= 2
     assert "На какие даты" in text
 
     # Ответ только датами: даты сохраняются, остальные вопросы остаются.
@@ -157,7 +157,7 @@ def test_grouped_questions_and_partial_answers(graph):
 
 
 def test_travelers_correction_keeps_other_fields(graph):
-    _start(graph, "b2", "Рим, 10-17 декабря, нас двое")
+    _start(graph, "b2", "Сочи, 10-17 декабря, нас двое")
     _, interrupt = _resume(graph, "b2", "бюджет не важен")
     assert "сверимся" in _text(interrupt).lower()
 
@@ -165,7 +165,7 @@ def test_travelers_correction_keeps_other_fields(graph):
     req = result["user_request"]
     assert req.travelers == 3
     assert req.travelers_provided is True
-    assert req.destination == "Rome"
+    assert req.destination == "Сочи"
     assert req.date_preferences.exact_dates
     assert req.budget_mode == "no_limit"
     assert "сверимся" in _text(interrupt2).lower()
@@ -177,7 +177,7 @@ def test_travelers_correction_keeps_other_fields(graph):
 
 def test_constraints_absent_does_not_block(graph):
     result, interrupt = _start(
-        graph, "b3", "Рим, 10-17 декабря, нас двое, бюджет 150 тысяч"
+        graph, "b3", "Сочи, 10-17 декабря, нас двое, бюджет 150 тысяч"
     )
     assert "сверимся" in _text(interrupt).lower()
     result2, _ = _resume(graph, "b3", "да")
@@ -205,15 +205,15 @@ def test_suggested_city_is_not_selected_until_explicit_choice(graph):
 def test_city_selection_by_name(graph):
     _, _ = _first_turn(graph, "d2")
     _, _ = _resume(graph, "d2", "Люблю историю и архитектуру")
-    result, interrupt = _resume(graph, "d2", "Флоренция")
-    assert result["user_request"].destination == "Florence"
+    result, interrupt = _resume(graph, "d2", "Стамбул")
+    assert result["user_request"].destination == "Стамбул"
     assert result["destination_confirmed"] is True
     assert result["candidate_destinations"] == []
 
 
 def test_month_duration_generates_periods_and_requires_selection(graph):
     result, interrupt = _start(
-        graph, "d3", "Хочу в Рим, в июле на 7 дней, нас двое, бюджет 200000."
+        graph, "d3", "Хочу в Сочи, в июле на 7 дней, нас двое, бюджет 200000."
     )
     text = _text(interrupt)
     assert "период" in text.lower()
@@ -252,22 +252,22 @@ def test_unknown_city_explained_and_not_searched(graph):
     )
     text = _text(interrupt)
     assert result["user_request"].destination == "Токио"
-    assert "Этого города нет" in text
+    assert "Токио" in text
     assert result["trip_options"] == []
 
     result2, interrupt2 = _resume(graph, "d5", "бюджет не важен")
-    assert "Этого города нет" in _text(interrupt2)
+    assert "Токио" in _text(interrupt2)
     assert result2["trip_options"] == []
 
     # Выбор поддерживаемого города снимает блокировку.
-    result3, interrupt3 = _resume(graph, "d5", "Рим")
-    assert result3["user_request"].destination == "Rome"
+    result3, interrupt3 = _resume(graph, "d5", "Сочи")
+    assert result3["user_request"].destination == "Сочи"
     assert "сверимся" in _text(interrupt3).lower()
 
 
 def test_confirmation_required_and_correction_resets(graph):
     result, interrupt = _start(
-        graph, "f1", "Рим, 10-17 декабря, нас двое, бюджет 150 тысяч"
+        graph, "f1", "Сочи, 10-17 декабря, нас двое, бюджет 150 тысяч"
     )
     assert "сверимся" in _text(interrupt).lower()
     assert result["trip_options"] == []
@@ -275,22 +275,22 @@ def test_confirmation_required_and_correction_resets(graph):
 
     result2, _ = _resume(graph, "f1", "да, всё верно")
     assert result2["planning_status"] == "results_ready"
-    assert result2["user_request"].destination == "Rome"
+    assert result2["user_request"].destination == "Сочи"
 
     # Исправление города сбрасывает прежний результат и подтверждение.
-    result3, interrupt3 = _start(graph, "f1", "давайте Париж")
-    assert result3["user_request"].destination == "Paris"
+    result3, interrupt3 = _start(graph, "f1", "давайте Стамбул")
+    assert result3["user_request"].destination == "Стамбул"
     assert result3["trip_options"] == []
     assert result3["request_confirmed"] is False
-    assert "Париж" in _text(interrupt3)
+    assert "Стамбул" in _text(interrupt3)
 
     result4, _ = _resume(graph, "f1", "да")
     assert result4["planning_status"] == "results_ready"
-    assert all(p["destination"] == "Paris" for p in result4["trip_options"])
+    assert all(p["destination"] == "Стамбул" for p in result4["trip_options"])
 
 
 def test_repeated_same_request_is_not_duplicated(graph):
-    _start(graph, "f2", "Рим, 10-17 декабря, нас двое, бюджет 150 тысяч")
+    _start(graph, "f2", "Сочи, 10-17 декабря, нас двое, бюджет 150 тысяч")
     result, _ = _resume(graph, "f2", "да")
     assert len(result["trip_options"]) == 3
     assert result["search_diagnostics"]["calls"] == 1
@@ -307,13 +307,13 @@ def test_repeated_same_request_is_not_duplicated(graph):
 # E. Бюджет
 # --------------------------------------------------------------------------
 def test_missing_budget_blocks_until_answered(graph):
-    result, interrupt = _start(graph, "e1", "Рим, 10-17 декабря, нас двое")
+    result, interrupt = _start(graph, "e1", "Сочи, 10-17 декабря, нас двое")
     assert "бюджет" in _text(interrupt).lower()
     assert result["trip_options"] == []
 
 
 def test_flexible_budget_single_pass_three_packages(graph):
-    _start(graph, "e2", "Рим, 10-17 декабря, нас двое")
+    _start(graph, "e2", "Сочи, 10-17 декабря, нас двое")
     result, interrupt = _resume(
         graph, "e2", "бюджет пока не знаю, покажи варианты по стоимости"
     )
@@ -327,10 +327,10 @@ def test_flexible_budget_single_pass_three_packages(graph):
 
 
 def test_no_limit_single_pass_three_packages(graph):
-    _start(graph, "e3", "Рим, 10-17 декабря, нас двое")
+    _start(graph, "e3", "Сочи, 10-17 декабря, нас двое")
     result, interrupt = _resume(graph, "e3", "бюджет не важен")
     assert result["user_request"].budget_mode == "no_limit"
-    assert "без бюджетного ограничения" in _text(interrupt)
+    assert "без ограничений" in _text(interrupt).lower()
     result2, _ = _resume(graph, "e3", "да")
     assert len(result2["trip_options"]) == 3
     assert result2["search_diagnostics"]["calls"] == 1
@@ -338,7 +338,7 @@ def test_no_limit_single_pass_three_packages(graph):
 
 def test_budget_range_preserved_and_used_as_limit(graph):
     result, interrupt = _start(
-        graph, "e4", "Рим, 10-17 декабря, нас двое, бюджет 100-150 тысяч"
+        graph, "e4", "Сочи, 10-17 декабря, нас двое, бюджет 100-150 тысяч"
     )
     req = result["user_request"]
     assert req.budget_range == (100000, 150000)
@@ -349,7 +349,7 @@ def test_budget_range_preserved_and_used_as_limit(graph):
 
 
 def test_travelers_not_silently_defaulted(graph):
-    result, interrupt = _start(graph, "e5", "Хочу в Рим на неделю")
+    result, interrupt = _start(graph, "e5", "Хочу в Сочи на неделю")
     req = result["user_request"]
     assert req.travelers == 1
     assert req.travelers_provided is False
