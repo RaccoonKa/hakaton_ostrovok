@@ -322,9 +322,14 @@ export class ClientAuthManager {
     }
   }
 
-  static logout(baseUrl = ""): void {
+  static async logout(baseUrl = ""): Promise<AuthSession | null> {
     this.saveCurrentSession(null);
-    // Мгновенный переход на новую гостевую сессию
-    this.ensureAuthToken(baseUrl).catch(() => {});
+    initPromise = null;
+    try {
+      await this.ensureAuthToken(baseUrl);
+      return this.getCurrentSession();
+    } catch {
+      return this.getCurrentSession();
+    }
   }
 }

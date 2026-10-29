@@ -17,7 +17,7 @@ export interface AuthContextType {
   closeAuthModal: () => void;
   login: (creds: LoginCredentials) => Promise<void>;
   register: (creds: RegisterCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => void | Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,9 +61,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     closeAuthModal();
   };
 
-  const logout = () => {
-    ClientAuthManager.logout();
-    setSession(ClientAuthManager.getCurrentSession());
+  const logout = async () => {
+    ClientAuthManager.saveCurrentSession(null);
+    setSession(null);
+    try {
+      const guestSession = await ClientAuthManager.logout();
+      setSession(guestSession || ClientAuthManager.getCurrentSession());
+    } catch {
+      setSession(ClientAuthManager.getCurrentSession());
+    }
   };
 
   const isGuest = Boolean(session?.user?.isGuest ?? true);

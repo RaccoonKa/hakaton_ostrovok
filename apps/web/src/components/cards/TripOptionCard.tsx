@@ -106,6 +106,14 @@ export const TripOptionCard: React.FC<TripOptionCardProps> = ({
               <Clock className="w-3 h-3 text-content-muted" />
               <span>Трансфер включён</span>
             </span>
+            {primaryHotel?.hotel && (
+              <>
+                <span>•</span>
+                <span className="font-medium text-content-secondary truncate max-w-[140px] sm:max-w-[200px]" title={primaryHotel.hotel}>
+                  🏨 {primaryHotel.hotel}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>

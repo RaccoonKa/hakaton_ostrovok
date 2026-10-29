@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from langchain_core.messages import AIMessage
 
 from agents.travel.nodes.ask import _city_name
@@ -166,7 +168,19 @@ def generate_response(state: TravelState | dict) -> dict:
         lines.append("Какой из вариантов вам больше подходит?")
 
     final_text = "\n\n".join(lines)
-    return {"messages": [AIMessage(content=final_text)]}
+    additional_kwargs: dict[str, Any] = {}
+    if trip_options:
+        additional_kwargs["trip_options"] = trip_options
+    if selected:
+        additional_kwargs["selected_option"] = selected
+    return {
+        "messages": [
+            AIMessage(
+                content=final_text,
+                additional_kwargs=additional_kwargs if additional_kwargs else {},
+            )
+        ]
+    }
 
 
 __all__ = ["generate_response"]

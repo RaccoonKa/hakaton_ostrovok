@@ -355,3 +355,12 @@ def test_travelers_not_silently_defaulted(graph):
     assert req.travelers_provided is False
     assert "Сколько человек" in _text(interrupt)
     assert result["trip_options"] == []
+
+
+def test_response_attaches_trip_options_to_ai_message(graph):
+    _start(graph, "e_resp", "Сочи, 10-17 декабря, нас двое")
+    _resume(graph, "e_resp", "бюджет не важен")
+    result2, _ = _resume(graph, "e_resp", "да")
+    last_msg = result2["messages"][-1]
+    assert "trip_options" in last_msg.additional_kwargs
+    assert len(last_msg.additional_kwargs["trip_options"]) == 3
