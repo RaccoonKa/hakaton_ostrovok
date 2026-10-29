@@ -120,8 +120,8 @@ export const AssistantMessage: React.FC<AssistantMessageProps> = ({
 
               <button
                 type="button"
-                onClick={() => onSelectOption?.(selectedOption)}
-                className="self-start sm:self-auto text-xs text-header hover:underline font-medium"
+                onClick={() => onSelectOption?.(null as any)}
+                className="self-start sm:self-auto text-xs text-header hover:underline font-medium cursor-pointer"
               >
                 ← Вернуться к списку направлений
               </button>

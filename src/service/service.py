@@ -204,6 +204,14 @@ async def invoke(
             raise ValueError(f"Unexpected response type: {response_type}")
 
         output.run_id = str(run_id)
+        try:
+            cfg = kwargs.get("config")
+            if cfg is not None:
+                state_snapshot = await agent.aget_state(config=cfg)
+                if state_opts := state_snapshot.values.get("trip_options"):
+                    output.custom_data = {**output.custom_data, "trip_options": state_opts}
+        except Exception:
+            pass
         return output
     except Exception as e:
         logger.error(f"An exception occurred: {e}")
@@ -246,6 +254,17 @@ async def message_generator(
                         continue
                     updates = updates or {}
                     update_messages = updates.get("messages", [])
+                    node_trip_options = updates.get("trip_options")
+                    node_selected_option = updates.get("selected_option")
+                    if (node_trip_options or node_selected_option) and update_messages:
+                        for um in update_messages:
+                            if isinstance(um, AIMessage):
+                                um_kwargs = dict(getattr(um, "additional_kwargs", None) or {})
+                                if node_trip_options and "trip_options" not in um_kwargs:
+                                    um_kwargs["trip_options"] = node_trip_options
+                                if node_selected_option and "selected_option" not in um_kwargs:
+                                    um_kwargs["selected_option"] = node_selected_option
+                                um.additional_kwargs = um_kwargs
                     if "supervisor" in node or "sub-agent" in node:
                         if isinstance(update_messages[-1], ToolMessage):
                             if "sub-agent" in node and len(update_messages) > 1:
@@ -297,6 +316,23 @@ async def message_generator(
                 content = remove_tool_calls(msg.content)
                 if content:
                     yield f"data: {json.dumps({'type': 'token', 'content': convert_message_content_to_string(content)})}\n\n"
+
+        # Check if state has trip_options or selected_option and emit as custom event if present
+        try:
+            cfg = kwargs.get("config")
+            if cfg is not None:
+                state_snapshot = await agent.aget_state(config=cfg)
+                state_trip_opts = state_snapshot.values.get("trip_options")
+                state_sel_opt = state_snapshot.values.get("selected_option")
+                if state_trip_opts or state_sel_opt:
+                    payload: dict[str, Any] = {}
+                    if state_trip_opts:
+                        payload["trip_options"] = state_trip_opts
+                    if state_sel_opt:
+                        payload["selected_option"] = state_sel_opt
+                    yield f"data: {json.dumps({'type': 'message', 'content': {'type': 'custom', 'content': '', 'custom_data': payload}})}\n\n"
+        except Exception as e:
+            logger.debug("Failed to inspect final state for trip options: %s", e)
     except Exception as e:
         logger.error(f"Error in message generator: {e}")
         yield f"data: {json.dumps({'type': 'error', 'content': 'Internal server error'})}\n\n"

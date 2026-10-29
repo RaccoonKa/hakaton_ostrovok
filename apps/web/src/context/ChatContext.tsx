@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
 import { TripOption, AgentStepPhase, ChatMessage } from "../types/travel";
 import { PriceOptimizationDiff } from "../components/cards/PriceBreakdown";
-import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage, formatDisplayTime } from "@corvax/shared";
+import { TravelApiClient, normalizeTripOptions, UnifiedChatMessage, formatDisplayTime, ClientAuthManager } from "@corvax/shared";
 import { AuthContext } from "./AuthContext";
 
 export interface SavedChatSession {
@@ -42,9 +42,19 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessions, setSessions] = useState<SavedChatSession[]>(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_SESSIONS_KEY);
+      const initialUser = ClientAuthManager.getCurrentSession()?.user;
+      const key = getWebSessionsKey(initialUser?.id);
+      const stored = localStorage.getItem(key);
       if (stored) {
         return JSON.parse(stored);
+      }
+      const guestStored = localStorage.getItem("odin_travel_sessions_guest");
+      if (guestStored) {
+        return JSON.parse(guestStored);
+      }
+      const legacyStored = localStorage.getItem(STORAGE_SESSIONS_KEY);
+      if (legacyStored) {
+        return JSON.parse(legacyStored);
       }
     } catch {
       // fallback
@@ -77,47 +87,131 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const authToken = authCtx?.token;
   const currentUserId = authCtx?.user?.id;
 
+  const currentUserIdRef = useRef<string | undefined>(currentUserId);
+  currentUserIdRef.current = currentUserId;
+
   // Sync sessions to user-scoped localStorage
   const saveSessionsToStorage = useCallback(
-    (updatedSessions: SavedChatSession[]) => {
+    (updatedSessions: SavedChatSession[], targetUserId?: string) => {
       try {
-        const key = getWebSessionsKey(currentUserId);
+        const uid = targetUserId !== undefined ? targetUserId : currentUserIdRef.current;
+        const key = getWebSessionsKey(uid);
         localStorage.setItem(key, JSON.stringify(updatedSessions));
       } catch {
         // Storage error
       }
     },
-    [currentUserId]
+    []
   );
 
-  // When user logs in, logs out, or switches accounts: immediately wipe state & load that user's threads
+  // When user logs in, logs out, or switches accounts:
   const prevUserIdRef = useRef<string | undefined>(currentUserId);
+  const isGuestUser = (id?: string) => !id || id.startsWith("guest_");
+
   useEffect(() => {
     if (prevUserIdRef.current !== currentUserId) {
+      const prevUserId = prevUserIdRef.current;
       prevUserIdRef.current = currentUserId;
-      setMessages([]);
-      setTripOptions([]);
-      setSelectedOption(null);
-      setOptimizationDiff(null);
-      setIsBookingModalOpen(false);
-      setIsLoading(false);
-      threadIdRef.current = null;
-      setActiveSessionId(null);
 
-      try {
-        const key = getWebSessionsKey(currentUserId);
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          setSessions(Array.isArray(parsed) ? parsed : []);
-        } else {
+      const wasGuest = isGuestUser(prevUserId);
+      const isNowGuest = isGuestUser(currentUserId);
+
+      // Scenario 1: Guest registers or logs in (Guest -> Registered User)
+      if (wasGuest && !isNowGuest && currentUserId) {
+        try {
+          const userKey = getWebSessionsKey(currentUserId);
+          const guestKey = getWebSessionsKey(prevUserId);
+
+          // Get any existing sessions for this registered user
+          const existingUserStored = localStorage.getItem(userKey);
+          const existingUserSessions: SavedChatSession[] = existingUserStored
+            ? JSON.parse(existingUserStored)
+            : [];
+
+          // Get guest sessions from current React state or guest storage
+          const guestStored =
+            localStorage.getItem(guestKey) ||
+            localStorage.getItem("odin_travel_sessions_guest");
+          const guestSessions: SavedChatSession[] =
+            sessions.length > 0
+              ? sessions
+              : guestStored
+              ? JSON.parse(guestStored)
+              : [];
+
+          // Merge guest sessions into the user's sessions (guest sessions prioritized)
+          const merged = [...guestSessions];
+          for (const s of existingUserSessions) {
+            if (!merged.some((m) => m.id === s.id)) {
+              merged.push(s);
+            }
+          }
+          merged.sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
+
+          localStorage.setItem(userKey, JSON.stringify(merged));
+          setSessions(merged);
+
+          // Clean up old guest storage keys
+          if (guestKey) localStorage.removeItem(guestKey);
+          localStorage.removeItem("odin_travel_sessions_guest");
+
+          // DO NOT wipe active chat! The current thread was migrated on backend
+          // so the user seamlessly continues their chat.
+        } catch (e) {
+          console.warn("Failed to migrate guest sessions to registered user:", e);
+        }
+      }
+      // Scenario 2: User logs out (Registered User -> Guest)
+      else if (!wasGuest && isNowGuest) {
+        // Immediately wipe all state so previous user's chats don't leak to the guest
+        setMessages([]);
+        setTripOptions([]);
+        setSelectedOption(null);
+        setOptimizationDiff(null);
+        setIsBookingModalOpen(false);
+        setIsLoading(false);
+        threadIdRef.current = null;
+        setActiveSessionId(null);
+        setSessions([]);
+
+        try {
+          // Remove leftover guest sessions
+          localStorage.removeItem("odin_travel_sessions_guest");
+          if (currentUserId) {
+            localStorage.removeItem(getWebSessionsKey(currentUserId));
+          }
+        } catch {
+          // Storage error
+        }
+      }
+      // Scenario 3: Switching between registered accounts or initial load
+      else {
+        setMessages([]);
+        setTripOptions([]);
+        setSelectedOption(null);
+        setOptimizationDiff(null);
+        setIsBookingModalOpen(false);
+        setIsLoading(false);
+        threadIdRef.current = null;
+        setActiveSessionId(null);
+
+        try {
+          const key = getWebSessionsKey(currentUserId);
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setSessions(Array.isArray(parsed) ? parsed : []);
+          } else {
+            setSessions([]);
+          }
+        } catch {
           setSessions([]);
         }
-      } catch {
-        setSessions([]);
       }
     }
-  }, [currentUserId]);
+  }, [currentUserId, sessions]);
 
   // Synchronize server threads for the authenticated user & live background polling
   useEffect(() => {
@@ -244,7 +338,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return next;
       });
     },
-    []
+    [saveSessionsToStorage]
   );
 
   const cancelRequest = useCallback(() => {

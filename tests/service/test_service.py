@@ -365,6 +365,47 @@ async def test_stream_no_tokens(test_client, mock_agent) -> None:
         assert messages[0]["content"]["type"] == "ai"
 
 
+@pytest.mark.asyncio
+async def test_stream_with_trip_options(test_client, mock_agent) -> None:
+    """Test that trip_options in updates or AIMessage are streamed in custom_data."""
+    sample_options = [{"id": "opt-1", "title": "Тур в Сочи", "grand_total": 50000}]
+    events = [
+        (
+            "updates",
+            {
+                "response": {
+                    "messages": [
+                        AIMessage(
+                            content="Вот отличные варианты:",
+                            additional_kwargs={"trip_options": sample_options},
+                        )
+                    ],
+                    "trip_options": sample_options,
+                }
+            },
+        )
+    ]
+
+    async def mock_astream(**kwargs):
+        for event in events:
+            yield event
+
+    mock_agent.astream = mock_astream
+
+    with test_client.stream(
+        "POST", "/stream", json={"message": "Подбери тур в Сочи"}
+    ) as response:
+        assert response.status_code == 200
+        messages = []
+        for line in response.iter_lines():
+            if line and line.strip() != "data: [DONE]":
+                messages.append(json.loads(line.lstrip("data: ")))
+
+        ai_msgs = [m for m in messages if m.get("type") == "message" and m["content"]["type"] == "ai"]
+        assert len(ai_msgs) >= 1
+        assert ai_msgs[0]["content"]["custom_data"].get("trip_options") == sample_options
+
+
 def test_stream_interrupt(test_client, mock_agent) -> None:
     QUESTION = "What is the weather in Tokyo?"
     INTERRUPT = "Confirm weather check"
