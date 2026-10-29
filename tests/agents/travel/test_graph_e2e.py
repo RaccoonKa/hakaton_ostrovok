@@ -80,6 +80,9 @@ def test_first_turn_preserves_params_and_does_not_reask(graph):
     text2 = _text(interrupt2)
     assert result2["candidate_destinations"]
     assert "направления" in text2.lower() or "города" in text2.lower()
+    assert "период" in text2.lower()
+    assert "сколько человек" not in text2.lower()
+    assert "какой отдых" not in text2.lower()
     assert result2["date_options"]
 
 

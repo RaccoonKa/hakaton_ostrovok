@@ -91,6 +91,7 @@ target-version = "py312"
 extend-select = ["I", "U"]
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_default_fixture_loop_scope = "function"
 

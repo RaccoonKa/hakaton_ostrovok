@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from langchain_core.messages import AIMessage, ChatMessage as LangchainChatMessage, ToolCall, ToolMessage
+from langchain_core.messages import AIMessage, ToolCall, ToolMessage
+from langchain_core.messages import ChatMessage as LangchainChatMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.types import StreamWriter
