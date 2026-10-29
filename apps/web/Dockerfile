@@ -7,13 +7,14 @@ WORKDIR /app
 
 RUN npm install -g pnpm@10
 
-# Copy monorepo configuration
-COPY package.json pnpm-workspace.yaml .npmrc* tsconfig.base.json ./
+# Copy monorepo configuration and lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* tsconfig.base.json ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/web/package.json ./apps/web/
+COPY apps/mobile/package.json ./apps/mobile/
 
-# Install dependencies
-RUN pnpm install
+# Install dependencies deterministically
+RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY packages/shared/ ./packages/shared/

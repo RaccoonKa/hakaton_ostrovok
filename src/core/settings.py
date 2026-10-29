@@ -35,7 +35,6 @@ from schema.models import (
 class DatabaseType(StrEnum):
     SQLITE = "sqlite"
     POSTGRES = "postgres"
-    MONGO = "mongo"
 
 
 class LogLevel(StrEnum):
@@ -128,14 +127,6 @@ class Settings(BaseSettings):
     POSTGRES_APPLICATION_NAME: str = "agent-service-toolkit"
     POSTGRES_MIN_CONNECTIONS_PER_POOL: int = 1
     POSTGRES_MAX_CONNECTIONS_PER_POOL: int = 1
-
-    MONGO_HOST: str | None = None
-    MONGO_PORT: int | None = None
-    MONGO_DB: str | None = None
-    MONGO_USER: str | None = None
-    MONGO_PASSWORD: SecretStr | None = None
-    MONGO_AUTH_SOURCE: str | None = None
-    MONGO_TLS: bool = False
 
     AZURE_OPENAI_API_KEY: SecretStr | None = None
     AZURE_OPENAI_ENDPOINT: str | None = None
