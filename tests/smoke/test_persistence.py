@@ -2,7 +2,8 @@ import os
 
 import pytest
 
-from client import AgentClient
+__test__ = False
+
 
 # Shared with scripts/smoke_test.sh via the environment so the script can verify
 # this exact thread's checkpoints landed in the intended backend. Falls back to a

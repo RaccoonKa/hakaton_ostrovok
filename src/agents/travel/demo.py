@@ -83,5 +83,8 @@ def run_demo() -> None:
                 print("\nАгент: не удалось подобрать варианты.\n")
 
 
+main = run_demo
+
+
 if __name__ == "__main__":
-    run_demo()
+    main()

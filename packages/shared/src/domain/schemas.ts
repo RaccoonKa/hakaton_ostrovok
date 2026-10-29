@@ -114,7 +114,6 @@ export const transferSchema = z.object({
 });
 
 export const transportSchema = z.object({
-  id: z.string().nullable().optional(),
   origin: z.string(),
   destination: z.string(),
   departure_at: z.string(),
@@ -122,8 +121,6 @@ export const transportSchema = z.object({
   duration: z.string().nullable().optional(),
   transport_type: transportTypeSchema.nullable().optional(),
   carrier: z.string().nullable().optional(),
-  flight_number: z.string().nullable().optional(),
-  baggage: z.string().nullable().optional(),
   price: z.number().nonnegative().nullable().optional(),
   currency: currencySchema.nullable().optional(),
   conditions: z.string().nullable().optional(),

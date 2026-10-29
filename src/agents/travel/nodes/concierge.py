@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date
+
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from agents.travel.nodes.ask import _city_name
@@ -158,6 +159,15 @@ def call_concierge(state: TravelState | dict) -> dict:
             "messages": [
                 AIMessage(
                     content="Хорошо, я сбросил текущий выбор тура. Напишите номер или название варианта, который хотите выбрать взамен."
+                )
+            ]
+        }
+
+    if not selected or not isinstance(selected, dict):
+        return {
+            "messages": [
+                AIMessage(
+                    content="У вас пока не выбран тур. Пожалуйста, выберите один из предложенных вариантов."
                 )
             ]
         }

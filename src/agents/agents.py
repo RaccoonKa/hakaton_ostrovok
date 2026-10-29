@@ -6,9 +6,7 @@ from langgraph.graph.state import CompiledStateGraph
 from agents.travel.graph import travel_agent_graph
 from schema import AgentInfo
 
-from .chatbot import chatbot
-
-DEFAULT_AGENT = "chatbot"
+DEFAULT_AGENT = "travel_agent"
 
 
 @dataclass
@@ -23,10 +21,6 @@ class Agent:
 
 
 agents: dict[str, Agent] = {
-    "chatbot": Agent(
-        description="A simple chatbot that responds directly.",
-        graph=chatbot,
-    ),
     "travel_agent": Agent(
         description="AI-агент для планирования путешествий (агрегация билетов и отелей).",
         graph=travel_agent_graph,

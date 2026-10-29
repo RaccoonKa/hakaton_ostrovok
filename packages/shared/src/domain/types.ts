@@ -32,15 +32,20 @@ export interface UserRequest {
   origin?: string | null;
   destination?: string | null;
   destination_country?: string | null;
-  excluded_destinations?: string[];
-  excluded_countries?: string[];
+  destination_ambiguous?: boolean;
   date_preferences?: DatePreferences;
   duration?: number | null;
   travelers?: number;
+  traveler_range?: [number, number] | null;
+  travelers_provided?: boolean;
+  adults?: number | null;
+  children?: number | null;
   budget?: number | null;
   budget_range?: [number, number] | null;
+  budget_mode?: "unknown" | "specified" | "no_limit" | "flexible_scenarios";
   currency?: Currency | null;
   preferences?: Preference[];
+  preference_status?: "unknown" | "specified" | "no_preference";
   constraints?: Constraint[];
   preferred_transport?: TransportType | null;
   hotel_requirements?: string[];
@@ -111,7 +116,6 @@ export interface Transfer {
 }
 
 export interface Transport {
-  id?: string | null;
   origin: string;
   destination: string;
   departure_at: string;
@@ -119,8 +123,6 @@ export interface Transport {
   duration?: string | null;
   transport_type?: TransportType | null;
   carrier?: string | null;
-  flight_number?: string | null;
-  baggage?: string | null;
   price?: number | null;
   currency?: Currency | null;
   conditions?: string | null;
@@ -219,3 +221,41 @@ export interface ServiceMetadata {
   default_agent: string;
   default_model: string;
 }
+
+export interface DestinationCandidate {
+  city: string;
+  country: string;
+  iata?: string | null;
+  reason?: string;
+}
+
+export interface DateRange {
+  start_date: string;
+  end_date: string;
+}
+
+export interface ValidationResult {
+  ready?: boolean;
+  ready_for_confirmation?: boolean;
+  ready_for_search?: boolean;
+  stage?: string;
+  missing?: string[];
+  missing_fields?: string[];
+  decisions_required?: string[];
+  questions?: string[];
+  budget_scenarios?: number[];
+  budget_mode?: string;
+  preference_status?: string;
+  reason?: string;
+}
+
+export type TravelPlanningStatus =
+  | "collecting"
+  | "awaiting_preferences"
+  | "awaiting_destination_selection"
+  | "awaiting_date_selection"
+  | "awaiting_request_confirmation"
+  | "ready_for_search"
+  | "searching"
+  | "results_ready";
+

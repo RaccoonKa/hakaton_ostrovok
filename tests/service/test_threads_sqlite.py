@@ -16,7 +16,13 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.func import entrypoint
 from langgraph.graph import END, MessagesState, StateGraph
 
+from core.auth_crypto import create_access_token
 from service import app
+
+
+def auth_headers_for(user_id: str) -> dict[str, str]:
+    token = create_access_token(user_id=user_id, email=f"{user_id}@test.com")
+    return {"Authorization": f"Bearer {token}"}
 
 
 async def echo(state: MessagesState) -> MessagesState:
@@ -94,6 +100,7 @@ async def seeded(tmp_path):
         with (
             patch("service.service.get_agent", **lookup),
             patch("service.agui.get_agent", **lookup),
+            patch("service.service.user_storage.list_user_threads", return_value=[]),
         ):
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                 yield client
@@ -102,7 +109,11 @@ async def seeded(tmp_path):
 @pytest.mark.asyncio
 async def test_threads_lists_single_and_multi_turn_threads(seeded) -> None:
     """Single-turn threads never advance past their head checkpoint - they must still list."""
-    response = await seeded.get("/graph-agent/threads", params={"user_id": "alice"})
+    response = await seeded.get(
+        "/graph-agent/threads",
+        headers=auth_headers_for("alice"),
+        params={"user_id": "alice"},
+    )
 
     assert response.status_code == 200
     threads = response.json()["threads"]
@@ -114,7 +125,11 @@ async def test_threads_lists_single_and_multi_turn_threads(seeded) -> None:
 @pytest.mark.asyncio
 async def test_threads_isolates_users_and_agents(seeded) -> None:
     async def thread_ids(agent_id: str, user_id: str) -> list[str]:
-        response = await seeded.get(f"/{agent_id}/threads", params={"user_id": user_id})
+        response = await seeded.get(
+            f"/{agent_id}/threads",
+            headers=auth_headers_for(user_id),
+            params={"user_id": user_id},
+        )
         assert response.status_code == 200
         return sorted(t["thread_id"] for t in response.json()["threads"])
 
@@ -128,7 +143,11 @@ async def test_threads_isolates_users_and_agents(seeded) -> None:
 @pytest.mark.asyncio
 async def test_threads_titles_functional_api_agent(seeded) -> None:
     """Functional-API agents keep messages in `__previous__`, not the `messages` channel."""
-    response = await seeded.get("/functional-agent/threads", params={"user_id": "alice"})
+    response = await seeded.get(
+        "/functional-agent/threads",
+        headers=auth_headers_for("alice"),
+        params={"user_id": "alice"},
+    )
 
     assert response.status_code == 200
     threads = response.json()["threads"]
@@ -152,7 +171,11 @@ async def test_threads_lists_subgraph_threads_once(seeded) -> None:
         return await original(self, config)
 
     with patch.object(AsyncSqliteSaver, "aget_tuple", counting_aget_tuple):
-        response = await seeded.get("/subgraph-agent/threads", params={"user_id": "alice"})
+        response = await seeded.get(
+            "/subgraph-agent/threads",
+            headers=auth_headers_for("alice"),
+            params={"user_id": "alice"},
+        )
 
     assert response.status_code == 200
     threads = response.json()["threads"]
@@ -164,16 +187,18 @@ async def test_threads_lists_subgraph_threads_once(seeded) -> None:
 @pytest.mark.asyncio
 async def test_threads_orders_by_most_recent_update(seeded) -> None:
     """A reply to the oldest thread should move it to the top of the list."""
-    before = await seeded.get("/graph-agent/threads", params={"user_id": "alice"})
+    headers = auth_headers_for("alice")
+    before = await seeded.get("/graph-agent/threads", headers=headers, params={"user_id": "alice"})
     assert before.json()["threads"][-1]["thread_id"] == "g-alice-single"
 
     response = await seeded.post(
         "/graph-agent/invoke",
+        headers=headers,
         json={"message": "a later reply", "thread_id": "g-alice-single", "user_id": "alice"},
     )
     assert response.status_code == 200
 
-    after = await seeded.get("/graph-agent/threads", params={"user_id": "alice"})
+    after = await seeded.get("/graph-agent/threads", headers=headers, params={"user_id": "alice"})
     assert [t["thread_id"] for t in after.json()["threads"]] == [
         "g-alice-single",
         "g-alice-multi",
@@ -182,7 +207,11 @@ async def test_threads_orders_by_most_recent_update(seeded) -> None:
 
 @pytest.mark.asyncio
 async def test_threads_respects_limit(seeded) -> None:
-    response = await seeded.get("/graph-agent/threads", params={"user_id": "alice", "limit": 1})
+    response = await seeded.get(
+        "/graph-agent/threads",
+        headers=auth_headers_for("alice"),
+        params={"user_id": "alice", "limit": 1},
+    )
 
     assert response.status_code == 200
     assert [t["thread_id"] for t in response.json()["threads"]] == ["g-alice-multi"]
@@ -191,8 +220,10 @@ async def test_threads_respects_limit(seeded) -> None:
 @pytest.mark.asyncio
 async def test_agui_runs_are_listed_by_threads(seeded) -> None:
     """An AG-UI run records the same metadata, so its thread lists like any other."""
+    headers = auth_headers_for("alice")
     response = await seeded.post(
         "/agui/graph-agent/run",
+        headers=headers,
         json={
             "threadId": "agui-thread",
             "runId": "agui-run",
@@ -205,7 +236,13 @@ async def test_agui_runs_are_listed_by_threads(seeded) -> None:
     )
     assert response.status_code == 200
 
-    threads = (await seeded.get("/graph-agent/threads", params={"user_id": "alice"})).json()
+    threads = (
+        await seeded.get(
+            "/graph-agent/threads",
+            headers=headers,
+            params={"user_id": "alice"},
+        )
+    ).json()
     listed = {t["thread_id"]: t for t in threads["threads"]}
     assert "agui-thread" in listed
     assert listed["agui-thread"]["title"] == "from ag-ui"
@@ -214,11 +251,16 @@ async def test_agui_runs_are_listed_by_threads(seeded) -> None:
 
 @pytest.mark.asyncio
 async def test_history_returns_full_conversation(seeded) -> None:
+    headers = auth_headers_for("alice")
     for agent_id, thread_id, first, turns in [
         ("graph-agent", "g-alice-multi", "first turn", 3),
         ("functional-agent", "f-alice-multi", "fn first turn", 2),
     ]:
-        response = await seeded.post(f"/{agent_id}/history", json={"thread_id": thread_id})
+        response = await seeded.post(
+            f"/{agent_id}/history",
+            headers=headers,
+            json={"thread_id": thread_id},
+        )
         assert response.status_code == 200
         messages = response.json()["messages"]
         assert [m["type"] for m in messages] == ["human", "ai"] * turns

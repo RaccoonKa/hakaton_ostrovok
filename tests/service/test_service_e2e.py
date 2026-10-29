@@ -1,16 +1,33 @@
+import json
 from unittest.mock import patch
 
 import pytest
-from langchain_core.messages import AIMessage, ToolCall, ToolMessage
+from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage, ChatMessage as LangchainChatMessage, ToolCall, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.types import StreamWriter
+from pydantic import BaseModel, Field
 
 from agents.agents import Agent
-from agents.utils import CustomData
-from client import AgentClient
+from core.auth_crypto import create_access_token
 from schema.schema import ChatMessage
+from service import app
 from service.utils import langchain_to_chat_message
+
+
+class CustomData(BaseModel):
+    """Custom data being sent by an agent."""
+
+    type: str = ""
+    data: dict = Field(default_factory=dict)
+
+    def to_langchain(self) -> LangchainChatMessage:
+        return LangchainChatMessage(content=[self.data], role="custom")
+
+    def dispatch(self, writer: StreamWriter) -> None:
+        writer(self.to_langchain())
+
 
 START_MESSAGE = CustomData(type="start", data={"key1": "value1", "key2": 123})
 
@@ -87,24 +104,40 @@ def mock_database_settings(mock_env):
         yield mock_settings
 
 
-def test_agent_stream(mock_database_settings, mock_httpx):
-    """Test that streaming from our static agent works correctly with token streaming."""
+def test_agent_stream(mock_database_settings):
+    """Test that streaming from our static agent works correctly with token streaming and Bearer auth."""
     agent_meta = Agent(description="A static agent.", graph_like=static_agent)
-    with patch.dict("agents.agents.agents", {"static-agent": agent_meta}, clear=True):
-        client = AgentClient(agent="static-agent")
-
-    # Use stream to get intermediate responses
-    messages = []
+    token = create_access_token(user_id="test-e2e-user", email="test@e2e.com")
+    headers = {"Authorization": f"Bearer {token}"}
 
     def agent_lookup(agent_id):
         if agent_id == "static-agent":
             return static_agent
         return None
 
-    with patch("service.service.get_agent", side_effect=agent_lookup):
-        for response in client.stream("Test message", stream_tokens=False):
-            if isinstance(response, ChatMessage):
-                messages.append(response)
+    messages = []
+    with (
+        patch.dict("agents.agents.agents", {"static-agent": agent_meta}, clear=True),
+        patch("service.service.get_agent", side_effect=agent_lookup),
+        TestClient(app, headers=headers) as client,
+    ):
+        with client.stream(
+            "POST",
+            "/static-agent/stream",
+            json={"message": "Test message", "stream_tokens": False},
+        ) as response:
+            assert response.status_code == 200
+            for line in response.iter_lines():
+                if line.startswith("data: "):
+                    raw = line[6:].strip()
+                    if raw == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(raw)
+                        if data.get("type") == "message":
+                            messages.append(ChatMessage.model_validate(data["content"]))
+                    except Exception:
+                        pass
 
     for expected, actual in zip(EXPECTED_OUTPUT_MESSAGES, messages):
         actual.run_id = None

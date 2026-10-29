@@ -198,7 +198,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
           >
             <Icon name="briefcase" size={12} color={colors.textMuted} />
             <Text style={[styles.featureText, { color: colors.textSecondary }]}>
-              {mainFlight?.baggage || primaryTransport?.baggage || "Багаж включён"}
+              {mainFlight?.baggage || primaryTransport?.conditions || "Багаж включён"}
             </Text>
           </View>
 
@@ -255,8 +255,7 @@ const TripCardMobileComponent: React.FC<TripCardMobileProps> = ({
                     Поезд: {primaryTransport?.origin || "Москва"} → {primaryTransport?.destination || option.destination}
                   </Text>
                   <Text style={[styles.timelineStepDesc, { color: colors.textSecondary }]}>
-                    {primaryTransport?.carrier || "Поезд РЖД"}
-                    {primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""} •{" "}
+                    {primaryTransport?.carrier || "Поезд РЖД"} •{" "}
                     {primaryTransport?.transit_point ? `Стыковка: ${primaryTransport.transit_point}` : "Прямой маршрут"} •{" "}
                     {primaryTransport?.duration ? `В пути ${formatDuration(primaryTransport.duration)}` : "Комфортный вагон"}
                   </Text>

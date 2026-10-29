@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+from typing import Literal, cast
 
 from langchain_core.tools import tool
 
@@ -51,8 +52,11 @@ def validate_travel_request_tool(
     if travelers:
         req.travelers = travelers
         req.travelers_provided = True
-    if budget_mode:
-        req.budget_mode = budget_mode
+    if budget_mode and budget_mode in ("unknown", "specified", "no_limit", "flexible_scenarios"):
+        req.budget_mode = cast(
+            Literal["unknown", "specified", "no_limit", "flexible_scenarios"],
+            budget_mode,
+        )
     elif budget and budget > 0:
         req.budget = budget
         req.budget_mode = "specified"

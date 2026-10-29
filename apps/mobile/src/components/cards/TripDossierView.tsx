@@ -156,7 +156,6 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
             <View style={styles.trainDetailsRow}>
               <Text style={[styles.trainDetailText, { color: colors.textSecondary }]}>
                 {primaryTransport.carrier || "РЖД"}
-                {primaryTransport.flight_number ? ` • №${primaryTransport.flight_number}` : ""}
               </Text>
               {primaryTransport.duration ? (
                 <Text style={[styles.trainDetailText, { color: colors.textSecondary }]}>
@@ -228,8 +227,6 @@ export const TripDossierView: React.FC<TripDossierViewProps> = ({
               <Text style={[styles.stageDesc, { color: colors.textSecondary }]}>
                 {isTrain ? (
                   `${primaryTransport?.carrier || "Поезд РЖД"}${
-                    primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""
-                  }${
                     primaryTransport?.transit_point ? ` • Стыковка: ${primaryTransport.transit_point}` : ""
                   }${primaryTransport?.duration ? ` • В пути ${formatDuration(primaryTransport.duration)}` : ""}${
                     primaryTransport?.layover_duration

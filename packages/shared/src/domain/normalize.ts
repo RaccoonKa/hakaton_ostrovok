@@ -87,14 +87,11 @@ export function normalizeTripOption(raw: any, index: number = 0): TripOption {
   ) {
     transports = [
       {
-        id: raw.transport.id || null,
         origin: raw.origin || "Москва",
         destination,
         departure_at: raw.departure_date || "",
         arrival_at: raw.departure_date || "",
         carrier: raw.transport.carrier || "Поезд РЖД",
-        flight_number: raw.transport.id || raw.transport.flight_number || null,
-        baggage: raw.transport.baggage ?? null,
         transport_type: TransportType.TRAIN,
         stops: raw.transport.stops ?? 0,
         transit_point: raw.transport.transit_point ?? null,

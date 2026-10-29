@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import logging
+
 from langchain_core.messages import BaseMessage, HumanMessage
 
 from agents.travel.logic.decision import (
@@ -23,6 +24,7 @@ from agents.travel.logic.llm_fallback import (
 )
 from agents.travel.state import TravelState
 from agents.travel.tools import mock_dataset as ds
+from domain.planning import UserRequestPatch
 from domain.request import UserRequest
 
 logger = logging.getLogger(__name__)
@@ -82,6 +84,7 @@ def call_extract(state: TravelState | dict) -> dict:
 
     selected_date = None
     side_answer = None
+    patch: UserRequestPatch | None = None
 
     if chosen_package:
         request = current_request or UserRequest()

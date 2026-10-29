@@ -54,7 +54,7 @@ export const DayTimeline: React.FC<DayTimelineProps> = ({
             title={`Поезд: ${primaryTransport?.origin || "Москва"} → ${primaryTransport?.destination || destination}`}
             subtitle={`${primaryTransport?.carrier || "Поезд РЖД"}${primaryTransport?.transit_point ? ` • Стыковка: ${primaryTransport.transit_point}` : ""}`}
             timeLabel="День 1 • 08:30"
-            description={`Поездка на поезде ${primaryTransport?.carrier || "РЖД"}${primaryTransport?.flight_number ? ` №${primaryTransport.flight_number}` : ""}.${primaryTransport?.transit_point ? ` Стыковка в ${primaryTransport.transit_point}.` : ""} Комфортабельный вагон, прибытие на вокзал.`}
+            description={`Поездка на поезде ${primaryTransport?.carrier || "РЖД"}.${primaryTransport?.transit_point ? ` Стыковка в ${primaryTransport.transit_point}.` : ""} Комфортабельный вагон, прибытие на вокзал.`}
             icon={Train}
             variant="primary"
           />
